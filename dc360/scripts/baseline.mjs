@@ -1125,6 +1125,22 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     Total 40, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0G": { total: 40, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, correcao 1 da parte 0G (a auditoria de cobertura independente
+    achou oito aberturas). `isolamento.test.ts` ganha 4 casos: o disparo de
+    cada gatilho privilegiado (momento, nivel, eventos, UPDATE OF, WHEN,
+    adiamento e tgenabled); a recusa comportamental com 42501, antes de
+    qualquer efeito, da funcao de gatilho disparada de uma tabela temporaria
+    de mesmo nome; as colunas proibidas (a credencial, o e-mail e o pessoa_id
+    de usuarios desde a 061); e a declaracao completa (o outro municipio da
+    prova da eliminacao e as colunas referenciadas da chave para a global). A
+    prova da eliminacao (copia descartavel com COMMIT, ancora, outro
+    municipio), a FK (confkey e convalidated) e a juncao (redefinicao so
+    encolhe, regime preservado) mudam dentro dos casos que ja existiam.
+    `catalogo-nominal.test.ts` ganha 38 (as sondas 17 a 22). Total 42, nenhuma
+    falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0G-correcao-1": { total: 42, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

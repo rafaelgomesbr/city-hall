@@ -1,0 +1,64 @@
+"""Leva um f03-e15.ts da forma da 0G para a forma da correcao 1 da 0G.
+
+Acrescenta, sem tirar nada: `semearOutroMunicipio` nos dois destinos na
+eliminacao, `colunasReferenciadas` na chave para a global e `gatilhos` nas
+duas funcoes de gatilho. Uso: c1izar.py <entrada> <saida> [quando-do-espelho]
+"""
+import sys
+
+entrada, saida = sys.argv[1], sys.argv[2]
+QUANDO = sys.argv[3] if len(sys.argv) > 3 else "PREENCHER"
+t = open(entrada, encoding="utf-8").read()
+
+
+def troca(velho, novo, vezes=1):
+    global t
+    n = t.count(velho)
+    if n < vezes:
+        raise SystemExit(f"nao achei {vezes}x: {velho!r} (achei {n})")
+    t = t.replace(velho, novo)
+
+
+OUTRA = (
+    'const SEMEAR_CONTA_DO_OUTRO =\n'
+    '  "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +\n'
+    '  "VALUES (:org, \'Servidor do Outro\', \'P-2\', \'outro-municipio-eliminacao@exemplo.gov.br\', \'administrador\')";\n\n'
+)
+troca("const PESSOA_FICA", OUTRA + "const PESSOA_FICA")
+troca("  semear: SEMEAR_CONTA,\n", "  semear: SEMEAR_CONTA,\n  semearOutroMunicipio: SEMEAR_CONTA_DO_OUTRO,\n", 2)
+troca('      alvo: "pessoas",\n', '      alvo: "pessoas",\n      colunasReferenciadas: ["id"],\n')
+
+CRIADOR = (
+    '      gatilhoEm: ["usuarios"],\n'
+    '      gatilhos: [\n'
+    '        { tabela: "usuarios", nome: "usuarios_ganha_pessoa", momento: "BEFORE", nivel: "ROW", eventos: ["INSERT"] },\n'
+    '        {\n'
+    '          tabela: "usuarios",\n'
+    '          nome: "usuarios_origem_da_pessoa",\n'
+    '          momento: "AFTER",\n'
+    '          nivel: "ROW",\n'
+    '          eventos: ["INSERT"],\n'
+    '          adiado: "INITIALLY DEFERRED",\n'
+    '        },\n'
+    '      ],\n'
+)
+ESPELHO = (
+    '      gatilhoEm: ["usuarios"],\n'
+    '      gatilhos: [\n'
+    '        {\n'
+    '          tabela: "usuarios",\n'
+    '          nome: "usuarios_espelha_credencial_na_pessoa",\n'
+    '          momento: "AFTER",\n'
+    '          nivel: "ROW",\n'
+    '          eventos: ["UPDATE"],\n'
+    '          colunasDoUpdate: ["senha_hash", "falhas_login", "bloqueado_ate", "senha_provisoria_ate", "email"],\n'
+    '          quando: ' + repr(QUANDO).replace("'", '"') + ',\n'
+    '        },\n'
+    '      ],\n'
+)
+i = t.index('      gatilhoEm: ["usuarios"],\n')
+t = t[:i] + CRIADOR + t[i + len('      gatilhoEm: ["usuarios"],\n'):]
+j = t.index('      gatilhoEm: ["usuarios"],\n', i + len(CRIADOR))
+t = t[:j] + ESPELHO + t[j + len('      gatilhoEm: ["usuarios"],\n'):]
+open(saida, "w", encoding="utf-8", newline="\n").write(t)
+print("ok", saida)

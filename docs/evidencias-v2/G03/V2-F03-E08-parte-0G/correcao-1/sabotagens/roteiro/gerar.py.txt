@@ -1,0 +1,214 @@
+"""Gera as sabotagens da correcao 1 da parte 0G (C1a a C8b).
+
+Cada uma e TEMPORARIA: rodar.sh a copia para a arvore, roda o portao e a tira.
+  sql/<s>.sql     -> db/migrations/999_sabotagem.sql
+  sql061/<s>.sql  -> db/migrations/061_sabotagem.sql (faz as vezes da migracao da E08)
+  054/<s>.sql     -> a 054 da 1B adaptada (c1), trocada
+  e15/<s>.ts      -> db/test/catalogo/f03-e15.ts (a 1B adaptada c1, trocada)
+  e08/<s>.ts      -> db/test/catalogo/f03-e08.ts
+"""
+import os
+
+S = os.path.dirname(os.path.abspath(__file__))
+for d in ["sql", "sql061", "054", "e15", "e08"]:
+    os.makedirs(os.path.join(S, d), exist_ok=True)
+E15 = open(os.path.join(S, "1b", "f03-e15-adaptada-c1.ts"), encoding="utf-8").read()
+M54 = open(os.path.join(S, "1b", "054-adaptada-c1.sql"), encoding="utf-8").read()
+
+
+def grava(pasta, nome, texto):
+    with open(os.path.join(S, pasta, nome), "w", encoding="utf-8", newline="\n") as f:
+        f.write(texto)
+
+
+def troca(t, velho, novo):
+    if t.count(velho) != 1:
+        raise SystemExit(f"esperava 1x: {velho!r} (achei {t.count(velho)})")
+    return t.replace(velho, novo)
+
+
+# ---------------------------------------------------------------- item 1
+SELECT = ("id", "organizacao_id", "nome", "matricula", "email", "papel", "equipe_id", "ativo",
+          "criado_em", "ultimo_acesso", "foto_chave", "busca", "foto_bytes", "pessoa_id")
+INSERT = ("id", "organizacao_id", "nome", "matricula", "papel", "equipe_id", "ativo", "foto_chave",
+          "foto_bytes")
+UPDATE = ("nome", "matricula", "papel", "equipe_id", "ativo", "foto_chave", "foto_bytes")
+
+
+def e08(grupos, comentario):
+    linhas = []
+    for privilegio, colunas, redefine in grupos:
+        linhas.append(
+            "    {\n"
+            f'      tabela: "usuarios", papel: "dc360_app", privilegio: "{privilegio}",\n'
+            f"      colunas: {list(colunas)!r},\n".replace("'", '"') +
+            '      migracao: "061", etapa: ETAPA, motivo: MOTIVO,' + (" redefine: true," if redefine else "") + "\n"
+            "    },\n"
+        )
+    return (
+        f"// {comentario}\n"
+        'import type { ContribuicaoDoCatalogo } from "./tipos.js";\n\n'
+        'const ETAPA = "V2-F03-E08";\n'
+        'const MOTIVO = "Sabotagem da correcao 1 da 0G: a E08 encolhe o privilegio de usuarios (passo 3 da P-04).";\n\n'
+        "export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {\n"
+        "  funcoes: [],\n  excecoes: [],\n  colunasComUpdate: [],\n"
+        "  privilegiosDeColuna: [\n" + "".join(linhas) + "  ],\n};\n"
+    )
+
+
+def sql061(update, comentario):
+    return (
+        f"-- {comentario}\n"
+        "REVOKE SELECT, INSERT, UPDATE ON usuarios FROM dc360_app;\n"
+        f"GRANT SELECT ({', '.join(SELECT)}) ON usuarios TO dc360_app;\n"
+        f"GRANT INSERT ({', '.join(INSERT)}) ON usuarios TO dc360_app;\n"
+        f"GRANT UPDATE ({', '.join(update)}) ON usuarios TO dc360_app;\n"
+    )
+
+
+grava("sql061", "C1c.sql", sql061(UPDATE, "C1c (controle): a E08 encolhe o privilegio de usuarios na forma da ADR"))
+grava("e08", "C1c.ts", e08([("UPDATE", UPDATE, True), ("INSERT", INSERT, True), ("SELECT", SELECT, False)],
+                           "C1c (controle): a E08 encolhe as listas de usuarios"))
+grava("sql061", "C1b.sql", sql061(UPDATE + ("senha_hash",), "C1b: a E08 encolhe, mas deixa o UPDATE de senha_hash"))
+grava("e08", "C1b.ts", e08([("UPDATE", UPDATE + ("senha_hash",), True), ("INSERT", INSERT, True),
+                            ("SELECT", SELECT, False)],
+                           "C1b: a lista de UPDATE encolhida que ainda tem senha_hash (encolher a da E15 e legal)"))
+UPDATE_E15 = ("nome", "matricula", "email", "papel", "equipe_id", "ativo", "senha_hash", "falhas_login",
+              "bloqueado_ate", "senha_provisoria_ate", "foto_chave", "foto_bytes")
+grava("sql", "C1a.sql", "-- C1a: uma etapa posterior amplia o UPDATE de usuarios (ultimo_acesso)\n"
+      "GRANT UPDATE (ultimo_acesso) ON usuarios TO dc360_app;\n")
+grava("e08", "C1a.ts", e08([("UPDATE", UPDATE_E15 + ("ultimo_acesso",), True)],
+                           "C1a: redefine AMPLIANDO a lista da E15 sem declarar a ampliacao").replace('migracao: "061"', 'migracao: "999"'))
+
+# ---------------------------------------------------------------- item 2
+inicio = E15.index('    {\n      tabela: "origens_de_conta",')
+fim = E15.index("    },\n", inicio) + len("    },\n")
+ORIGEM = E15[inicio:fim]
+
+
+def e08_excecao(origem, comentario):
+    return (
+        f"// {comentario}\n"
+        'import type { ContribuicaoDoCatalogo, DestinoNaEliminacao } from "./tipos.js";\n\n'
+        'const ETAPA = "V2-F03-E08";\n'
+        "const SEM_GRANT = { dc360_app: [], dc360_console: [], PUBLIC: [] } as const;\n"
+        "const ORIGEM_FICA: DestinoNaEliminacao = {\n"
+        '  destino: "fica",\n'
+        '  porque: "A marca e o registro permanente de como a conta ganhou a pessoa (correcao 3), e sobrevive.",\n'
+        '  semear: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, \'S\', \'P-1\', \'prova-eliminacao@exemplo.gov.br\', \'administrador\')",\n'
+        '  semearOutroMunicipio: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, \'S\', \'P-2\', \'outro-municipio-eliminacao@exemplo.gov.br\', \'administrador\')",\n'
+        '  linhasDoMunicipio: "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id WHERE u.organizacao_id = :org",\n'
+        '  coluna: "usuario_id",\n'
+        "};\n\n"
+        "export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {\n"
+        "  funcoes: [],\n  excecoes: [\n" + origem + "  ],\n  colunasComUpdate: [],\n};\n"
+    )
+
+
+sem_regime = troca(ORIGEM, '      semMunicipio: { especie: "protegida", naEliminacao: ORIGEM_FICA },\n', "")
+sem_regime = troca(sem_regime, "      etapa: ETAPA,\n", "      etapa: ETAPA,\n      redefine: true,\n")
+grava("e08", "C2a.ts", e08_excecao(sem_regime, "C2a: a E08 redefine origens_de_conta SEM semMunicipio (volta a excecao comum)"))
+global_ = troca(ORIGEM, 'especie: "protegida"', 'especie: "global"')
+global_ = troca(global_, "      etapa: ETAPA,\n", "      etapa: ETAPA,\n      redefine: true,\n")
+grava("e08", "C2b.ts", e08_excecao(global_, "C2b: a E08 redefine origens_de_conta de protegida para global"))
+
+# ---------------------------------------------------------------- item 3
+grava("sql", "C3a.sql",
+      "-- C3a: um gatilho ADIADO que recusa so na confirmacao da eliminacao\n"
+      "CREATE FUNCTION sabotagem_recusa_no_fim() RETURNS trigger LANGUAGE plpgsql\n"
+      "  SET search_path = public, pg_temp\n"
+      "  AS $$ BEGIN RAISE EXCEPTION 'sabotagem C3a: recusa na confirmacao'; END $$;\n"
+      "CREATE CONSTRAINT TRIGGER usuarios_recusa_no_fim AFTER DELETE ON usuarios\n"
+      "  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION sabotagem_recusa_no_fim();\n")
+grava("sql", "C3b.sql",
+      "-- C3b: um gatilho ADIADO e privilegiado (declarado e conferindo TG_RELID) apaga a pessoa\n"
+      "-- da conta eliminada so na confirmacao; a pessoa e declarada 'fica'.\n"
+      "DROP TRIGGER pessoas_nao_se_apagam ON pessoas;\n"
+      "CREATE FUNCTION sabotagem_pessoa_some() RETURNS trigger LANGUAGE plpgsql\n"
+      "  SECURITY DEFINER SET search_path = public, pg_temp AS $$\n"
+      "  BEGIN\n"
+      "    IF TG_RELID IS DISTINCT FROM 'public.usuarios'::regclass THEN\n"
+      "      RAISE EXCEPTION 'so de usuarios' USING ERRCODE = 'insufficient_privilege';\n"
+      "    END IF;\n"
+      "    DELETE FROM pessoas WHERE id = OLD.pessoa_id;\n"
+      "    RETURN NULL;\n"
+      "  END $$;\n"
+      "REVOKE ALL ON FUNCTION sabotagem_pessoa_some() FROM PUBLIC;\n"
+      "CREATE CONSTRAINT TRIGGER usuarios_pessoa_some AFTER DELETE ON usuarios\n"
+      "  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION sabotagem_pessoa_some();\n")
+ENTRADA_C3B = (
+    "  funcoes: [\n"
+    "    {\n"
+    '      nome: "sabotagem_pessoa_some",\n'
+    '      assinatura: "public.sabotagem_pessoa_some()",\n'
+    '      migracao: "999",\n'
+    "      etapa: ETAPA,\n"
+    "      executavelPor: [],\n"
+    '      gatilhoEm: ["usuarios"],\n'
+    "      gatilhos: [\n"
+    '        { tabela: "usuarios", nome: "usuarios_pessoa_some", momento: "AFTER", nivel: "ROW", eventos: ["DELETE"], adiado: "INITIALLY DEFERRED" },\n'
+    "      ],\n"
+    '      motivo: "Sabotagem C3b: gatilho adiado e privilegiado que apaga a pessoa da conta apagada na confirmacao.",\n'
+    '      tenant: "relogio",\n'
+    '      confere: "Sabotagem: so a pessoa da propria conta apagada (OLD.pessoa_id), depois de conferir TG_RELID.",\n'
+    '      semProva: "Sabotagem temporaria, nunca commitada: a prova e a propria rodada do portao com ela.",\n'
+    "    },\n"
+)
+grava("e15", "C3b.ts", troca(E15, "  funcoes: [\n", ENTRADA_C3B))
+
+# ---------------------------------------------------------------- item 4
+c4 = troca(E15, "const ORIGEM_FICA: DestinoNaEliminacao = {\n  destino: \"fica\",",
+           "const ORIGEM_FICA: DestinoNaEliminacao = {\n  destino: \"some\",")
+c4 = troca(c4, '  linhasDoMunicipio:\n    "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id " +\n    "WHERE u.organizacao_id = :org",\n  coluna: "usuario_id",',
+           '  linhasDoMunicipio: "SELECT id AS chave FROM usuarios WHERE organizacao_id = :org",\n  coluna: "pessoa_id",')
+grava("e15", "C4.ts", c4)
+
+# ---------------------------------------------------------------- item 5
+grava("sql", "C5.sql",
+      "-- C5: a eliminacao de UM municipio apaga as marcas de origem de TODOS (DELETE sem filtro),\n"
+      "-- e o catalogo declara 'some'. O nome da tabela vai montado para nao citar origens_de_conta.\n"
+      "DROP TRIGGER origens_de_conta_nao_se_reescrevem ON origens_de_conta;\n"
+      "CREATE FUNCTION sabotagem_apaga_marcas() RETURNS trigger LANGUAGE plpgsql\n"
+      "  SET search_path = public, pg_temp\n"
+      "  AS $$ BEGIN\n"
+      "    -- so quando quem apaga e o dono (a eliminacao, SECURITY DEFINER); o DELETE do app nao chega aqui\n"
+      "    IF current_user <> 'dc360_app' THEN EXECUTE 'DELETE FROM public.' || 'origens' || '_de_conta'; END IF;\n"
+      "    RETURN NULL;\n"
+      "  END $$;\n"
+      "CREATE TRIGGER usuarios_apaga_marcas AFTER DELETE ON usuarios\n"
+      "  FOR EACH STATEMENT EXECUTE FUNCTION sabotagem_apaga_marcas();\n")
+grava("e15", "C5.ts", troca(E15, "const ORIGEM_FICA: DestinoNaEliminacao = {\n  destino: \"fica\",",
+                            "const ORIGEM_FICA: DestinoNaEliminacao = {\n  destino: \"some\","))
+
+# ---------------------------------------------------------------- item 6
+CHECAGEM = ("  IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'INSERT' OR TG_LEVEL <> 'ROW' THEN\n"
+            "    RAISE EXCEPTION 'conta_ganha_pessoa so serve aos gatilhos de INSERT de usuarios' USING ERRCODE = 'insufficient_privilege';\n"
+            "  END IF;\n")
+grava("054", "C6a.sql", troca(M54, CHECAGEM, "  PERFORM TG_RELID = 'public.usuarios'::regclass;\n"))
+c6b = troca(M54, CHECAGEM, "")
+c6b = troca(c6b, "      RETURNING id INTO v_pessoa;\n", "      RETURNING id INTO v_pessoa;\n" + CHECAGEM.replace("  ", "      ", 1).replace("\n    RAISE", "\n        RAISE").replace("\n  END IF;", "\n      END IF;"))
+grava("054", "C6b.sql", c6b)
+
+# ---------------------------------------------------------------- item 7
+grava("sql", "C7a.sql", "-- C7a: o gatilho privilegiado do espelho so dispara em replica\n"
+      "ALTER TABLE usuarios ENABLE REPLICA TRIGGER usuarios_espelha_credencial_na_pessoa;\n")
+grava("sql", "C7b.sql", "-- C7b: o gatilho privilegiado adiado desabilitado\n"
+      "ALTER TABLE usuarios DISABLE TRIGGER usuarios_origem_da_pessoa;\n")
+grava("sql", "C7c.sql", "-- C7c: o gatilho adiado recriado com uma condicao WHEN que nunca vale\n"
+      "DROP TRIGGER usuarios_origem_da_pessoa ON usuarios;\n"
+      "CREATE CONSTRAINT TRIGGER usuarios_origem_da_pessoa AFTER INSERT ON usuarios\n"
+      "  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW.organizacao_id IS NULL)\n"
+      "  EXECUTE FUNCTION conta_ganha_pessoa();\n")
+
+# ---------------------------------------------------------------- item 8
+grava("sql", "C8a.sql", "-- C8a: a chave para a pessoa global recriada NOT VALID\n"
+      "ALTER TABLE usuarios DROP CONSTRAINT usuarios_pessoa_id_fkey;\n"
+      "ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_id_fkey\n"
+      "  FOREIGN KEY (pessoa_id) REFERENCES pessoas (id) NOT VALID;\n")
+grava("sql", "C8b.sql", "-- C8b: a chave para a pessoa global referencia OUTRA coluna unica de pessoas\n"
+      "ALTER TABLE pessoas ADD COLUMN espelho uuid GENERATED ALWAYS AS (id) STORED;\n"
+      "ALTER TABLE pessoas ADD CONSTRAINT pessoas_espelho_key UNIQUE (espelho);\n"
+      "ALTER TABLE usuarios DROP CONSTRAINT usuarios_pessoa_id_fkey;\n"
+      "ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_id_fkey\n"
+      "  FOREIGN KEY (pessoa_id) REFERENCES pessoas (espelho);\n")
+print("ok")

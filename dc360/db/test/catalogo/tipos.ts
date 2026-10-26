@@ -31,6 +31,14 @@
  * gatilho privilegiada sem EXECUTE de ninguém, presa às tabelas declaradas e
  * conferindo a que a disparou (`gatilhoEm`).
  *
+ * A correção 1 da 0G fecha o que a auditoria de cobertura achou aberto: a
+ * redefinição de privilégio por coluna só encolhe (`ampliacao` declarada à
+ * parte) e há `ColunaProibida`; a redefinição de exceção preserva o regime; o
+ * destino na eliminação é provado com COMMIT, âncora e outro município
+ * (`semearOutroMunicipio`, `compartilhar`); a função de gatilho declara os
+ * `gatilhos` e é provada recusando fora da tabela; e a chave para a global
+ * declara `colunasReferenciadas`.
+ *
  * Quem cria função, exceção ou coluna com UPDATE na F03 escreve a entrada no
  * arquivo da PRÓPRIA etapa (`f03-eNN.ts`), nunca em `isolamento.test.ts`: o
  * portão fica congelado depois desta parte, e o que muda a cada etapa é o
@@ -148,6 +156,40 @@ export interface FuncaoPrivilegiada {
    * é o gatilho, não o papel (nenhum papel do produto, nem PUBLIC, tem EXECUTE).
    */
   readonly gatilhoEm?: readonly string[];
+  /**
+   * OS GATILHOS que chamam a função de gatilho privilegiada, um por um
+   * (correção 1 da parte 0G, item 7 da auditoria de cobertura). Obrigatório
+   * (e só aceito) junto de `gatilhoEm`: as tabelas destes gatilhos são
+   * exatamente as de `gatilhoEm`. CONFERIDO (`conferirDisparoDosGatilhos`)
+   * contra `pg_trigger`, nos dois sentidos: o mesmo conjunto de gatilhos (por
+   * tabela e nome), e de cada um o momento, o nível, os eventos, as colunas
+   * do `UPDATE OF`, a condição `WHEN` e o adiamento; e todo gatilho
+   * HABILITADO (`tgenabled` `O` ou `A`: nem desabilitado, nem só para réplica).
+   * Sem isso, uma migração desabilitava o gatilho, o deixava só para réplica
+   * ou mudava o evento e a condição, e `gatilhoEm` continuava batendo.
+   */
+  readonly gatilhos?: readonly GatilhoDeclarado[];
+}
+
+/** Um gatilho de uma função de gatilho privilegiada, como o banco o tem (correção 1 da 0G). */
+export interface GatilhoDeclarado {
+  /** A tabela, como o catálogo escreve o nome (nu em `public`). */
+  readonly tabela: string;
+  /** `pg_trigger.tgname`. */
+  readonly nome: string;
+  readonly momento: "BEFORE" | "AFTER" | "INSTEAD OF";
+  readonly nivel: "ROW" | "STATEMENT";
+  /** Os eventos, em qualquer ordem (a conferência ordena). */
+  readonly eventos: readonly ("INSERT" | "UPDATE" | "DELETE" | "TRUNCATE")[];
+  /** As colunas de `UPDATE OF`, na ordem em que o banco as guarda; ausente quando não há. */
+  readonly colunasDoUpdate?: readonly string[];
+  /**
+   * A condição `WHEN`, exatamente como `pg_get_triggerdef` a escreve, sem o
+   * `WHEN (` e o `)` de fora; ausente quando não há.
+   */
+  readonly quando?: string;
+  /** Gatilho de restrição adiável: `INITIALLY DEFERRED` ou `INITIALLY IMMEDIATE`; ausente quando não é adiável. */
+  readonly adiado?: "INITIALLY DEFERRED" | "INITIALLY IMMEDIATE";
 }
 
 /**
@@ -256,7 +298,17 @@ export interface RegimeSemMunicipio {
 }
 
 export interface DestinoNaEliminacao {
-  /** `fica`: as linhas ligadas ao município sobrevivem à eliminação; `some`: saem com ele. */
+  /**
+   * `fica`: as linhas ligadas ao município sobrevivem à eliminação; `some`:
+   * saem com ele. A prova (correção 1 da 0G) roda num banco DESCARTÁVEL, cópia
+   * do banco do portão, com COMMIT de verdade em cada passo (semeadura, fase 1
+   * e fase 2 em transações separadas, como o relógio faz, as duas fases como
+   * `dc360_app`), então gatilho `DEFERRABLE INITIALLY DEFERRED` dispara; as
+   * chaves listadas existem na tabela e na coluna declaradas ANTES da
+   * eliminação (âncora); e as linhas do OUTRO município (`semearOutroMunicipio`)
+   * e toda linha da tabela fora do município eliminado ficam intactas, valor
+   * por valor.
+   */
   readonly destino: "fica" | "some";
   /** Por que esse destino, e quem cuida da linha depois. Tamanho mínimo conferido. */
   readonly porque: string;
@@ -276,6 +328,24 @@ export interface DestinoNaEliminacao {
    * `usuarios`, que o gatilho criador liga a uma pessoa nova).
    */
   readonly semear: string;
+  /**
+   * SQL rodado como DONO para semear o OUTRO município da prova (`:org` vira
+   * o uuid DELE), que não é eliminado (correção 1 da 0G, item 5). Obrigatório
+   * na junção do catálogo: um gatilho de eliminação com `DELETE` sem filtro
+   * apagava as linhas do município da prova JUNTO com as de todo outro, e o
+   * destino `some` passava. `linhasDoMunicipio` com o outro município precisa
+   * achar linhas, e elas (e toda linha da tabela fora do município eliminado)
+   * ficam iguais, valor por valor.
+   */
+  readonly semearOutroMunicipio?: string;
+  /**
+   * Quando couber (depois da liberação da segunda conta, 064): SQL rodado como
+   * DONO, depois das duas semeaduras, que faz uma linha desta tabela ficar
+   * COMPARTILHADA entre o município da prova (`:org`) e o outro (`:outra`),
+   * como a pessoa com conta nos dois. A linha compartilhada nunca some com a
+   * eliminação de um deles, qualquer que seja o destino.
+   */
+  readonly compartilhar?: string;
 }
 
 /**
@@ -299,6 +369,14 @@ export interface ChaveParaTabelaGlobal {
   readonly colunas: readonly string[];
   /** A tabela global referenciada. */
   readonly alvo: string;
+  /**
+   * As colunas REFERENCIADAS no alvo (`pg_constraint.confkey`), na ordem da
+   * restrição (correção 1 da 0G, item 8). Obrigatório na junção do catálogo;
+   * sem ele (só nas sondas), a conferência exige a chave primária do alvo. A
+   * restrição também precisa estar VALIDADA (`convalidated`): `NOT VALID`
+   * deixa linhas antigas apontando para o nada.
+   */
+  readonly colunasReferenciadas?: readonly string[];
   readonly migracao: string;
   readonly etapa: string;
   readonly motivo: string;
@@ -335,7 +413,38 @@ export interface PrivilegioDeColuna {
   readonly etapa: string;
   /** Por que por coluna, e por que estas. Tamanho mínimo conferido. */
   readonly motivo: string;
+  /**
+   * Uma redefinição SÓ ENCOLHE a lista (correção 1 da 0G, item 1): coluna que
+   * a entrada anterior não tinha só entra declarada aqui, com a justificativa,
+   * e a junção compara o conjunto anterior com o novo (o que a redefinição
+   * acrescenta é EXATAMENTE `ampliacao.colunas`). Só existe junto de
+   * `redefine`, e nunca traz coluna de `COLUNAS_PROIBIDAS`.
+   */
+  readonly ampliacao?: { readonly colunas: readonly string[]; readonly justificativa: string };
   readonly redefine?: true;
+}
+
+/**
+ * COLUNA PROIBIDA (correção 1 da 0G, item 1): o privilégio que nenhum papel do
+ * produto (`dc360_app`, `dc360_console`) nem PUBLIC tem na coluna, de tabela ou
+ * de coluna, a partir da migração `desdeMigracao` (a 061 da E08 para a
+ * credencial, o e-mail e o `pessoa_id` de `usuarios`). Nunca se redefine nem
+ * se tira por arquivo de etapa: a lista do portão mora em
+ * `catalogo/colunas-proibidas.ts`, e uma etapa só ACRESCENTA proibição.
+ *
+ * CONFERIDO (`conferirColunasProibidas`) quando a migração `desdeMigracao`
+ * existe no repositório: o catálogo não declara o privilégio na coluna
+ * (grupo ou `colunasComUpdate`) e o banco não o concede (`has_column_privilege`,
+ * que vê o privilégio de tabela e a herança). Antes dela, só a forma.
+ */
+export interface ColunaProibida {
+  readonly tabela: string;
+  readonly colunas: readonly string[];
+  readonly privilegios: readonly PrivilegioPorColuna[];
+  /** A migração (3 dígitos) a partir da qual a proibição vale. */
+  readonly desdeMigracao: string;
+  readonly etapa: string;
+  readonly motivo: string;
 }
 
 /** Uma coluna com um privilégio de um papel: a forma achatada que a conferência compara. */
@@ -483,4 +592,6 @@ export interface ContribuicaoDoCatalogo {
   readonly privilegiosDeColuna?: readonly PrivilegioDeColuna[];
   /** Parte 0G: chave estrangeira sem `organizacao_id` para tabela `global`. */
   readonly chavesParaGlobais?: readonly ChaveParaTabelaGlobal[];
+  /** Correção 1 da 0G: proibição a MAIS (uma etapa só acrescenta; a do portão está em `colunas-proibidas.ts`). */
+  readonly colunasProibidas?: readonly ColunaProibida[];
 }

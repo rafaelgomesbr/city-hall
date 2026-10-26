@@ -26,6 +26,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   CHAVES_PARA_GLOBAIS,
   COLUNAS_COM_UPDATE_DO_APP,
+  COLUNAS_PROIBIDAS,
   CONTRIBUICOES_DO_CATALOGO,
   EXCECOES_AO_ISOLAMENTO,
   FUNCOES_PRIVILEGIADAS,
@@ -43,8 +44,11 @@ import {
   composicoesDePolicies,
   conferirAclDeExtensoes,
   conferirChavesEstrangeiras,
+  conferirColunasProibidas,
   conferirCorpoDasFuncoes,
   conferirCriacaoDeObjetos,
+  conferirDeclaracoesCompletas,
+  conferirDisparoDosGatilhos,
   conferirEliminacaoSemMunicipio,
   conferirDefinicaoInstalada,
   conferirEsquemas,
@@ -62,6 +66,7 @@ import {
   conferirVisoes,
   fontesDoRepositorio,
   provarIsolamento,
+  provarRecusaForaDaTabela,
   semear,
   tabelasDaProva,
   visoesLegiveis,
@@ -618,6 +623,40 @@ describe("CA-06: isolamento entre organizações", () => {
 
   it("função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G)", async () => {
     expect(await conferirGatilhosPrivilegiados(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)", async () => {
+    /*
+      `gatilhoEm` só dizia a tabela. Uma migração que desabilitasse o gatilho,
+      o deixasse só para réplica, ou trocasse o evento e a condição WHEN
+      continuava batendo com ele.
+    */
+    expect(await conferirDisparoDosGatilhos(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)", async () => {
+    /*
+      A conferência do corpo é textual e aceitava `PERFORM TG_RELID = ...`,
+      que não recusa nada. Aqui cada função SECURITY DEFINER que retorna
+      trigger, perguntada ao banco, é disparada pela cópia de cada gatilho
+      real numa `pg_temp.<tabela>`, numa transação desfeita.
+    */
+    expect(await provarRecusaForaDaTabela(db)).toEqual([]);
+  });
+
+  it("nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G)", async () => {
+    expect(
+      await conferirColunasProibidas(
+        db,
+        COLUNAS_PROIBIDAS,
+        PRIVILEGIOS_DE_COLUNA,
+        fontesDoRepositorio().migracoes.keys(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G)", () => {
+    expect(conferirDeclaracoesCompletas(EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS)).toEqual([]);
   });
 
 });

@@ -25,9 +25,11 @@ import { CATALOGO_F03_E17 } from "./f03-e17.js";
 import { CATALOGO_F03_E19 } from "./f03-e19.js";
 import { CATALOGO_F03_E20 } from "./f03-e20.js";
 import { CATALOGO_F03_E21 } from "./f03-e21.js";
+import { COLUNAS_PROIBIDAS_DO_PORTAO } from "./colunas-proibidas.js";
 import {
   INVARIANTES_QUE_NAO_SE_DISPENSAM,
   type ChaveParaTabelaGlobal,
+  type ColunaProibida,
   type ColunaComPrivilegio,
   type ColunaComUpdate,
   type ContribuicaoDoCatalogo,
@@ -48,7 +50,10 @@ export * from "./tipos.js";
 export {
   chaveDaFuncao,
   conferirChavesEstrangeiras,
+  conferirColunasProibidas,
   conferirCriacaoDeObjetos,
+  conferirDeclaracoesCompletas,
+  conferirDisparoDosGatilhos,
   conferirEliminacaoSemMunicipio,
   conferirEsquemas,
   conferirExcecoes,
@@ -57,9 +62,15 @@ export {
   conferirGatilhosPrivilegiados,
   conferirPrivilegiosDeColuna,
   nomeQualificado,
+  provarRecusaForaDaTabela,
   quemExecuta,
 } from "./conferir.js";
-export type { BancoComTransacao, ConsultaSql, FontesDoCatalogo } from "./conferir.js";
+export type {
+  BancoComTransacao,
+  BancoDescartavel,
+  ConsultaSql,
+  FontesDoCatalogo,
+} from "./conferir.js";
 export {
   HistoricoDasDefinicoes,
   composicoesDePolicies,
@@ -176,11 +187,31 @@ export interface CatalogoJuntado {
   readonly privilegiosDeColunaAchatados: readonly ColunaComPrivilegio[];
   /** Parte 0G: as chaves estrangeiras sem `organizacao_id` para tabela global. */
   readonly chavesParaGlobais: readonly ChaveParaTabelaGlobal[];
+  /** Correção 1 da 0G: as colunas proibidas, as do portão mais as que as etapas acrescentam. */
+  readonly colunasProibidas: readonly ColunaProibida[];
 }
 
-/** A junção como função pura, para o teste do próprio mecanismo. */
+/**
+ * O regime de uma exceção, para a redefinição preservar (correção 1 da 0G):
+ * a exceção comum, a do fornecedor, ou a sem município com a espécie e o
+ * destino na eliminação.
+ */
+function regimeDaExcecao(e: ExcecaoAoIsolamento): string {
+  if (e.semMunicipio) {
+    return `sem município ${e.semMunicipio.especie}, ${e.semMunicipio.naEliminacao.destino} na eliminação`;
+  }
+  return e.doFornecedor ? "do fornecedor" : "exceção comum";
+}
+
+/**
+ * A junção como função pura, para o teste do próprio mecanismo. As colunas
+ * proibidas do portão (`colunas-proibidas.ts`) entram à parte, porque não são
+ * de etapa nenhuma: a junção do catálogo real as passa, e as sondas passam as
+ * delas.
+ */
 export function juntarCatalogo(
   contribuicoes: ReadonlyArray<readonly [string, ContribuicaoDoCatalogo]>,
+  proibidasDoPortao: readonly ColunaProibida[] = [],
 ): CatalogoJuntado {
   const deCada = <T>(pegar: (c: ContribuicaoDoCatalogo) => readonly T[]) =>
     contribuicoes.flatMap(([de, c]) => pegar(c).map((item) => [de, item] as const));
@@ -230,6 +261,25 @@ export function juntarCatalogo(
         throw new Error(
           `EXCECOES_AO_ISOLAMENTO: "${nova.tabela}" em ${de} redefine a exceção dispensando ` +
             `${alarga.join(", ")}, que a entrada anterior mantinha: redefinição não alarga exceção`,
+        );
+      }
+      /*
+        Correção 1 da 0G (item 2 da auditoria): o REGIME se preserva. Tirar
+        `semMunicipio` de uma tabela protegida a devolvia à exceção comum (que
+        aceita o INSERT do app com policy de INSERT) e a tirava da prova da
+        eliminação; trocar `protegida` por `global` a tornava alvo aceito de
+        chave sem município; trocar o destino na eliminação muda o que acontece
+        com a linha de quem foi eliminado. Qualquer transição de regime é
+        ampliação de exceção, e ampliação não se faz por redefinição: a regra
+        de cima, sem caminho de volta.
+      */
+      const regime = regimeDaExcecao(anterior);
+      const novo = regimeDaExcecao(nova);
+      if (regime !== novo) {
+        throw new Error(
+          `EXCECOES_AO_ISOLAMENTO: "${nova.tabela}" em ${de} redefine a exceção trocando o regime ` +
+            `(${regime} para ${novo}): o regime de uma exceção se preserva, e mudá-lo é ampliar a ` +
+            "exceção, o que uma redefinição não faz",
         );
       }
     },
@@ -324,7 +374,58 @@ export function juntarCatalogo(
     migração maior. O mesmo grupo não se declara também em `colunasComUpdate`:
     duas fontes para a mesma lista é como uma delas envelhece.
   */
+  /*
+    Correção 1 da 0G (item 1): as COLUNAS PROIBIDAS, as do portão
+    (`colunas-proibidas.ts`) e as que uma etapa acrescenta. Nunca se redefinem
+    (uma proibição não se afrouxa por arquivo de etapa) e não se repetem.
+  */
+  const colunasProibidas = comMotivo(
+    "COLUNAS_PROIBIDAS",
+    juntar(
+      "COLUNAS_PROIBIDAS",
+      [
+        ...proibidasDoPortao.map((p) => [p.etapa, p] as const),
+        ...deCada((c) => c.colunasProibidas ?? []),
+      ],
+      (p) =>
+        `${p.tabela}:${[...p.colunas].sort().join(",")}:${[...p.privilegios].sort().join(",")}`,
+      (_anterior, nova, de) => {
+        throw new Error(
+          `COLUNAS_PROIBIDAS: "${nova.tabela}" em ${de} redefine uma proibição: proibição não se redefine`,
+        );
+      },
+    ),
+    (p) => p.tabela,
+  );
+  const proibido = new Set<string>();
+  for (const p of colunasProibidas) {
+    if (!/^\d{3}$/.test(p.desdeMigracao) || p.colunas.length === 0 || p.privilegios.length === 0) {
+      throw new Error(
+        `COLUNAS_PROIBIDAS: "${p.tabela}" precisa de desdeMigracao com 3 dígitos, colunas e privilégios`,
+      );
+    }
+    for (const coluna of p.colunas) {
+      for (const privilegio of p.privilegios) {
+        const k = `${p.tabela}.${coluna}:${privilegio}`;
+        if (proibido.has(k)) {
+          throw new Error(`COLUNAS_PROIBIDAS: "${k}" proibida duas vezes`);
+        }
+        proibido.add(k);
+      }
+    }
+  }
+
   const chaveDoGrupo = (p: PrivilegioDeColuna) => `${p.papel}:${p.tabela}:${p.privilegio}`;
+  for (const [de, c] of contribuicoes) {
+    for (const p of c.privilegiosDeColuna ?? []) {
+      if (p.ampliacao && !p.redefine) {
+        throw new Error(
+          `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(p)}" em ${de} declara ampliacao sem redefine: ` +
+            "a primeira declaração de um grupo não amplia nada",
+        );
+      }
+    }
+  }
   const privilegiosDeColuna = comMotivo(
     "PRIVILEGIOS_DE_COLUNA",
     juntar(
@@ -337,6 +438,45 @@ export function juntarCatalogo(
             `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} redefine com a migração ` +
               `${nova.migracao}, que não é maior que a ${anterior.migracao} da entrada substituída`,
           );
+        }
+        /*
+          Correção 1 da 0G (item 1 da auditoria): a redefinição SÓ ENCOLHE. O
+          conjunto novo é comparado com o anterior, e o que ela acrescenta tem
+          de ser EXATAMENTE a ampliação declarada, com a justificativa. Sem
+          isso, uma etapa recolocava `senha_hash` no UPDATE de `usuarios`
+          depois da E08, e o grant correspondente passava.
+        */
+        const acrescenta = nova.colunas.filter((c) => !anterior.colunas.includes(c)).sort();
+        const declarada = [...(nova.ampliacao?.colunas ?? [])].sort();
+        if (acrescenta.length && !nova.ampliacao) {
+          throw new Error(
+            `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} redefine AMPLIANDO a lista ` +
+              `(${acrescenta.join(", ")}) sem declarar a ampliação: redefinição só encolhe`,
+          );
+        }
+        if (nova.ampliacao) {
+          if (JSON.stringify(acrescenta) !== JSON.stringify(declarada) || declarada.length === 0) {
+            throw new Error(
+              `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} declara a ampliação ` +
+                `(${declarada.join(", ") || "nada"}), e a redefinição acrescenta ` +
+                `(${acrescenta.join(", ") || "nada"}) à lista anterior`,
+            );
+          }
+          if (nova.ampliacao.justificativa.trim().length < MINIMO_DO_MOTIVO) {
+            throw new Error(
+              `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} amplia a lista com a ` +
+                `justificativa curta demais (mínimo ${MINIMO_DO_MOTIVO} caracteres)`,
+            );
+          }
+          const vetada = declarada.filter((c) =>
+            proibido.has(`${nova.tabela}.${c}:${nova.privilegio}`),
+          );
+          if (vetada.length) {
+            throw new Error(
+              `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} amplia a lista com ` +
+                `${vetada.join(", ")}, coluna proibida (COLUNAS_PROIBIDAS): nunca se aceita de volta`,
+            );
+          }
         }
       },
     ),
@@ -383,6 +523,7 @@ export function juntarCatalogo(
     colunasComUpdate,
     privilegiosDeColuna,
     privilegiosDeColunaAchatados,
+    colunasProibidas,
     chavesParaGlobais: lista(
       "CHAVES_PARA_GLOBAIS",
       (c) => c.chavesParaGlobais,
@@ -426,7 +567,7 @@ export function juntarCatalogo(
   };
 }
 
-const JUNTADO = juntarCatalogo(CONTRIBUICOES_DO_CATALOGO);
+const JUNTADO = juntarCatalogo(CONTRIBUICOES_DO_CATALOGO, COLUNAS_PROIBIDAS_DO_PORTAO);
 
 /** Toda função `SECURITY DEFINER` do banco, por assinatura. O teto `<= 27` morreu aqui. */
 export const FUNCOES_PRIVILEGIADAS: readonly FuncaoPrivilegiada[] = JUNTADO.funcoes;
@@ -446,6 +587,9 @@ export const PRIVILEGIOS_DE_COLUNA: readonly ColunaComPrivilegio[] =
   JUNTADO.privilegiosDeColunaAchatados;
 /** Parte 0G: as chaves estrangeiras sem `organizacao_id` para tabela global, por nome. */
 export const CHAVES_PARA_GLOBAIS: readonly ChaveParaTabelaGlobal[] = JUNTADO.chavesParaGlobais;
+/** Correção 1 da 0G: as colunas proibidas (as do portão mais as das etapas). */
+export const COLUNAS_PROIBIDAS: readonly ColunaProibida[] = JUNTADO.colunasProibidas;
+export { COLUNAS_PROIBIDAS_DO_PORTAO };
 
 /** Parte 0D: como a fábrica da prova comportamental monta a linha de cada tabela que precisa. */
 export const PREPAROS: readonly PreparoDeTabela[] = JUNTADO.preparos;

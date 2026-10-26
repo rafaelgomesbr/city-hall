@@ -1,0 +1,28 @@
+// C1c (controle): a E08 encolhe as listas de usuarios
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+const ETAPA = "V2-F03-E08";
+const MOTIVO = "Sabotagem da correcao 1 da 0G: a E08 encolhe o privilegio de usuarios (passo 3 da P-04).";
+
+export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [],
+  colunasComUpdate: [],
+  privilegiosDeColuna: [
+    {
+      tabela: "usuarios", papel: "dc360_app", privilegio: "UPDATE",
+      colunas: ["nome", "matricula", "papel", "equipe_id", "ativo", "foto_chave", "foto_bytes"],
+      migracao: "061", etapa: ETAPA, motivo: MOTIVO, redefine: true,
+    },
+    {
+      tabela: "usuarios", papel: "dc360_app", privilegio: "INSERT",
+      colunas: ["id", "organizacao_id", "nome", "matricula", "papel", "equipe_id", "ativo", "foto_chave", "foto_bytes"],
+      migracao: "061", etapa: ETAPA, motivo: MOTIVO, redefine: true,
+    },
+    {
+      tabela: "usuarios", papel: "dc360_app", privilegio: "SELECT",
+      colunas: ["id", "organizacao_id", "nome", "matricula", "email", "papel", "equipe_id", "ativo", "criado_em", "ultimo_acesso", "foto_chave", "busca", "foto_bytes", "pessoa_id"],
+      migracao: "061", etapa: ETAPA, motivo: MOTIVO,
+    },
+  ],
+};

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Refaz, com a sonda 17 final (a fixacao de hoje condicionada a 061 nao existir), o controle e as duas do item 1.
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g-c1
+for s in C0 C1b C1c; do mv "$S/depois/$s.txt" "$S/depois/$s-antes-do-ajuste-da-sonda-17.txt"; done
+echo "(C0, C1b e C1c rodadas de novo depois do ajuste da sonda 17; as primeiras ficam em <s>-antes-do-ajuste-da-sonda-17.txt)" >> "$S/depois/RESUMO.txt"
+bash "$S/rodar.sh" depois C0 C1b C1c
+echo REFAZER-FIM

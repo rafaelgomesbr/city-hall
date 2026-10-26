@@ -1,0 +1,767 @@
+== S1
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 6023ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 30017ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 61546ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 14 failed) 88413ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:458:23
+ ❯ test/catalogo-nominal.test.ts:473:23
+ ❯ test/catalogo-nominal.test.ts:752:24
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/isolamento.test.ts:705:75
+      Tests  15 failed | 340 passed (355)
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+== S2
+ ❯ test/funcoes-antes-do-tenant.test.ts (13 tests | 1 failed) 6321ms
+ ❯ test/isolamento.test.ts (170 tests | 4 failed) 26027ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 26910ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 87271ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/funcoes-antes-do-tenant.test.ts:285:7
+ ❯ test/isolamento.test.ts:705:75
+ ❯ test/isolamento.test.ts:740:9
+ ❯ test/isolamento.test.ts:4114:7
+ ❯ test/isolamento.test.ts:4153:63
+      Tests  10 failed | 345 passed (355)
+   × quem não é o papel de aplicação não chama nenhuma das três > o papel do console recebe permissão negada
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+== S3
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 3082ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 22664ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 58104ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 16 failed) 84418ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:162:30
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:458:23
+ ❯ test/catalogo-nominal.test.ts:473:23
+ ❯ test/catalogo-nominal.test.ts:788:23
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/isolamento.test.ts:562:40
+ ❯ test/isolamento.test.ts:705:75
+      Tests  18 failed | 337 passed (355)
+   × CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+== S3b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 5144ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 25955ms
+ ❯ test/isolamento.test.ts (170 tests | 6 failed) 60592ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 13 failed) 73888ms
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:162:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:760:30
+ ❯ test/catalogo-nominal.test.ts:788:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:344:66
+ ❯ test/isolamento.test.ts:473:63
+ ❯ test/isolamento.test.ts:516:64
+ ❯ test/isolamento.test.ts:562:40
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/isolamento.test.ts:5400:87
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:329:15
+ ❯ test/portao-comportamental.test.ts:405:7
+      Tests  22 failed | 333 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa
+   × CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== S4
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 3425ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 24477ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 54318ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 11 failed) 67853ms
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:207:7
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:731:34
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:516:64
+      Tests  12 failed | 343 passed (355)
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > tabela do fornecedor que o papel de aplicação alcança reprova
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== S5a
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 3348ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 35757ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 83960ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 17 failed) 96622ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:166:78
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:459:26
+ ❯ test/catalogo-nominal.test.ts:752:24
+ ❯ test/catalogo-nominal.test.ts:858:64
+ ❯ test/catalogo-nominal.test.ts:869:7
+ ❯ test/catalogo-nominal.test.ts:883:63
+ ❯ test/catalogo-nominal.test.ts:911:90
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/isolamento.test.ts:705:75
+ ❯ test/isolamento.test.ts:715:78
+ ❯ test/isolamento.test.ts:5440:74
+ ❯ test/portao-comportamental.test.ts:760:65
+ ❯ test/portao-comportamental.test.ts:771:68
+ ❯ test/portao-comportamental.test.ts:783:74
+      Tests  23 failed | 332 passed (355)
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)
+   × item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046
+   × item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+== S5c
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2317ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 21328ms
+ ❯ test/isolamento.test.ts (170 tests | 5 failed) 21355ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 18 failed) 65153ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:166:78
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:459:26
+ ❯ test/catalogo-nominal.test.ts:473:23
+ ❯ test/catalogo-nominal.test.ts:752:24
+ ❯ test/catalogo-nominal.test.ts:858:64
+ ❯ test/catalogo-nominal.test.ts:869:7
+ ❯ test/catalogo-nominal.test.ts:883:63
+ ❯ test/catalogo-nominal.test.ts:911:90
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/isolamento.test.ts:705:75
+ ❯ test/isolamento.test.ts:715:78
+ ❯ test/isolamento.test.ts:4114:7
+ ❯ test/isolamento.test.ts:4153:63
+ ❯ test/isolamento.test.ts:5440:74
+ ❯ test/portao-comportamental.test.ts:760:65
+ ❯ test/portao-comportamental.test.ts:771:68
+ ❯ test/portao-comportamental.test.ts:783:74
+      Tests  26 failed | 329 passed (355)
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)
+   × item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046
+   × item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+== S6
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2871ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 2 failed) 22678ms
+ ❯ test/isolamento.test.ts (170 tests | 4 failed) 55819ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 67563ms
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:344:66
+ ❯ test/isolamento.test.ts:473:63
+ ❯ test/isolamento.test.ts:516:64
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:329:15
+      Tests  15 failed | 340 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== S7
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2610ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 23772ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 55078ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 7 failed) 67825ms
+ ❯ test/catalogo-nominal.test.ts:1075:74
+ ❯ test/catalogo-nominal.test.ts:1079:62
+ ❯ test/catalogo-nominal.test.ts:1088:23
+ ❯ test/catalogo-nominal.test.ts:1101:23
+ ❯ test/catalogo-nominal.test.ts:1112:23
+ ❯ test/catalogo-nominal.test.ts:1140:23
+ ❯ test/catalogo-nominal.test.ts:1149:59
+ ❯ test/isolamento.test.ts:3049:7
+ ❯ test/isolamento.test.ts:4062:7
+ ❯ test/isolamento.test.ts:4106:74
+      Tests  10 failed | 345 passed (355)
+   × O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova
+== S8
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2198ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 20067ms
+ ❯ test/isolamento.test.ts (170 tests | 9 failed) 52521ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 62816ms
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:449:81
+ ❯ test/isolamento.test.ts:516:64
+ ❯ test/isolamento.test.ts:548:103
+ ❯ test/isolamento.test.ts:1343:7
+ ❯ test/isolamento.test.ts:1372:78
+ ❯ test/isolamento.test.ts:1382:22
+ ❯ test/isolamento.test.ts:1402:22
+ ❯ test/isolamento.test.ts:5483:83
+ ❯ test/isolamento.test.ts:5499:84
+ ❯ test/portao-comportamental.test.ts:361:15
+ ❯ test/portao-comportamental.test.ts:371:15
+ ❯ test/portao-comportamental.test.ts:382:15
+      Tests  21 failed | 334 passed (355)
+   × item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava)
+   × item 4: as policies do fornecedor, cláusula a cláusula > WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado
+   × item 4: as policies do fornecedor, cláusula a cláusula > policy nova numa tabela do fornecedor reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não agenda eliminação, nem sem sessão
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cancela eliminação (UPDATE às cegas), nem sem sessão
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== S8b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 3174ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 28775ms
+ ❯ test/isolamento.test.ts (170 tests | 5 failed) 69792ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 10 failed) 82369ms
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:453:11
+ ❯ test/isolamento.test.ts:516:64
+ ❯ test/isolamento.test.ts:548:103
+ ❯ test/isolamento.test.ts:5483:83
+ ❯ test/isolamento.test.ts:5499:84
+ ❯ test/portao-comportamental.test.ts:361:15
+ ❯ test/portao-comportamental.test.ts:371:15
+ ❯ test/portao-comportamental.test.ts:382:15
+      Tests  18 failed | 337 passed (355)
+   × item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava)
+   × item 4: as policies do fornecedor, cláusula a cláusula > WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado
+   × item 4: as policies do fornecedor, cláusula a cláusula > policy nova numa tabela do fornecedor reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não agenda eliminação, nem sem sessão
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cancela eliminação (UPDATE às cegas), nem sem sessão
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== S8c
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2955ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 23669ms
+ ❯ test/isolamento.test.ts (170 tests | 4 failed) 53833ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 64443ms
+ ❯ test/isolamento.test.ts:453:11
+ ❯ test/isolamento.test.ts:548:103
+ ❯ test/isolamento.test.ts:5483:83
+ ❯ test/isolamento.test.ts:5499:84
+ ❯ test/portao-comportamental.test.ts:361:15
+ ❯ test/portao-comportamental.test.ts:371:15
+ ❯ test/portao-comportamental.test.ts:382:15
+      Tests  8 failed | 347 passed (355)
+   × item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava)
+   × item 4: as policies do fornecedor, cláusula a cláusula > WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado
+   × item 4: as policies do fornecedor, cláusula a cláusula > policy nova numa tabela do fornecedor reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não agenda eliminação, nem sem sessão
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cancela eliminação (UPDATE às cegas), nem sem sessão
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+== S8d
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 1418ms
+ ❯ test/catalogo-nominal.test.ts:43:1
+ ❯ test/isolamento.test.ts:26:1
+ ❯ test/portao-comportamental.test.ts:19:1
+      Tests  13 passed (13)
+== S11
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2419ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 19815ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 49694ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 8 failed) 61202ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/isolamento.test.ts:705:75
+      Tests  9 failed | 346 passed (355)
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+== S12
+ ❯ test/funcoes-antes-do-tenant.test.ts (13 tests | 3 failed) 2432ms
+ ❯ test/isolamento.test.ts (170 tests | 4 failed) 20746ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 21390ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 13 failed) 64625ms
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:458:23
+ ❯ test/catalogo-nominal.test.ts:473:23
+ ❯ test/catalogo-nominal.test.ts:752:24
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/isolamento.test.ts:705:75
+ ❯ test/isolamento.test.ts:4114:7
+ ❯ test/isolamento.test.ts:4153:63
+ ❯ test/isolamento.test.ts:5400:87
+ ❯ test/portao-comportamental.test.ts:405:7
+      Tests  21 failed | 334 passed (355)
+   × interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais > o mesmo e-mail, em qualquer caixa, dentro de seis horas: verdadeiro
+   × interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais > pedido de mais de seis horas, e-mail desconhecido ou parecido: falso
+   × interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais > o contexto de um município não muda a resposta, e o papel de aplicação continua sem ler a tabela
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele
+   × item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+== D1
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2159ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 19197ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 48617ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 59904ms
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:140:15
+ ❯ test/portao-comportamental.test.ts:329:15
+      Tests  4 failed | 351 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 1: a prova comportamental morde, tabela por tabela > USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+== D1b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2111ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 2 failed) 19539ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 50990ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 8 failed) 59662ms
+ ❯ test/catalogo-nominal.test.ts:1500:7
+ ❯ test/catalogo-nominal.test.ts:1507:7
+ ❯ test/catalogo-nominal.test.ts:1517:7
+ ❯ test/catalogo-nominal.test.ts:2058:78
+ ❯ test/catalogo-nominal.test.ts:2075:7
+ ❯ test/catalogo-nominal.test.ts:2092:7
+ ❯ test/catalogo-nominal.test.ts:2130:7
+ ❯ test/catalogo-nominal.test.ts:2198:7
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:329:15
+      Tests  11 failed | 344 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles
+== D2
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2133ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 19204ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 48965ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 60180ms
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:140:15
+ ❯ test/portao-comportamental.test.ts:329:15
+      Tests  4 failed | 351 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 1: a prova comportamental morde, tabela por tabela > USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+== D2b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2196ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 19967ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 53322ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 68104ms
+ ❯ test/isolamento.test.ts:5375:69
+ ❯ test/portao-comportamental.test.ts:266:60
+      Tests  2 failed | 353 passed (355)
+   × item 2: o modo de cada policy, e a composição > policy RESTRICTIVE fora da lista reprova; declarada e que virou PERMISSIVE reprova
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos
+== D3
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2230ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 2 failed) 18993ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 49761ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 62178ms
+ ❯ test/isolamento.test.ts:5333:33
+ ❯ test/isolamento.test.ts:5391:58
+ ❯ test/portao-comportamental.test.ts:106:78
+ ❯ test/portao-comportamental.test.ts:329:15
+      Tests  4 failed | 351 passed (355)
+   × linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje
+   × item 3: visões > com security_invoker, a mesma visão passa nas duas
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER
+== D4
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2103ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 18580ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 47775ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 61194ms
+ ❯ test/isolamento.test.ts:548:103
+      Tests  1 failed | 354 passed (355)
+   × CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)
+== D4b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2301ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 18928ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 49100ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 61183ms
+ ❯ test/isolamento.test.ts:548:103
+ ❯ test/portao-comportamental.test.ts:361:15
+      Tests  2 failed | 353 passed (355)
+   × item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava)
+   × CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)
+== D5
+ ❯ test/funcoes-antes-do-tenant.test.ts (13 tests | 4 failed) 2595ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 2 failed) 19966ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 49526ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 59483ms
+ ❯ test/funcoes-antes-do-tenant.test.ts:102:15
+ ❯ test/funcoes-antes-do-tenant.test.ts:114:17
+ ❯ test/funcoes-antes-do-tenant.test.ts:123:15
+ ❯ test/funcoes-antes-do-tenant.test.ts:129:84
+ ❯ test/isolamento.test.ts:5440:74
+ ❯ test/portao-comportamental.test.ts:771:68
+ ❯ test/portao-comportamental.test.ts:783:74
+      Tests  7 failed | 348 passed (355)
+   × dono_do_token: de quem era um token, pelo hash, e só dele > token válido devolve o dono, viva a sessão, e a conta ativa
+   × dono_do_token: de quem era um token, pelo hash, e só dele > token revogado de outro município devolve o dono dele e o motivo, e não o de quem pergunta
+   × dono_do_token: de quem era um token, pelo hash, e só dele > conta desativada aparece como desativada
+   × dono_do_token: de quem era um token, pelo hash, e só dele > token desconhecido, vazio ou parecido não devolve linha
+   × item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046
+   × item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último
+== D6
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2121ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 18533ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 47147ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 60410ms
+ ❯ test/isolamento.test.ts:5400:87
+ ❯ test/portao-comportamental.test.ts:405:7
+      Tests  2 failed | 353 passed (355)
+   × item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele
+== D6b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2186ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 18659ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 47015ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 59440ms
+ ❯ test/isolamento.test.ts:5400:87
+ ❯ test/portao-comportamental.test.ts:405:7
+      Tests  2 failed | 353 passed (355)
+   × item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele
+== D7
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2149ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 17914ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 46899ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 3 failed) 59845ms
+ ❯ test/catalogo-nominal.test.ts:162:30
+ ❯ test/catalogo-nominal.test.ts:760:30
+ ❯ test/catalogo-nominal.test.ts:788:23
+ ❯ test/isolamento.test.ts:562:40
+ ❯ test/isolamento.test.ts:5400:87
+ ❯ test/portao-comportamental.test.ts:405:7
+      Tests  6 failed | 349 passed (355)
+   × item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa
+   × CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam
+== D8
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2778ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 19531ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 48789ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 60457ms
+ ❯ test/isolamento.test.ts:5417:52
+      Tests  1 failed | 354 passed (355)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role
+== D8b
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 1957ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 18342ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 46443ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 58636ms
+ ❯ test/isolamento.test.ts:5371:116
+ ❯ test/isolamento.test.ts:5417:52
+      Tests  2 failed | 353 passed (355)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role
+== D9
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2148ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 17649ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 46394ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 58555ms
+ ❯ test/isolamento.test.ts:5425:77
+ ❯ test/portao-comportamental.test.ts:677:77
+ ❯ test/portao-comportamental.test.ts:687:7
+ ❯ test/portao-comportamental.test.ts:704:15
+      Tests  4 failed | 351 passed (355)
+   × correção 3 da ADR 0009: quem cita origens_de_conta > hoje ninguém cita, e passa
+   × correção 3 da ADR 0009: quem cita origens_de_conta > função privilegiada que cita a tabela sem a marca reprova; com a marca criador, passa
+   × correção 3 da ADR 0009: quem cita origens_de_conta > função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém)
+== R1
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2210ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 18229ms
+ ✓ test/isolamento.test.ts (170 tests) 46587ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 57392ms
+      Tests  355 passed (355)
+== R2
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2324ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 18179ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 46798ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 56434ms
+ ❯ test/catalogo-nominal.test.ts:166:78
+ ❯ test/catalogo-nominal.test.ts:858:64
+ ❯ test/catalogo-nominal.test.ts:869:7
+ ❯ test/catalogo-nominal.test.ts:883:63
+ ❯ test/catalogo-nominal.test.ts:911:90
+ ❯ test/isolamento.test.ts:715:78
+ ❯ test/isolamento.test.ts:5440:74
+ ❯ test/portao-comportamental.test.ts:760:65
+ ❯ test/portao-comportamental.test.ts:771:68
+ ❯ test/portao-comportamental.test.ts:783:74
+      Tests  10 failed | 345 passed (355)
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)
+   × item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046
+   × item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo
+   × Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+== L1
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2050ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 17848ms
+ ✓ test/isolamento.test.ts (170 tests) 46957ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 58251ms
+ ❯ test/portao-comportamental.test.ts:760:65
+      Tests  1 failed | 354 passed (355)
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)

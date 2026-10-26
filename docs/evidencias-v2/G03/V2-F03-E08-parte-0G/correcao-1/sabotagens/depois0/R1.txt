@@ -1,0 +1,144 @@
+### R1 (depois0)
+--- migracao 998 temporaria:
+-- R1 (controle): uma etapa REDEFINE uma funcao da base (consumir_recuperacao, 051) e o catalogo
+-- da etapa declara redefine: true com a migracao 998. Deve PASSAR.
+CREATE OR REPLACE FUNCTION consumir_recuperacao(p_token_hash text, p_senha_hash text)
+RETURNS TABLE (usuario_id uuid, organizacao_id uuid)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_usuario uuid;
+  v_ativo   boolean;
+  v_rec     recuperacoes_senha%ROWTYPE;
+BEGIN
+  -- Redefinida por uma etapa (sabotagem R, migracao 998): o corpo muda, a forma nao.
+  -- De quem e o link, sem travar nada ainda.
+  SELECT r.usuario_id INTO v_usuario FROM recuperacoes_senha r
+   WHERE r.token_hash = p_token_hash
+     AND r.usada_em IS NULL
+     AND r.expira_em > now();
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  -- A linha da pessoa ANTES da linha do link (a ordem do cabecalho). Se uma
+  -- redefinicao, troca ou desativacao esta no meio, espera ela confirmar e le
+  -- a versao nova.
+  SELECT u.ativo INTO v_ativo FROM usuarios u WHERE u.id = v_usuario FOR NO KEY UPDATE;
+
+  -- O link de novo, agora travado: a mudanca que confirmou enquanto
+  -- esperavamos ja o marcou pelo gatilho, e ele nao serve mais.
+  SELECT * INTO v_rec FROM recuperacoes_senha r
+   WHERE r.token_hash = p_token_hash
+     AND r.usada_em IS NULL
+     AND r.expira_em > now()
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  UPDATE recuperacoes_senha SET usada_em = now() WHERE id = v_rec.id;
+
+  -- Conta desativada: o link e gasto e nada mais muda. Quem chama recebe a
+  -- mesma resposta do link que nao vale mais.
+  IF NOT coalesce(v_ativo, false) THEN
+    RETURN;
+  END IF;
+
+  UPDATE usuarios
+     SET senha_hash = p_senha_hash,
+         falhas_login = 0,
+         bloqueado_ate = NULL
+   WHERE id = v_rec.usuario_id;
+
+  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
+
+  UPDATE sessoes
+     SET revogada_em = now(), motivo_revogacao = 'senha redefinida'
+   WHERE sessoes.usuario_id = v_rec.usuario_id AND revogada_em IS NULL;
+
+  RETURN QUERY SELECT v_rec.usuario_id, v_rec.organizacao_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION consumir_recuperacao(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION consumir_recuperacao(text, text) TO dc360_app;
+--- f03-e04.ts:
+/** Controle R1 (parte 0G): a etapa REDEFINE `consumir_recuperacao` da base, com a migração que a recria. */
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "consumir_recuperacao",
+      assinatura: "public.consumir_recuperacao(text,text)",
+      migracao: "998",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo:
+        "Redefine a senha pelo link de e-mail, sem sessão e sem município no contexto. Consome o " +
+        "link, troca a senha e encerra as sessões da pessoa na mesma transação, sob a trava por " +
+        "pessoa; conta desativada gasta o link e não muda nada (migrações 049 e 051).",
+      tenant: "antes_do_tenant",
+      confere:
+        "O hash do link de uso único é a chave; a recuperação carrega o usuário e o município, e " +
+        "a função devolve `(usuario_id, organizacao_id)` para a API seguir debaixo dele.",
+      provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
+      redefine: true,
+    },
+  ],
+  excecoes: [],
+  colunasComUpdate: [],
+};
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+14:59:56 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2210ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 18229ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  2437ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  812ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  683ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  840ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  2322ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  2315ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  2354ms
+   ✓ item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046  1488ms
+ ✓ test/isolamento.test.ts (170 tests) 46587ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1350ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  5539ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1332ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  29398ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 57392ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  5442ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  5442ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  5440ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  5203ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  5216ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  4987ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  4887ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  5401ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco  833ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova  634ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova  1413ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  1233ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão  718ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)  734ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim  643ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)  692ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa  1415ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)  630ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  1421ms
+
+ Test Files  4 passed (4)
+      Tests  355 passed (355)
+   Start at  14:59:56
+   Duration  58.69s (transform 523ms, setup 0ms, collect 2.24s, tests 124.42s, environment 1ms, prepare 744ms)
+

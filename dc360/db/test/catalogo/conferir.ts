@@ -24,8 +24,11 @@ import {
   INVARIANTES,
   type ChaveParaTabelaGlobal,
   type ColunaComPrivilegio,
+  type ColunaProibida,
   type ContribuicaoDoCatalogo,
+  type DestinoNaEliminacao,
   type ExcecaoAoIsolamento,
+  type GatilhoDeclarado,
   type FuncaoPrivilegiada,
   type GrantsEfetivos,
   type Invariante,
@@ -644,13 +647,30 @@ function conferirSemMunicipio(e: ExcecaoAoIsolamento, real: TabelaDoBanco): stri
   return problemas;
 }
 
-/** O banco da prova da eliminação: consulta, comando e transação desfeita. */
+/** Uma transação: consulta, comando e desfazer. */
+type TransacaoDaProva = ConsultaSql & {
+  exec(sql: string): Promise<unknown>;
+  rollback(): Promise<void>;
+};
+
+/**
+ * A CÓPIA descartável do banco do portão (correção 1 da 0G): nela a prova da
+ * eliminação confirma (COMMIT) de verdade, e no fim ela é fechada.
+ */
+export interface BancoDescartavel extends ConsultaSql {
+  exec(sql: string): Promise<unknown>;
+  transaction<T>(fn: (tx: TransacaoDaProva) => Promise<T>): Promise<T>;
+  close(): Promise<void>;
+}
+
+/**
+ * O banco do portão: consulta, transação e a cópia descartável (o `clone()`
+ * do PGlite, que copia o diretório de dados inteiro, com papéis, migrações e
+ * o que a sonda acabou de criar).
+ */
 export interface BancoComTransacao extends ConsultaSql {
-  transaction<T>(
-    fn: (
-      tx: ConsultaSql & { exec(sql: string): Promise<unknown>; rollback(): Promise<void> },
-    ) => Promise<T>,
-  ): Promise<T>;
+  transaction<T>(fn: (tx: TransacaoDaProva) => Promise<T>): Promise<T>;
+  clone(): Promise<BancoDescartavel>;
 }
 
 /** `[esquema, tabela]` de um nome como o catálogo escreve. */
@@ -668,11 +688,31 @@ const relacaoSql = (t: string) => partesDoNome(t).map(identificador).join(".");
  * `linhasDoMunicipio` as lista, o livro e a organização são postos como
  * vencidos (como dono, o único jeito de mudar o tempo num teste), e
  * `executar_eliminacoes_vencidas()` e `concluir_eliminacao()` rodam. Depois,
- * `fica` exige todas as linhas listadas presentes e `some` nenhuma. Tudo numa
- * transação DESFEITA no fim: o banco do portão não muda.
+ * `fica` exige todas as linhas listadas presentes e `some` nenhuma.
+ *
+ * Correção 1 da 0G (itens 3, 4 e 5 da auditoria de cobertura):
+ *
+ *   - a prova roda numa CÓPIA DESCARTÁVEL do banco do portão (`clone()`), com
+ *     COMMIT de verdade em cada passo, como o relógio faz: a semeadura numa
+ *     transação, o vencimento noutra, a fase 1 (`executar_eliminacoes_vencidas`)
+ *     noutra e a fase 2 (`concluir_eliminacao`) noutra, as duas fases como
+ *     `dc360_app`. Antes era UMA transação desfeita no fim, e um gatilho
+ *     `DEFERRABLE INITIALLY DEFERRED` que apagasse a linha (ou recusasse) só
+ *     na confirmação nunca disparava;
+ *   - ÂNCORA anterior: toda chave que `linhasDoMunicipio` devolve existe em
+ *     `tabela.coluna` ANTES da eliminação. Sem ela, `some` passava com chaves
+ *     que nunca estiveram na coluna verificada (a consulta devolvia
+ *     `usuarios.id` e a coluna era outra);
+ *   - o OUTRO município (`semearOutroMunicipio`) é semeado e NÃO é eliminado:
+ *     as linhas dele precisam existir antes e, como toda linha da tabela fora
+ *     do município eliminado, ficar IGUAIS, valor por valor. Um `DELETE` sem
+ *     filtro passava como `some`. A linha COMPARTILHADA (`compartilhar`,
+ *     quando couber) nunca some com a eliminação de um dos dois.
  *
  * Prova vazia reprova (sem linha ligada ao município não há o que provar), e
- * eliminação que não chega ao fim (DC366, município fora da saída) também.
+ * eliminação que não chega ao fim (DC366, município fora da saída, gatilho
+ * adiado que recusa na confirmação) também. O banco do portão não muda: tudo
+ * acontece na cópia, que é fechada no fim.
  */
 export async function conferirEliminacaoSemMunicipio(
   db: BancoComTransacao,
@@ -683,84 +723,192 @@ export async function conferirEliminacaoSemMunicipio(
     if (!e.semMunicipio) continue;
     const d = e.semMunicipio.naEliminacao;
     const nome = `${e.tabela} (${e.semMunicipio.especie}, ${d.destino})`;
+    let copia: BancoDescartavel | null = null;
     try {
-      const achado = await db.transaction(async (tx) => {
-        const org = (
-          await tx.query<{ id: string }>(
-            `INSERT INTO organizacoes (nome, municipio, uf)
-             VALUES ('Defesa Civil da Prova da Eliminacao', 'Prova da Eliminacao', 'MG') RETURNING id`,
-          )
-        ).rows[0]!.id;
-        const comOrg = (sql: string) => sql.replace(/:org\b/g, `'${org}'::uuid`);
-        await tx.exec(comOrg(d.semear));
-        const chaves = (await tx.query<{ chave: unknown }>(comOrg(d.linhasDoMunicipio))).rows.map(
-          (l) => String(l.chave),
-        );
-        const unicas = [...new Set(chaves)];
-        if (unicas.length === 0) {
-          await tx.rollback();
-          return `${nome}: linhasDoMunicipio não achou nenhuma linha depois de semear: a prova da eliminação seria vazia`;
-        }
-        await tx.query(
-          `INSERT INTO eliminacoes_de_municipio
-             (organizacao_id, municipio_nome, uf, solicitada_em, executar_em, solicitada_por_email, motivo)
-           VALUES ($1, 'Prova da Eliminacao', 'MG', now() - interval '8 days', now() - interval '1 day',
-                   'prova@exemplo.gov.br', 'prova do destino na eliminacao (portao, parte 0G)')`,
-          [org],
-        );
-        await tx.query(
-          `UPDATE organizacoes
-              SET acesso_suspenso_em = now() - interval '2 days',
-                  suspensao_motivo = 'prova do destino na eliminacao (portao, parte 0G)',
-                  eliminacao_agendada_para = now() - interval '1 day'
-            WHERE id = $1`,
-          [org],
-        );
-        const eliminados = (
-          await tx.query<{ organizacao_id: string }>(
-            "SELECT organizacao_id::text AS organizacao_id FROM executar_eliminacoes_vencidas()",
-          )
-        ).rows.map((l) => l.organizacao_id);
-        if (!eliminados.includes(org)) {
-          await tx.rollback();
-          return `${nome}: executar_eliminacoes_vencidas() não eliminou o município da prova`;
-        }
-        await tx.query("SELECT concluir_eliminacao($1)", [org]);
-        const restam = (
-          await tx.query<{ n: number }>(
-            `SELECT count(DISTINCT ${identificador(d.coluna)}::text)::int AS n
-               FROM ${relacaoSql(e.tabela)} WHERE ${identificador(d.coluna)}::text = ANY($1::text[])`,
-            [unicas],
-          )
-        ).rows[0]!.n;
-        const orgRestou = (
-          await tx.query<{ n: number }>(
-            "SELECT count(*)::int AS n FROM organizacoes WHERE id = $1",
-            [org],
-          )
-        ).rows[0]!.n;
-        await tx.rollback();
-        if (orgRestou !== 0) return `${nome}: a eliminação da prova não apagou a organização`;
-        if (d.destino === "fica" && restam !== unicas.length) {
-          return (
-            `${nome}: o catálogo diz que as linhas do município FICAM na eliminação, e ` +
-            `${unicas.length - restam} de ${unicas.length} sumiram`
-          );
-        }
-        if (d.destino === "some" && restam !== 0) {
-          return (
-            `${nome}: o catálogo diz que as linhas do município SOMEM na eliminação, e ` +
-            `${restam} de ${unicas.length} ficaram`
-          );
-        }
-        return null;
-      });
-      if (achado) problemas.push(achado);
+      copia = await db.clone();
+      problemas.push(...(await provarDestinoNaCopia(copia, e.tabela, d, nome)));
     } catch (erro) {
       problemas.push(
         `${nome}: a prova do destino na eliminação não chegou ao fim: ${(erro as Error).message}`,
       );
+    } finally {
+      await copia?.close();
     }
+  }
+  return problemas;
+}
+
+/** A prova de uma tabela, na cópia descartável, passo a passo e com COMMIT. */
+async function provarDestinoNaCopia(
+  copia: BancoDescartavel,
+  tabela: string,
+  d: DestinoNaEliminacao,
+  nome: string,
+): Promise<string[]> {
+  const comOrgs = (sql: string, org: string, outra: string | null) =>
+    sql
+      .replace(/:org\b/g, `'${org}'::uuid`)
+      .replace(/:outra\b/g, outra === null ? "NULL::uuid" : `'${outra}'::uuid`);
+  const coluna = identificador(d.coluna);
+  const relacao = relacaoSql(tabela);
+  const chavesDe = async (org: string) => [
+    ...new Set(
+      (await copia.query<{ chave: unknown }>(comOrgs(d.linhasDoMunicipio, org, null))).rows.map(
+        (l) => String(l.chave),
+      ),
+    ),
+  ];
+  /** As linhas da tabela fora do município eliminado, mais as compartilhadas, valor por valor. */
+  const intactas = async (soDoEliminado: readonly string[]) =>
+    (
+      await copia.query<{ linha: string }>(
+        `SELECT row_to_json(t)::text AS linha FROM ${relacao} t
+          WHERE NOT coalesce(t.${coluna}::text = ANY($1::text[]), false) ORDER BY 1`,
+        [soDoEliminado],
+      )
+    ).rows.map((l) => l.linha);
+
+  // Passo 1: a semeadura dos dois municípios, como dono, confirmada.
+  const { org, outra } = await copia.transaction(async (tx) => {
+    const criar = async (municipio: string) =>
+      (
+        await tx.query<{ id: string }>(
+          `INSERT INTO organizacoes (nome, municipio, uf) VALUES ($1, $2, 'MG') RETURNING id`,
+          [`Defesa Civil de ${municipio}`, municipio],
+        )
+      ).rows[0]!.id;
+    const org = await criar("Prova da Eliminacao");
+    await tx.exec(comOrgs(d.semear, org, null));
+    let outra: string | null = null;
+    if (d.semearOutroMunicipio !== undefined) {
+      outra = await criar("Outro Municipio da Prova");
+      await tx.exec(comOrgs(d.semearOutroMunicipio, outra, null));
+      if (d.compartilhar !== undefined) await tx.exec(comOrgs(d.compartilhar, org, outra));
+    }
+    return { org, outra };
+  });
+
+  // Passo 2: as chaves dos dois, a âncora e o retrato do que não pode mudar.
+  const unicas = await chavesDe(org);
+  if (unicas.length === 0) {
+    return [
+      `${nome}: linhasDoMunicipio não achou nenhuma linha depois de semear: a prova da eliminação seria vazia`,
+    ];
+  }
+  const doOutro = outra === null ? [] : await chavesDe(outra);
+  if (outra !== null && doOutro.length === 0) {
+    return [
+      `${nome}: linhasDoMunicipio não achou nenhuma linha do OUTRO município depois de semearOutroMunicipio: ` +
+        "sem elas não há como provar que a eliminação deixa o outro município intacto",
+    ];
+  }
+  const todas = [...new Set([...unicas, ...doOutro])];
+  const ancoradas = (
+    await copia.query<{ n: number }>(
+      `SELECT count(DISTINCT ${coluna}::text)::int AS n FROM ${relacao} WHERE ${coluna}::text = ANY($1::text[])`,
+      [todas],
+    )
+  ).rows[0]!.n;
+  if (ancoradas !== todas.length) {
+    return [
+      `${nome}: ${todas.length - ancoradas} de ${todas.length} chave(s) que linhasDoMunicipio devolve não ` +
+        `existem em ${tabela}.${d.coluna} ANTES da eliminação: a prova contaria linhas que nunca estiveram ` +
+        "na coluna verificada (a consulta e a coluna precisam falar da mesma linha)",
+    ];
+  }
+  /** Só do município eliminado: as compartilhadas com o outro ficam no retrato do que não muda. */
+  const exclusivas = unicas.filter((k) => !doOutro.includes(k));
+  const retratoAntes = await intactas(exclusivas);
+
+  // Passo 3: o livro e a organização vencidos, como dono, confirmado.
+  await copia.transaction(async (tx) => {
+    await tx.query(
+      `INSERT INTO eliminacoes_de_municipio
+         (organizacao_id, municipio_nome, uf, solicitada_em, executar_em, solicitada_por_email, motivo)
+       VALUES ($1, 'Prova da Eliminacao', 'MG', now() - interval '8 days', now() - interval '1 day',
+               'prova@exemplo.gov.br', 'prova do destino na eliminacao (portao, parte 0G)')`,
+      [org],
+    );
+    await tx.query(
+      `UPDATE organizacoes
+          SET acesso_suspenso_em = now() - interval '2 days',
+              suspensao_motivo = 'prova do destino na eliminacao (portao, parte 0G)',
+              eliminacao_agendada_para = now() - interval '1 day'
+        WHERE id = $1`,
+      [org],
+    );
+  });
+
+  // Passo 4: a fase 1, como o relógio (sem município no contexto), confirmada.
+  const eliminados = await copia.transaction(async (tx) => {
+    await tx.exec("SET LOCAL ROLE dc360_app");
+    return (
+      await tx.query<{ organizacao_id: string }>(
+        "SELECT organizacao_id::text AS organizacao_id FROM executar_eliminacoes_vencidas()",
+      )
+    ).rows.map((l) => l.organizacao_id);
+  });
+  if (!eliminados.includes(org)) {
+    return [`${nome}: executar_eliminacoes_vencidas() não eliminou o município da prova`];
+  }
+
+  // Passo 5: a fase 2, noutra transação, confirmada.
+  await copia.transaction(async (tx) => {
+    await tx.exec("SET LOCAL ROLE dc360_app");
+    await tx.query("SELECT concluir_eliminacao($1)", [org]);
+  });
+
+  // Passo 6: o que ficou, depois das confirmações (e dos gatilhos adiados).
+  const contar = async (chaves: readonly string[]) =>
+    (
+      await copia.query<{ n: number }>(
+        `SELECT count(DISTINCT ${coluna}::text)::int AS n FROM ${relacao} WHERE ${coluna}::text = ANY($1::text[])`,
+        [chaves],
+      )
+    ).rows[0]!.n;
+  const existe = async (id: string) =>
+    (
+      await copia.query<{ n: number }>(
+        "SELECT count(*)::int AS n FROM organizacoes WHERE id = $1",
+        [id],
+      )
+    ).rows[0]!.n;
+
+  const problemas: string[] = [];
+  if ((await existe(org)) !== 0) {
+    return [`${nome}: a eliminação da prova não apagou a organização`];
+  }
+  if (d.destino === "fica") {
+    const restam = await contar(unicas);
+    if (restam !== unicas.length) {
+      problemas.push(
+        `${nome}: o catálogo diz que as linhas do município FICAM na eliminação, e ` +
+          `${unicas.length - restam} de ${unicas.length} sumiram`,
+      );
+    }
+  } else {
+    const restam = await contar(exclusivas);
+    if (restam !== 0) {
+      problemas.push(
+        `${nome}: o catálogo diz que as linhas do município SOMEM na eliminação, e ` +
+          `${restam} de ${exclusivas.length} ficaram`,
+      );
+    }
+  }
+  const retratoDepois = await intactas(exclusivas);
+  const antes = new Set(retratoAntes);
+  const depois = new Set(retratoDepois);
+  const mudaram = retratoAntes.filter((l) => !depois.has(l)).length;
+  const novas = retratoDepois.filter((l) => !antes.has(l)).length;
+  if (mudaram || novas) {
+    problemas.push(
+      `${nome}: a eliminação de UM município mexeu em ${tabela} fora dele (o outro município da ` +
+        `prova, linha compartilhada ou de ninguém): ${mudaram} linha(s) sumiram ou mudaram e ` +
+        `${novas} apareceram. A eliminação alcança só o município eliminado.`,
+    );
+  }
+  if (outra !== null && (await existe(outra)) !== 1) {
+    problemas.push(`${nome}: a eliminação da prova apagou também o OUTRO município`);
   }
   return problemas;
 }
@@ -901,6 +1049,9 @@ export async function conferirChavesEstrangeiras(
     alvo: string;
     nome: string;
     colunas: string[];
+    referenciadas: string[];
+    chave_do_alvo: string[];
+    validada: boolean;
     ao_apagar: string;
     ao_alterar: string;
   }>(`
@@ -911,6 +1062,17 @@ export async function conferirChavesEstrangeiras(
                    FROM unnest(k.conkey) WITH ORDINALITY AS u(n, i)
                    JOIN pg_attribute a ON a.attrelid = k.conrelid AND a.attnum = u.n
                   ORDER BY u.i) AS colunas,
+           ARRAY(SELECT a.attname::text
+                   FROM unnest(k.confkey) WITH ORDINALITY AS u(n, i)
+                   JOIN pg_attribute a ON a.attrelid = k.confrelid AND a.attnum = u.n
+                  ORDER BY u.i) AS referenciadas,
+           ARRAY(SELECT a.attname::text
+                   FROM pg_constraint p
+                   CROSS JOIN LATERAL unnest(p.conkey) WITH ORDINALITY AS u(n, i)
+                   JOIN pg_attribute a ON a.attrelid = p.conrelid AND a.attnum = u.n
+                  WHERE p.conrelid = k.confrelid AND p.contype = 'p'
+                  ORDER BY u.i) AS chave_do_alvo,
+           k.convalidated AS validada,
            k.confdeltype::text AS ao_apagar, k.confupdtype::text AS ao_alterar
       FROM pg_constraint k
       JOIN pg_class r ON r.oid = k.conrelid
@@ -958,6 +1120,26 @@ export async function conferirChavesEstrangeiras(
       if (!globais.has(alvo)) {
         problemas.push(
           `${k}: aponta para ${alvo}, que não é tabela global do catálogo (semMunicipio.especie = "global")`,
+        );
+      }
+      /*
+        Correção 1 da 0G (item 8): as colunas REFERENCIADAS no alvo
+        (`confkey`) são as declaradas (sem declaração, só nas sondas, a chave
+        primária do alvo), e a restrição está VALIDADA. Uma chave para outra
+        coluna única da mesma tabela, ou `NOT VALID`, passava.
+      */
+      const esperadas = declarada.colunasReferenciadas ?? fk.chave_do_alvo;
+      if (JSON.stringify([...esperadas]) !== JSON.stringify(fk.referenciadas)) {
+        problemas.push(
+          `${k}: referencia ${alvo}(${fk.referenciadas.join(",")}), e o catálogo declara ` +
+            `${alvo}(${esperadas.join(",") || "nada"})` +
+            (declarada.colunasReferenciadas ? "" : " (sem declaração, a chave primária do alvo)"),
+        );
+      }
+      if (!fk.validada) {
+        problemas.push(
+          `${k}: chave para tabela global NOT VALID: as linhas que já existiam não foram conferidas ` +
+            "e podem apontar para pessoa nenhuma. VALIDATE CONSTRAINT antes de declarar.",
         );
       }
       if (!["a", "r"].includes(fk.ao_apagar) || !["a", "r"].includes(fk.ao_alterar)) {
@@ -1122,6 +1304,486 @@ export async function conferirCriacaoDeObjetos(db: ConsultaSql): Promise<string[
       `${l.papel === "public" ? "PUBLIC" : l.papel} tem ${l.privilegio} no ${l.onde}: papel do produto não ` +
       "cria objeto (com TEMP, uma tabela temporária de mesmo nome que uma real recebe o gatilho privilegiado)",
   );
+}
+
+/*
+  ===========================================================================
+  Correção 1 da parte 0G: o que a auditoria de cobertura independente achou
+  aberto (colunas proibidas, a declaração completa, o disparo dos gatilhos
+  privilegiados e a recusa comportamental fora da tabela).
+  ===========================================================================
+*/
+
+const PAPEIS_DO_PRODUTO_E_PUBLIC = ["dc360_app", "dc360_console", "public"] as const;
+
+/**
+ * COLUNAS PROIBIDAS (item 1): a partir da migração `desdeMigracao` (quando o
+ * arquivo dela existe no repositório), o catálogo não declara o privilégio na
+ * coluna (em grupo nenhum, de papel nenhum, nem em `colunasComUpdate`), e o
+ * banco não o dá a `dc360_app`, `dc360_console` nem PUBLIC, de tabela ou de
+ * coluna (`has_column_privilege`, que vê o de tabela e a herança). Coluna que
+ * não existe não tem o que conceder; tabela que não existe reprova
+ * (proibição sobre o nada é nome errado).
+ */
+export async function conferirColunasProibidas(
+  db: ConsultaSql,
+  proibidas: readonly ColunaProibida[],
+  declarados: readonly ColunaComPrivilegio[],
+  migracoes: Iterable<string>,
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const existentes = new Set(migracoes);
+  for (const p of proibidas) {
+    if (!existentes.has(p.desdeMigracao)) continue;
+    const r = await db.query<{ existe: boolean }>(
+      "SELECT to_regclass($1::text) IS NOT NULL AS existe",
+      [relacaoSql(p.tabela)],
+    );
+    if (!r.rows[0]!.existe) {
+      problemas.push(`COLUNAS_PROIBIDAS: ${p.tabela} não existe no banco (proibição sobre o nada)`);
+      continue;
+    }
+    for (const coluna of p.colunas) {
+      for (const privilegio of p.privilegios) {
+        for (const d of declarados) {
+          if (d.tabela === p.tabela && d.coluna === coluna && d.privilegio === privilegio) {
+            problemas.push(
+              `${p.tabela}.${coluna}: ${privilegio} proibido desde a migração ${p.desdeMigracao} ` +
+                `(${p.etapa}), e o catálogo o declara para ${d.papel} (${d.etapa}): coluna proibida ` +
+                "nunca volta a uma lista de privilégio",
+            );
+          }
+        }
+      }
+      const g = await db.query<{ papel: string; privilegio: string }>(
+        `SELECT papel, pr AS privilegio
+           FROM unnest(${emSql(PAPEIS_DO_PRODUTO_E_PUBLIC)}) AS papel, unnest($3::text[]) AS pr
+          WHERE EXISTS (SELECT 1 FROM pg_attribute a
+                         WHERE a.attrelid = to_regclass($1::text) AND a.attname = $2::name
+                           AND a.attnum > 0 AND NOT a.attisdropped)
+            AND has_column_privilege(papel::name, to_regclass($1::text), $2::text, pr)
+          ORDER BY 1, 2`,
+        [relacaoSql(p.tabela), coluna, [...p.privilegios]],
+      );
+      for (const l of g.rows) {
+        problemas.push(
+          `${p.tabela}.${coluna}: ${l.papel === "public" ? "PUBLIC" : l.papel} tem ${l.privilegio}, ` +
+            `proibido desde a migração ${p.desdeMigracao} (${p.etapa}): ${p.motivo}`,
+        );
+      }
+    }
+  }
+  return problemas;
+}
+
+/**
+ * O que a correção 1 da 0G passou a exigir de toda declaração do catálogo
+ * JUNTADO (as sondas montam entradas mínimas e não passam por aqui): toda
+ * tabela sem município semeia o OUTRO município da prova da eliminação
+ * (`semearOutroMunicipio`, com `:org`), e toda chave para tabela global
+ * declara as colunas referenciadas no alvo (`colunasReferenciadas`).
+ */
+export function conferirDeclaracoesCompletas(
+  excecoes: readonly ExcecaoAoIsolamento[],
+  chaves: readonly ChaveParaTabelaGlobal[],
+): string[] {
+  const problemas: string[] = [];
+  for (const e of excecoes) {
+    const d = e.semMunicipio?.naEliminacao;
+    if (d && !(d.semearOutroMunicipio !== undefined && /:org\b/.test(d.semearOutroMunicipio))) {
+      problemas.push(
+        `${e.tabela} (${e.semMunicipio!.especie}): sem semearOutroMunicipio (com :org), a prova da ` +
+          "eliminação não vê se a eliminação de UM município alcança as linhas de outro",
+      );
+    }
+    if (
+      d?.compartilhar !== undefined &&
+      !(/:org\b/.test(d.compartilhar) && /:outra\b/.test(d.compartilhar))
+    ) {
+      problemas.push(
+        `${e.tabela}: compartilhar precisa usar :org e :outra (os dois municípios da prova)`,
+      );
+    }
+  }
+  for (const c of chaves) {
+    if (!c.colunasReferenciadas || c.colunasReferenciadas.length === 0) {
+      problemas.push(
+        `${c.tabela}.${c.restricao}: chave para tabela global sem colunasReferenciadas (as colunas do ` +
+          `alvo ${c.alvo} que ela referencia)`,
+      );
+    }
+  }
+  return problemas;
+}
+
+/** Os bits de `pg_trigger.tgtype`. */
+const TG_ROW = 1;
+const TG_BEFORE = 2;
+const TG_INSERT = 4;
+const TG_DELETE = 8;
+const TG_UPDATE = 16;
+const TG_TRUNCATE = 32;
+const TG_INSTEAD = 64;
+
+/** Um gatilho como o banco o tem, na forma de `GatilhoDeclarado`. */
+interface GatilhoDoBanco extends GatilhoDeclarado {
+  readonly habilitado: string;
+  readonly definicao: string;
+}
+
+function eventosDoTipo(tipo: number): GatilhoDeclarado["eventos"][number][] {
+  const eventos: GatilhoDeclarado["eventos"][number][] = [];
+  if (tipo & TG_INSERT) eventos.push("INSERT");
+  if (tipo & TG_UPDATE) eventos.push("UPDATE");
+  if (tipo & TG_DELETE) eventos.push("DELETE");
+  if (tipo & TG_TRUNCATE) eventos.push("TRUNCATE");
+  return eventos;
+}
+
+/** A condição `WHEN` de `pg_get_triggerdef`, sem o `WHEN (` e o `)` de fora. */
+function condicaoDoGatilho(definicao: string): string | undefined {
+  const m = / WHEN \(([\s\S]*)\) EXECUTE (FUNCTION|PROCEDURE) /.exec(definicao);
+  return m ? m[1] : undefined;
+}
+
+/** Os gatilhos do banco (não internos) que chamam a função. */
+async function gatilhosDaFuncao(db: ConsultaSql, assinatura: string): Promise<GatilhoDoBanco[]> {
+  const r = await db.query<{
+    esquema: string;
+    tabela: string;
+    nome: string;
+    tipo: number;
+    habilitado: string;
+    adiavel: boolean;
+    adiado: boolean;
+    colunas: string[];
+    definicao: string;
+  }>(
+    `SELECT n.nspname::text AS esquema, c.relname::text AS tabela, t.tgname::text AS nome,
+            t.tgtype::int AS tipo, t.tgenabled::text AS habilitado,
+            t.tgdeferrable AS adiavel, t.tginitdeferred AS adiado,
+            ARRAY(SELECT a.attname::text
+                    FROM unnest(t.tgattr::int2[]) WITH ORDINALITY AS u(n, i)
+                    JOIN pg_attribute a ON a.attrelid = t.tgrelid AND a.attnum = u.n
+                   ORDER BY u.i) AS colunas,
+            pg_get_triggerdef(t.oid) AS definicao
+       FROM pg_trigger t
+       JOIN pg_class c ON c.oid = t.tgrelid
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE t.tgfoid = to_regprocedure($1::text) AND NOT t.tgisinternal
+      ORDER BY 1, 2, 3`,
+    [assinatura],
+  );
+  return r.rows.map((l) => {
+    const quando = condicaoDoGatilho(l.definicao);
+    return {
+      tabela: nomeQualificado(l.esquema, l.tabela),
+      nome: l.nome,
+      momento: l.tipo & TG_BEFORE ? "BEFORE" : l.tipo & TG_INSTEAD ? "INSTEAD OF" : "AFTER",
+      nivel: l.tipo & TG_ROW ? "ROW" : "STATEMENT",
+      eventos: eventosDoTipo(l.tipo),
+      ...(l.colunas.length ? { colunasDoUpdate: l.colunas } : {}),
+      ...(quando !== undefined ? { quando } : {}),
+      ...(l.adiavel ? { adiado: l.adiado ? "INITIALLY DEFERRED" : "INITIALLY IMMEDIATE" } : {}),
+      habilitado: l.habilitado,
+      definicao: l.definicao,
+    } as GatilhoDoBanco;
+  });
+}
+
+/** O gatilho na forma comparável: o que o catálogo declara e o banco tem. */
+function formaDoGatilho(g: GatilhoDeclarado): string {
+  return JSON.stringify({
+    momento: g.momento,
+    nivel: g.nivel,
+    eventos: [...g.eventos].sort(),
+    colunasDoUpdate: g.colunasDoUpdate ?? [],
+    quando: g.quando ?? null,
+    adiado: g.adiado ?? null,
+  });
+}
+
+/**
+ * O DISPARO de cada função de gatilho privilegiada (item 7): `gatilhos`
+ * declarado (obrigatório junto de `gatilhoEm`, nas mesmas tabelas), e o
+ * conjunto de gatilhos do banco que a chamam é EXATAMENTE o declarado, por
+ * tabela e nome, com o mesmo momento, nível, eventos, colunas do `UPDATE OF`,
+ * condição `WHEN` e adiamento; e cada um HABILITADO (`tgenabled` `O`, o
+ * normal, ou `A`, sempre): desabilitado (`D`) ou só para réplica (`R`) é a
+ * proteção desligada com `gatilhoEm` ainda batendo.
+ */
+export async function conferirDisparoDosGatilhos(
+  db: ConsultaSql,
+  funcoes: readonly FuncaoPrivilegiada[],
+): Promise<string[]> {
+  const problemas: string[] = [];
+  for (const f of funcoes) {
+    if (f.gatilhoEm === undefined && f.gatilhos === undefined) continue;
+    if (f.gatilhoEm === undefined) {
+      problemas.push(`${f.assinatura}: gatilhos declarados sem gatilhoEm`);
+      continue;
+    }
+    const declarados = f.gatilhos ?? [];
+    if (declarados.length === 0) {
+      problemas.push(
+        `${f.assinatura}: função de gatilho privilegiada sem gatilhos declarados (tabela, nome, ` +
+          "momento, nível, eventos, UPDATE OF, WHEN e adiamento de cada gatilho que a chama)",
+      );
+    }
+    const tabelas = [...new Set(declarados.map((g) => g.tabela))].sort();
+    if (declarados.length && JSON.stringify(tabelas) !== JSON.stringify([...f.gatilhoEm].sort())) {
+      problemas.push(
+        `${f.assinatura}: os gatilhos declarados estão em (${tabelas.join(", ")}), e gatilhoEm diz ` +
+          `(${[...f.gatilhoEm].sort().join(", ")})`,
+      );
+    }
+    const doBanco = await gatilhosDaFuncao(db, f.assinatura);
+    for (const g of doBanco) {
+      if (g.habilitado === "D" || g.habilitado === "R") {
+        problemas.push(
+          `${f.assinatura}: o gatilho ${g.nome} de ${g.tabela} está ` +
+            `${g.habilitado === "D" ? "DESABILITADO" : "habilitado SÓ PARA RÉPLICA"} (tgenabled ` +
+            `${g.habilitado}): gatilho privilegiado dispara sempre (O ou A)`,
+        );
+      } else if (g.habilitado !== "O" && g.habilitado !== "A") {
+        problemas.push(
+          `${f.assinatura}: o gatilho ${g.nome} tem tgenabled ${g.habilitado}, que o portão não conhece`,
+        );
+      }
+    }
+    if (declarados.length === 0) continue;
+    const chave = (g: { tabela: string; nome: string }) => `${g.tabela}.${g.nome}`;
+    const noBanco = new Map(doBanco.map((g) => [chave(g), g]));
+    const naLista = new Map(declarados.map((g) => [chave(g), g]));
+    for (const [k] of noBanco) {
+      if (!naLista.has(k)) {
+        problemas.push(
+          `${f.assinatura}: o gatilho ${k} a chama no banco e não está declarado em gatilhos`,
+        );
+      }
+    }
+    for (const [k, g] of naLista) {
+      const real = noBanco.get(k);
+      if (!real) {
+        problemas.push(`${f.assinatura}: o gatilho ${k} está declarado e não existe no banco`);
+      } else if (formaDoGatilho(real) !== formaDoGatilho(g)) {
+        problemas.push(
+          `${f.assinatura}: o gatilho ${k} no banco é ${formaDoGatilho(real)}, e o catálogo declara ` +
+            formaDoGatilho(g),
+        );
+      }
+    }
+  }
+  return problemas;
+}
+
+/** Os contadores de escrita da transação em toda tabela que não é temporária, e as sequências. */
+async function efeitosDaTransacao(tx: ConsultaSql): Promise<Map<string, string>> {
+  const r = await tx.query<{ objeto: string; valor: string }>(`
+    SELECT s.schemaname || '.' || s.relname AS objeto,
+           (s.n_tup_ins + s.n_tup_upd + s.n_tup_del)::text AS valor
+      FROM pg_stat_xact_user_tables s
+     WHERE s.relid NOT IN (SELECT c.oid FROM pg_class c WHERE c.relnamespace = pg_my_temp_schema())
+    UNION ALL
+    SELECT 'sequência ' || q.schemaname || '.' || q.sequencename, coalesce(q.last_value::text, '')
+      FROM pg_sequences q
+     WHERE q.schemaname NOT LIKE 'pg\\_%' AND q.schemaname <> 'information_schema'
+  `);
+  return new Map(r.rows.map((l) => [l.objeto, l.valor]));
+}
+
+/**
+ * A RECUSA FORA DA TABELA, comportamental (item 6): toda função `SECURITY
+ * DEFINER` que retorna `trigger` (perguntado ao BANCO, e não ao catálogo) é
+ * disparada de uma tabela INDEVIDA, a forma do ataque: uma tabela temporária
+ * com o MESMO NOME da tabela real (`pg_temp.usuarios`), com a cópia de cada
+ * gatilho real da função (mesmo nome, momento, nível, eventos e adiamento;
+ * sem a condição `WHEN`, que quem ataca não poria), e cada evento é
+ * executado (o adiado, forçado com `SET CONSTRAINTS ALL IMMEDIATE`), com
+ * duas linhas de ataque: a nula e, quando a tabela real tem linha, a cópia de
+ * uma linha real. Função sem gatilho no banco é disparada de uma tabela de
+ * prova.
+ *
+ * Exige: ERRO, com SQLSTATE 42501 (`insufficient_privilege`, a recusa pela
+ * tabela que disparou), e NENHUM efeito antes dele: nenhum contador de
+ * escrita da transação (`pg_stat_xact_user_tables`, que conta até a linha
+ * desfeita pelo erro) de tabela que não seja a temporária mudou, e nenhuma
+ * sequência andou. A conferência textual de `conferirGatilhosPrivilegiados`
+ * aceitava `PERFORM TG_RELID = 'public.usuarios'::regclass;`, que não recusa
+ * nada, e a conferência posta DEPOIS da escrita. Tudo como dono, numa
+ * transação desfeita no fim.
+ */
+export async function provarRecusaForaDaTabela(db: BancoComTransacao): Promise<string[]> {
+  const problemas: string[] = [];
+  const funcoes = await db.query<{ assinatura: string }>(`
+    SELECT n.nspname || '.' || p.proname || '(' ||
+             replace(oidvectortypes(p.proargtypes), ', ', ',') || ')' AS assinatura
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE p.prosecdef AND p.prorettype = 'trigger'::regtype
+       AND ${FORA_DO_SISTEMA}
+       AND (n.nspname = 'public' OR NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
+     ORDER BY 1
+  `);
+  for (const { assinatura } of funcoes.rows) {
+    const reais = await gatilhosDaFuncao(db, assinatura);
+    const copias: Array<{ tabela: string; definicao: string; gatilho: string }> = reais.map((g) => {
+      const [, tabela] = partesDoNome(g.tabela);
+      const semQuando = g.definicao.replace(
+        / WHEN \([\s\S]*\) EXECUTE (FUNCTION|PROCEDURE) /,
+        " EXECUTE $1 ",
+      );
+      const definicao = semQuando.replace(
+        new RegExp(` ON (?:"?[A-Za-z_][A-Za-z0-9_]*"?\\.)?"?${tabela}"? `),
+        ` ON pg_temp.${identificador(tabela)} `,
+      );
+      return { tabela, definicao, gatilho: `${g.nome} (de ${g.tabela})` };
+    });
+    if (copias.length === 0) {
+      copias.push({
+        tabela: "prova_do_gatilho_fora_da_tabela",
+        definicao:
+          "CREATE TRIGGER prova_do_gatilho_fora_da_tabela BEFORE INSERT ON pg_temp.prova_do_gatilho_fora_da_tabela " +
+          `FOR EACH ROW EXECUTE FUNCTION ${assinatura}`,
+        gatilho: "de prova (a função não tem gatilho no banco)",
+      });
+    }
+    for (const copia of copias) {
+      if (!copia.definicao.includes(" ON pg_temp.")) {
+        problemas.push(
+          `${assinatura}: a prova não soube copiar o gatilho ${copia.gatilho} para uma tabela temporária ` +
+            `(${copia.definicao}): sem a prova, a recusa fora da tabela não está demonstrada`,
+        );
+        continue;
+      }
+      problemas.push(...(await dispararForaDaTabela(db, assinatura, copia)));
+    }
+  }
+  return problemas;
+}
+
+async function dispararForaDaTabela(
+  db: BancoComTransacao,
+  assinatura: string,
+  copia: { tabela: string; definicao: string; gatilho: string },
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const temp = `pg_temp.${identificador(copia.tabela)}`;
+  const publica = `public.${identificador(copia.tabela)}`;
+  const r = await db.query<{ existe: boolean }>(
+    "SELECT to_regclass($1::text) IS NOT NULL AS existe",
+    [publica],
+  );
+  const existe = r.rows[0]!.existe;
+  const comLinha =
+    existe &&
+    (await db.query<{ tem: boolean }>(`SELECT EXISTS (SELECT 1 FROM ${publica}) AS tem`)).rows[0]!
+      .tem;
+  /*
+    Duas linhas de ataque: a nula (toda coluna NULL) e, quando a tabela real
+    tem linha, uma CÓPIA de uma linha real (chaves de verdade: a escrita feita
+    antes da recusa com a chave nula não muda linha nenhuma, e com a real muda).
+  */
+  const variantes: Array<{ semente: string; rotulo: string }> = [
+    { semente: "DEFAULT VALUES", rotulo: "" },
+    ...(comLinha
+      ? [
+          {
+            semente: `SELECT * FROM ${publica} LIMIT 1`,
+            rotulo: `, com uma linha real de ${publica}`,
+          },
+        ]
+      : []),
+  ];
+  for (const variante of variantes) {
+    problemas.push(...(await dispararUmaVariante(db, assinatura, copia, temp, existe, variante)));
+  }
+  return problemas;
+}
+
+async function dispararUmaVariante(
+  db: BancoComTransacao,
+  assinatura: string,
+  copia: { tabela: string; definicao: string; gatilho: string },
+  temp: string,
+  existe: boolean,
+  variante: { semente: string; rotulo: string },
+): Promise<string[]> {
+  const problemas: string[] = [];
+  await db.transaction(async (tx) => {
+    try {
+      await tx.exec(
+        existe
+          ? `CREATE TEMP TABLE ${identificador(copia.tabela)} AS SELECT * FROM public.${identificador(copia.tabela)} WITH NO DATA`
+          : `CREATE TEMP TABLE ${identificador(copia.tabela)} (prova integer)`,
+      );
+      await tx.exec(`INSERT INTO ${temp} ${variante.semente}`);
+      const primeira = (
+        await tx.query<{ coluna: string }>(
+          `SELECT a.attname::text AS coluna FROM pg_attribute a
+            WHERE a.attrelid = to_regclass($1::text) AND a.attnum > 0 AND NOT a.attisdropped
+            ORDER BY a.attnum LIMIT 1`,
+          [temp],
+        )
+      ).rows[0]!.coluna;
+      await tx.exec(copia.definicao);
+      const t = (
+        await tx.query<{ tipo: number; adiavel: boolean; colunas: string[] }>(
+          `SELECT t.tgtype::int AS tipo, t.tgdeferrable AS adiavel,
+                  ARRAY(SELECT a.attname::text FROM unnest(t.tgattr::int2[]) AS u(n)
+                          JOIN pg_attribute a ON a.attrelid = t.tgrelid AND a.attnum = u.n) AS colunas
+             FROM pg_trigger t WHERE t.tgrelid = to_regclass($1::text) AND NOT t.tgisinternal`,
+          [temp],
+        )
+      ).rows[0]!;
+      const alvo = identificador(t.colunas[0] ?? primeira);
+      const comandos: Array<[string, string]> = [];
+      if (t.tipo & TG_INSERT) comandos.push(["INSERT", `INSERT INTO ${temp} ${variante.semente}`]);
+      if (t.tipo & TG_UPDATE) comandos.push(["UPDATE", `UPDATE ${temp} SET ${alvo} = ${alvo}`]);
+      if (t.tipo & TG_DELETE) comandos.push(["DELETE", `DELETE FROM ${temp}`]);
+      if (t.tipo & TG_TRUNCATE) comandos.push(["TRUNCATE", `TRUNCATE ${temp}`]);
+      for (const [evento, comando] of comandos) {
+        const antes = await efeitosDaTransacao(tx);
+        await tx.exec("SAVEPOINT prova_fora_da_tabela");
+        let erro: { code?: string; message?: string } | null = null;
+        try {
+          await tx.exec(comando);
+          if (t.adiavel) await tx.exec("SET CONSTRAINTS ALL IMMEDIATE");
+        } catch (e) {
+          erro = e as { code?: string; message?: string };
+        }
+        await tx.exec("ROLLBACK TO SAVEPOINT prova_fora_da_tabela");
+        const depois = await efeitosDaTransacao(tx);
+        const onde = `disparada pelo gatilho ${copia.gatilho} copiado para ${temp} (${evento}${variante.rotulo})`;
+        if (erro === null) {
+          problemas.push(
+            `${assinatura}: ${onde}, a função NÃO recusou: a conferência da tabela que disparou ` +
+              "(TG_RELID) não está em vigor",
+          );
+        } else if (erro.code !== "42501") {
+          problemas.push(
+            `${assinatura}: ${onde}, a função falhou com ${erro.code ?? "?"} (${erro.message ?? ""}), e ` +
+              "não com a recusa 42501 (insufficient_privilege) pela tabela que disparou: o erro veio de " +
+              "outra coisa, e com outra linha ela seguiria",
+          );
+        }
+        const escreveu = [...depois].filter(([k, v]) => antes.get(k) !== v).map(([k]) => k);
+        if (escreveu.length) {
+          problemas.push(
+            `${assinatura}: ${onde}, a função ESCREVEU antes de recusar (${escreveu.join(", ")}): a ` +
+              "recusa pela tabela que disparou vem antes de qualquer efeito",
+          );
+        }
+      }
+    } catch (erro) {
+      problemas.push(
+        `${assinatura}: a prova da recusa fora da tabela (gatilho ${copia.gatilho}) não chegou ao fim: ` +
+          (erro as Error).message,
+      );
+    }
+    await tx.rollback();
+  });
+  return problemas;
 }
 
 /**
