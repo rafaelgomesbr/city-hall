@@ -25,9 +25,12 @@
 #      master, e o nome da tag confere com a versão dos arquivos naquele commit;
 #   3. a PROVA de HML, em três partes que se confirmam (a tag do GHCR sozinha
 #      não basta, porque quem tem escrita no pacote consegue pôr uma tag):
-#        a. pela API do Actions, existe um run do `deploy-hml.yml` com
-#           `head_sha` igual ao SHA, evento `workflow_run`, conclusão `success`
-#           e o job `aprovar` concluído com sucesso;
+#        a. pela API do Actions, existe um run do `deploy-hml.yml` com o
+#           título `Implantar HML <sha>` (o SHA que o deploy registrou no
+#           `run-name`), evento `workflow_run`, conclusão `success` e o job
+#           `aprovar` concluído com sucesso. NÃO pelo `head_sha` do run: num
+#           `workflow_run` ele é a ponta do ramo padrão, e não o commit
+#           implantado (correção 1 da F01, achado 4);
 #        b. as DUAS imagens têm o selo `hml-ok-<sha>` e o digest dele é IGUAL ao
 #           de `sha-<sha>` (a imagem construída é a aprovada);
 #        c. cada digest tem atestação de proveniência assinada pelo
@@ -163,14 +166,22 @@ jobs:
       # Prova 3a: o deploy de HML deste SHA aconteceu de verdade. Consulta a API
       # do Actions (e não uma tag que alguém com escrita no pacote poderia pôr).
       # Sem segredo: só o GITHUB_TOKEN com `actions: read`.
+      #
+      # O run é achado pelo TÍTULO, que o `deploy-hml.yml` monta com o SHA que
+      # implantou (`run-name`). Até a correção 1 da F01 o filtro era o
+      # `head_sha` do run, que num `workflow_run` é a ponta do ramo padrão: se o
+      # CI de A terminava depois de B entrar na master, o run que implantou A
+      # tinha `head_sha` de B, e A (inclusive num rollback) nunca era achado.
+      # Paginado, porque o run de uma versão antiga pode estar longe do topo.
       - name: Exigir um deploy de HML bem-sucedido para o SHA
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT: ${{ steps.pedido.outputs.commit }}
         run: |
           set -euo pipefail
-          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-hml.yml/runs?head_sha=${COMMIT}&event=workflow_run&per_page=100")"
-          id="$(jq -r --arg sha "$COMMIT" '[.workflow_runs[] | select(.head_sha == $sha and .event == "workflow_run" and .conclusion == "success")] | sort_by(.created_at) | last | .id // empty' <<<"$runs")"
+          titulo="Implantar HML ${COMMIT}"
+          runs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-hml.yml/runs?event=workflow_run&status=success&per_page=100")"
+          id="$(jq -rs --arg titulo "$titulo" --arg arquivo '.github/workflows/deploy-hml.yml' '[.[].workflow_runs[] | select(.display_title == $titulo and .event == "workflow_run" and .conclusion == "success" and .path == $arquivo)] | sort_by(.created_at) | last | .id // empty' <<<"$runs")"
           if [ -z "$id" ]; then
             echo "::error::não há run bem-sucedido do deploy-hml.yml (evento workflow_run) para o commit $COMMIT: ele não passou por um deploy em HML"
             exit 1
@@ -281,10 +292,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
-      # A MESMA imagem de HML, por digest: o `imagetools create` copia o
-      # manifesto entre registros sem reconstruir, então o digest em PROD é o
-      # que HML ensaiou. O `/saude` com o commit esperado fecha a prova, e se não
-      # ficar verde o job PARA aqui: nem o console nem o painel são tocados.
+      # A MESMA imagem de HML, por digest: o `imagetools create
+      # --prefer-index=false` faz cópia CARBONO do manifesto entre registros, sem
+      # reconstruir, e o digest do destino é lido de volta e comparado; o digest
+      # em PROD é o que HML ensaiou (correção 1 da F01, achado 3: sem a opção,
+      # um manifesto simples virava um índice com outro digest). O `/saude` com
+      # o commit esperado fecha a prova, e se não ficar verde o job PARA aqui:
+      # nem o console nem o painel são tocados.
       - name: Implantar a API
         working-directory: dc360
         env:
@@ -292,7 +306,9 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
-          docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+          docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" --prefer-index=false "${IMAGEM_API}@${DIGEST_API}"
+          copiado="$(docker buildx imagetools inspect "registry.fly.io/${APP_API}:sha-${COMMIT}" --format '{{.Manifest.Digest}}')"
+          [ "$copiado" = "$DIGEST_API" ] || { echo "::error::a cópia da API no Fly tem o digest ${copiado}, e não o aprovado em HML ${DIGEST_API}"; exit 1; }
           flyctl deploy -c fly.toml -a "$APP_API" --image "registry.fly.io/${APP_API}@${DIGEST_API}"
           node scripts/conferir-saude-remota.mjs --tipo=api --url="https://${APP_API}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
 
@@ -303,7 +319,9 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
-          docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+          docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" --prefer-index=false "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+          copiado="$(docker buildx imagetools inspect "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" --format '{{.Manifest.Digest}}')"
+          [ "$copiado" = "$DIGEST_CONSOLE" ] || { echo "::error::a cópia do console no Fly tem o digest ${copiado}, e não o aprovado em HML ${DIGEST_CONSOLE}"; exit 1; }
           flyctl deploy -c fly.console.toml -a "$APP_CONSOLE" --ha=false --image "registry.fly.io/${APP_CONSOLE}@${DIGEST_CONSOLE}"
           node scripts/conferir-saude-remota.mjs --tipo=console --url="https://${APP_CONSOLE}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
 

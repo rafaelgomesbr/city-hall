@@ -272,8 +272,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     no passo, conferidor e artefato), o job `windows` roda `lint`, `lint:teto` e
     `formato:conferir`, e o `plataformas` deixa o git escrever o CRLF e fixa a
     contagem do painel.
+    A correção 1 da F01, parte B (revisão independente, achados 3, 4 e 5 da E12)
+    acrescenta 6 casos ao MESMO arquivo (57 no total): toda cópia de imagem com
+    `--prefer-index=false` e o digest lido de volta, o run de HML achado pelo
+    título com o SHA implantado, e o painel que espera a Vercel antes do selo,
+    cada regra com o seu negativo.
   */
-  "V2-F01-E02": 51,
+  "V2-F01-E02": 57,
   /*
     DV-39: `scripts/conferir-empacotamento-do-campo.test.mjs` é novo, com 3 casos
     (o pacote do Metro com o zod 4 e o código do shared passa; sem um deles,
@@ -417,13 +422,19 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   */
   "V2-F01-E22": 24,
   /*
-    Correção 1 da F01, parte B (revisão independente). `copiar-producao.test.mjs`,
-    que já existia (por isso fora da tabela de arquivos), ganha 12 (achados 1,
-    10 e 12: a DACL lida da saída do icacls, a recusa de entrada alheia na
-    pasta e no arquivo, o arquivo vazio e conferido antes do pg_dump, o modo
-    conferido no macOS e no Linux, o pg_dump compatível entre todos os
-    candidatos e o comando exato de apagar a cópia).
+    Correção 1 da F01, parte B (revisão independente). `scripts/esperar-painel.test.mjs`
+    é novo, com 10 casos (o painel de HML espera a Vercel antes do selo, achado
+    5: os argumentos, o domínio da matriz de ambientes, o deployment de
+    produção do projeto, o estado, a resposta do endereço, o caminho feliz, a
+    falha de build que reprova logo, o limite esgotado, o endereço que não
+    responde e o comando). E `copiar-producao.test.mjs`, que já existia (por
+    isso fora da tabela de arquivos), ganha 12 (achados 1, 10 e 12: a DACL lida
+    da saída do icacls, a recusa de entrada alheia na pasta e no arquivo, o
+    arquivo vazio e conferido antes do pg_dump, o modo conferido no macOS e no
+    Linux, o pg_dump compatível entre todos os candidatos e o comando exato de
+    apagar a cópia).
   */
+  "V2-F01-correcao-1-B": 10,
   "V2-F01-correcao-1-B-acrescimos": 12,
 };
 
@@ -456,6 +467,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E19-sbom": "sbom.test.mjs",
   "V2-F01-E13": "perfis-do-eas.test.mjs",
   "V2-F01-E22": "conferir-extensoes.test.mjs",
+  "V2-F01-correcao-1-B": "esperar-painel.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
