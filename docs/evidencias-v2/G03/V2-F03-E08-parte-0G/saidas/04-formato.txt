@@ -1,0 +1,7 @@
+$ npm run formato:conferir
+
+> dc360@0.1.0 formato:conferir
+> node scripts/formato-conferir.mjs
+
+OK: 861 arquivo(s) de código conferidos; 664 na baseline (só desce).
+codigo de saida: 0

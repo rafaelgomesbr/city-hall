@@ -1,0 +1,3 @@
+$ node scripts/roadmap/gerar-estado.mjs --conferir
+ESTADO-ATUAL.md confere: o arquivo bate com o repositório, os commits citados existem e nenhuma etapa afirma mais do que a evidência prova.
+codigo de saida: 0

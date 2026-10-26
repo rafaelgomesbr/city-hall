@@ -1,0 +1,13 @@
+01-typecheck: codigo de saida: 0
+02-lint: codigo de saida: 0
+03-lint-teto: codigo de saida: 0
+04-formato: codigo de saida: 0
+05-conferir-numeros: codigo de saida: 0
+06-baseline-test: codigo de saida: 0
+07-regras-de-conteudo: codigo de saida: 1
+08-auditar: codigo de saida: 0
+09-test-isolamento: codigo de saida: 1
+10-npm-test: codigo de saida: 1
+12-gerar-estado-conferir: codigo de saida: 0
+FIM
+11-test-scripts: codigo de saida: 0 (rodado depois, com o INDEX desta pasta)

@@ -1,0 +1,138 @@
+### L1 (depois)
+--- migracao 999 temporaria:
+-- L1: controle legitimo. Tabela global no formato de `pessoas` e uma funcao privilegiada nova.
+CREATE TABLE controle_pessoas (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL);
+ALTER TABLE controle_pessoas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE controle_pessoas FORCE ROW LEVEL SECURITY;
+CREATE FUNCTION controle_legitimo(p_email text) RETURNS boolean
+  LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
+  AS $$ SELECT p_email IS NOT NULL $$;
+REVOKE ALL ON FUNCTION controle_legitimo(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION controle_legitimo(text) TO dc360_app;
+--- f03-e04.ts:
+// Controle LEGITIMO (nao e sabotagem): uma etapa acrescenta, so no proprio arquivo, uma tabela sem
+// municipio no formato de `pessoas` e uma funcao privilegiada nova, com a migracao que as cria.
+// O portao e as sondas precisam ficar verdes: o andaime nao pode colidir com a etapa honesta.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "controle_legitimo",
+      assinatura: "public.controle_legitimo(text)",
+      migracao: "999",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo: "Controle legitimo: funcao de etapa declarada no arquivo da etapa, com migracao propria.",
+      tenant: "antes_do_tenant",
+      confere: "Controle: so devolve um booleano, sem ler tabela de municipio nenhuma.",
+      semProva: "Controle do harness de sabotagens: existe so durante esta rodada, sem teste proprio.",
+    },
+  ],
+  excecoes: [
+    {
+      tabela: "controle_pessoas",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: { dc360_app: [], dc360_console: [], PUBLIC: [] },
+      etapa: "V2-F03-E04",
+      motivo: "Controle legitimo: tabela global no formato que a ADR 0009 da a `pessoas`.",
+      trava: "RLS forcada, nenhuma policy e nenhum grant: so o dono das tabelas a alcanca.",
+    },
+  ],
+  colunasComUpdate: [],
+};
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db
+
+11:37:47 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2290ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 1 failed) 13576ms
+   ✓ linha de base: o banco de hoje passa por tudo > a semeadura cobre toda tabela, sem problema 3ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  1898ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de leitura com OR true (permissiva somada à de contexto): A lê B, e sem contexto lê tudo 63ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de UPDATE com OR true no USING e no WITH CHECK: altera B às cegas e move a própria linha para B 61ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto 48ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de INSERT com OR true: a cópia da linha de B passa pelo RLS e só para na unicidade 59ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > GRANT DELETE e policy de DELETE com OR true: apaga a linha de B 47ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > a raiz também: OR true na leitura de `organizacoes` 40ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > tabela sem município (exceção nominal) que o papel de aplicação passa a ler 41ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  619ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  428ms
+   ✓ item 2: o modo de cada policy, e a composição > policy RESTRICTIVE fora da lista reprova; declarada e que virou PERMISSIVE reprova 18ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  578ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  1736ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  1666ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  1551ms
+   ✓ item 3: visões > visão materializada lida pelo console, e entrada de VISOES_SEM_INVOKER que sobra, reprovam 11ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava) 4ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado 3ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > policy nova numa tabela do fornecedor reprova 4ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa 19ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > enum próprio fora de TIPOS_PROPRIOS reprova, e entrada sem tipo também 12ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > objeto de papel do produto e privilégio padrão que concede a ele reprovam 8ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > tipo próprio noutro esquema reprova, e esquema com tipo próprio deixa de ser 'só de extensão' 12ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > esquema só de extensão (funções, tipos, tipo composto e a relação da extensão) aceita o USAGE do papel de aplicação 13ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > um tipo que NÃO é da extensão no esquema dela tira o 'só de extensão' (antes da 0D, tipo não contava) 14ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > SELECT declarado passa; SELECT declarado que o banco não tem reprova; INSERT nunca 14ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > EXECUTE com opção de concessão numa função da extensão reprova 4ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > extensão declarada que não está instalada é DITA, e não conferida em silêncio 5ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (a) o modelo aceita o DELETE e o SELECT montados da 038, e recusa o resto 2ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (a) função privilegiada com DDL no corpo reprova; declarada com corpoForaDoModelo passa; a declaração que sobra reprova 13ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (b) TRIGGER ao papel de aplicação, e SET de session_replication_role a ele, reprovam 5ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (c) a forma da marca: antes da liberação a marcada é do papel de aplicação; depois, não; e a redefinição não a tira 2ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > hoje ninguém cita, e passa 5ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > função privilegiada que cita a tabela sem a marca reprova; com a marca criador, passa 16ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada 6ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > aceite fora de aceitar_convite, marca em duas funções e marca que sobra reprovam; citar só em comentário não conta 6ms
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar) 62ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046  1075ms
+   ✓ item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo 0ms
+ ✓ test/catalogo-nominal.test.ts (93 tests) 29596ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  4084ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  3924ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  3684ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  3001ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  2867ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  2796ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  2825ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  2826ms
+ ✓ test/isolamento.test.ts (166 tests) 31453ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1109ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  3945ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1052ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  19477ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/portao-comportamental.test.ts > item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.controle_legitimo(text): o catálogo diz que a forma atual vem da migração 999, mas a última que cria a função é a nenhuma. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/portao-comportamental.test.ts:760:65
+    758|       ler: fontes.ler,
+    759|     };
+    760|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, comSonda)).toEqua…
+       |                                                                 ^
+    761|   });
+    762| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 311 passed (312)
+   Start at  11:37:46
+   Duration  32.64s (transform 478ms, setup 0ms, collect 1.89s, tests 76.91s, environment 1ms, prepare 880ms)
+

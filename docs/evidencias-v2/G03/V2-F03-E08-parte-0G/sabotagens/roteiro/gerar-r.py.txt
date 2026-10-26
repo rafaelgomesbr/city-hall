@@ -1,0 +1,11 @@
+import sys
+pasta = sys.argv[1]
+corpo = open(pasta + "/consumir-051.sql", encoding="utf8").read()
+assert corpo.count("\nBEGIN\n") == 1
+corpo = corpo.replace("\nBEGIN\n", "\nBEGIN\n  -- Redefinida por uma etapa (sabotagem R): o corpo muda, a forma nao.\n")
+cab = {
+    "R1": "-- R1 (controle): uma etapa REDEFINE uma funcao da base (consumir_recuperacao, 051) e o catalogo\n-- da etapa declara redefine: true com a migracao 999. Deve PASSAR.\n",
+    "R2": "-- R2: a mesma migracao, SEM a etapa declarar a redefinicao. Deve REPROVAR.\n",
+}
+for k, c in cab.items():
+    open(pasta + "/sql/" + k + ".sql", "w", encoding="utf8", newline="\n").write(c + corpo)

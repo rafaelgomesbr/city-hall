@@ -1,0 +1,76 @@
+#!/bin/bash
+# Roda sabotagens contra o portao de isolamento real (parte 0G).
+# uso: rodar.sh <fase> <S...>
+#   depois         : arvore da 0G, sem a 1B; as sabotagens S e D das partes 0B e 0D (sab0d).
+#   depois1b       : arvore da 0G + a 054 da 1B ADAPTADA ao desenho da ADR (controle G0) + sabotagens G.
+#   depois1b-orig  : arvore da 0G + a 054 e o catalogo da 1B como estao em fbd09bfa.
+#   antes1b        : portao de origin/v2/f03 (posto antes, a mao, com git checkout) + a 1B como esta.
+# Cada sabotagem e uma migracao 999 TEMPORARIA (nunca commitada), mais, quando o fingimento esta no
+# catalogo, a troca do f03-e15.ts (ou de base.ts/f03-e04.ts, nas da 0B); tudo restaurado no fim.
+set -u
+S0D=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0d
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g
+W=/c/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b
+FASE=$1; shift
+DB=$W/dc360/db
+CAT=$DB/test/catalogo
+MIG=$DB/migrations/999_sabotagem.sql
+M54=$DB/migrations/054_pessoas_e_conta_no_municipio.sql
+D54=$DB/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql
+OUT=$S/$FASE
+mkdir -p "$OUT/bak"
+cp "$CAT/base.ts" "$OUT/bak/base.ts"
+cp "$CAT/f03-e04.ts" "$OUT/bak/f03-e04.ts"
+cp "$CAT/f03-e15.ts" "$OUT/bak/f03-e15.ts"
+case $FASE in
+  depois) TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts" ;;
+  depois1b) TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts"
+            M54SRC=$S/1b/054-adaptada.sql; E15SRC=$S/1b/f03-e15-adaptada.ts ;;
+  depois1b-orig|antes1b) TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts"
+            M54SRC=$S/1b/054-original.sql; E15SRC=$S/1b/f03-e15-original.ts ;;
+esac
+restaurar() {
+  cp "$OUT/bak/base.ts" "$CAT/base.ts"
+  cp "$OUT/bak/f03-e04.ts" "$CAT/f03-e04.ts"
+  cp "$OUT/bak/f03-e15.ts" "$CAT/f03-e15.ts"
+  rm -f "$MIG" "$DB/migrations/998_sabotagem.sql" "$M54" "$D54" "$DB/test/pessoas.test.ts" "$DB/test/ataque-gt.test.ts"
+}
+for s in "$@"; do
+  restaurar
+  if [ "$FASE" != depois ]; then
+    cp "$M54SRC" "$M54"; cp "$S/1b/desfazer-054.sql" "$D54"; cp "$S/1b/pessoas.test.ts" "$DB/test/pessoas.test.ts"
+    cp "$E15SRC" "$CAT/f03-e15.ts"; cp "$S/ataque-gt.test.ts" "$DB/test/ataque-gt.test.ts"
+  fi
+  if [ -f "$S0D/sql/$s.sql" ]; then cp "$S0D/sql/$s.sql" "$MIG"; fi
+  if [ -f "$S0D/sql-c1/$s.sql" ]; then cp "$S0D/sql-c1/$s.sql" "$MIG"; fi
+  if [ -f "$S/sql/$s.sql" ]; then cp "$S/sql/$s.sql" "$MIG"; fi
+  if [ -f "$S/e15/$s.ts" ]; then cp "$S/e15/$s.ts" "$CAT/f03-e15.ts"; fi
+  case $s in
+    S5a|S5c|S8b|S8d|L1) cp "$S0D/e04/$s.ts.txt" "$CAT/f03-e04.ts" ;;
+    S8) cp "$S0D/e04/S8b.ts.txt" "$CAT/f03-e04.ts" ;;
+    R1) cp "$S/e04-R1.ts.txt" "$CAT/f03-e04.ts"; mv "$MIG" "$DB/migrations/998_sabotagem.sql" ;;
+    R2) mv "$MIG" "$DB/migrations/998_sabotagem.sql" ;;
+    S1) perl -0pi -e 's/(nome: "revogar_sessao",.*?executavelPor: )APP/$1CONSOLE/s' "$CAT/base.ts" ;;
+    S4) perl -0pi -e 's/  \{\n    tabela: "console_codigos_de_recuperacao",.*?\n  \},\n//s' "$CAT/base.ts" ;;
+  esac
+  {
+    echo "### $s ($FASE)"
+    if [ -f "$MIG" ]; then echo "--- migracao 999 temporaria:"; cat "$MIG"; fi
+    if [ -f "$DB/migrations/998_sabotagem.sql" ]; then echo "--- migracao 998 temporaria:"; cat "$DB/migrations/998_sabotagem.sql"; fi
+    case $s in S5a|S5c|S8|S8b|S8d|L1|R1) echo "--- f03-e04.ts:"; cat "$CAT/f03-e04.ts" ;; esac
+    case $s in S1|S4) echo "--- base.ts (diff):"; diff "$OUT/bak/base.ts" "$CAT/base.ts" ;; esac
+    if [ -f "$S/e15/$s.ts" ]; then echo "--- f03-e15.ts (diff contra a 1B adaptada):"; diff "$S/1b/f03-e15-adaptada.ts" "$CAT/f03-e15.ts"; fi
+    echo "--- vitest ($TESTES):"
+  } > "$OUT/$s.txt"
+  (cd "$DB" && npx vitest run $TESTES 2>&1) | sed 's/\x1b\[[0-9;]*m//g' >> "$OUT/$s.txt"
+  restaurar
+  {
+    echo "== $s"
+    grep -E "^ +(✓|❯|×) test/[a-z-]+\.test\.ts" "$OUT/$s.txt"
+    grep -E "^ +Tests " "$OUT/$s.txt"
+    grep -E "^GT: " "$OUT/$s.txt" | head -1
+    grep -E "^ +× " "$OUT/$s.txt" | sed 's/ [0-9]*ms$//' | head -40
+  } >> "$OUT/RESUMO.txt"
+done
+restaurar
+ls "$DB/migrations" | grep -c "999\|054" || true

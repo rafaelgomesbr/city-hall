@@ -1,0 +1,26 @@
+/** Controle R1 (parte 0G): a etapa REDEFINE `consumir_recuperacao` da base, com a migração que a recria. */
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "consumir_recuperacao",
+      assinatura: "public.consumir_recuperacao(text,text)",
+      migracao: "998",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo:
+        "Redefine a senha pelo link de e-mail, sem sessão e sem município no contexto. Consome o " +
+        "link, troca a senha e encerra as sessões da pessoa na mesma transação, sob a trava por " +
+        "pessoa; conta desativada gasta o link e não muda nada (migrações 049 e 051).",
+      tenant: "antes_do_tenant",
+      confere:
+        "O hash do link de uso único é a chave; a recuperação carrega o usuário e o município, e " +
+        "a função devolve `(usuario_id, organizacao_id)` para a API seguir debaixo dele.",
+      provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
+      redefine: true,
+    },
+  ],
+  excecoes: [],
+  colunasComUpdate: [],
+};

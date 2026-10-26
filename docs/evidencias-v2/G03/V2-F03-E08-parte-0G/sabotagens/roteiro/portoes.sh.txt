@@ -1,0 +1,27 @@
+#!/bin/bash
+# Os portões da parte 0G, cada saída num arquivo, e os códigos de saída em 00.
+set -u
+W=/c/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b
+O=$W/docs/evidencias-v2/G03/V2-F03-E08-parte-0G/saidas
+mkdir -p "$O"
+cd "$W/dc360"
+limpa() { sed 's/\x1b\[[0-9;]*m//g'; }
+rodar() {
+  local n=$1; shift
+  { echo "\$ $*"; "$@" 2>&1; echo "codigo de saida: $?"; } | limpa > "$O/$n.txt"
+  echo "$n: $(tail -1 "$O/$n.txt")" >> "$O/00-codigos-de-saida.txt"
+}
+: > "$O/00-codigos-de-saida.txt"
+rodar 01-typecheck npm run typecheck
+rodar 02-lint npm run lint
+rodar 03-lint-teto npm run lint:teto
+rodar 04-formato npm run formato:conferir
+rodar 05-conferir-numeros npm run conferir:numeros
+rodar 06-baseline-test node --test scripts/baseline.test.mjs
+rodar 07-regras-de-conteudo npx vitest run packages/shared/test/regras-de-conteudo.test.ts
+rodar 08-auditar node scripts/auditar.mjs
+rodar 09-test-isolamento npm run test:isolamento
+rodar 10-npm-test npm test
+cd "$W"
+rodar 12-gerar-estado-conferir node scripts/roadmap/gerar-estado.mjs --conferir
+echo FIM >> "$O/00-codigos-de-saida.txt"

@@ -1,0 +1,44 @@
+# As variantes do catalogo da 1B adaptada que algumas sabotagens precisam (o "fingimento" no catalogo).
+import sys
+base, pasta = sys.argv[1], sys.argv[2]
+s = open(base, encoding="utf8").read()
+
+ancora_chave = '  chavesParaGlobais: [\n'
+assert s.count(ancora_chave) == 1
+g3b = s.replace(ancora_chave, ancora_chave + """    {
+      tabela: "usuarios",
+      restricao: "usuarios_origem_fkey",
+      colunas: ["id"],
+      alvo: "origens_de_conta",
+      migracao: "054",
+      etapa: ETAPA,
+      motivo: "Sabotagem G3b: chave sem organizacao_id para a tabela protegida, declarada como se fosse global.",
+    },
+""")
+open(pasta + "/G3b.ts", "w", encoding="utf8", newline="\n").write(g3b)
+
+ancora_exc = '  excecoes: [\n'
+assert s.count(ancora_exc) == 1
+g5 = s.replace(ancora_exc, ancora_exc + """    {
+      tabela: "marcas_de_sabotagem",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: { dc360_app: ["INSERT"], dc360_console: [], PUBLIC: [] },
+      semMunicipio: {
+        especie: "protegida",
+        naEliminacao: {
+          destino: "fica",
+          porque: "Sabotagem G5: a tabela se diz protegida e fica na eliminacao, como a marca da conta.",
+          semear: SEMEAR_CONTA + "; INSERT INTO marcas_de_sabotagem SELECT id FROM usuarios WHERE organizacao_id = :org",
+          linhasDoMunicipio:
+            "SELECT m.usuario_id AS chave FROM marcas_de_sabotagem m JOIN usuarios u ON u.id = m.usuario_id " +
+            "WHERE u.organizacao_id = :org",
+          coluna: "usuario_id",
+        },
+      },
+      etapa: ETAPA,
+      motivo: "Sabotagem G5: uma tabela sem organizacao_id que se declara protegida sem ser.",
+      trava: "Sabotagem G5: nenhuma trava de verdade, so a declaracao no catalogo.",
+    },
+""")
+open(pasta + "/G5.ts", "w", encoding="utf8", newline="\n").write(g5)

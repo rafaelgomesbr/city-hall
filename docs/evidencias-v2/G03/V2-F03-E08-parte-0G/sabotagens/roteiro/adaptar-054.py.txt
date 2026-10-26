@@ -1,0 +1,41 @@
+# Gera a 054 da 1B ADAPTADA ao desenho da ADR 0009 com as formas da parte 0G.
+# So para a prova (controle positivo G0 e base das sabotagens G1 a G9); nunca commitada.
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src, encoding="utf8").read()
+
+def troca(velho, novo):
+    global s
+    assert s.count(velho) == 1, velho
+    s = s.replace(velho, novo)
+
+# (c) TG_RELID com o nome qualificado, no lugar de TG_TABLE_NAME (que a temporaria de mesmo nome tambem tem).
+troca("IF TG_OP <> 'INSERT' OR TG_TABLE_NAME <> 'usuarios' OR TG_LEVEL <> 'ROW' THEN",
+      "IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'INSERT' OR TG_LEVEL <> 'ROW' THEN")
+troca("IF TG_OP <> 'UPDATE' OR TG_TABLE_NAME <> 'usuarios' OR TG_WHEN <> 'AFTER' THEN",
+      "IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'UPDATE' OR TG_WHEN <> 'AFTER' THEN")
+# (a) funcao de gatilho sem EXECUTE de papel nenhum.
+troca("GRANT EXECUTE ON FUNCTION conta_ganha_pessoa() TO dc360_app;", "")
+troca("GRANT EXECUTE ON FUNCTION pessoa_espelha_a_conta() TO dc360_app;", "")
+# INSERT por coluna sem pessoa_id; chave estrangeira para a pessoa; TEMP fora de PUBLIC.
+troca("""GRANT UPDATE (nome, matricula, email, papel, equipe_id, ativo,
+              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
+              foto_chave, foto_bytes)
+  ON usuarios TO dc360_app;""", """GRANT UPDATE (nome, matricula, email, papel, equipe_id, ativo,
+              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
+              foto_chave, foto_bytes)
+  ON usuarios TO dc360_app;
+
+REVOKE INSERT ON usuarios FROM dc360_app;
+GRANT INSERT (id, organizacao_id, nome, matricula, email, papel, equipe_id, ativo,
+              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
+              foto_chave, foto_bytes)
+  ON usuarios TO dc360_app;
+
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_id_fkey
+  FOREIGN KEY (pessoa_id) REFERENCES pessoas (id);
+
+DO $$ BEGIN
+  EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
+END $$;""")
+open(dst, "w", encoding="utf8", newline="\n").write(s)
