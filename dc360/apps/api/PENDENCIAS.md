@@ -641,7 +641,7 @@ aceita e passam a ter dono:
 | --- | --- |
 | 1. Um e-mail, um município | F03-E15 (pessoa e conta), E16 (login em dois passos e troca de município), E17 (órgão externo em vários municípios) |
 | 2. Conta desativada prende o e-mail | F03-E09 (e-mail único só entre pessoas ativas) |
-| 3. 409 que confirma e-mail de outro município | F03-E09 (conflito com corpo igual) e E10 (convite com resposta igual para pessoa nova e existente) |
+| 3. 409 que confirma e-mail de outro município | F03-E10 (convite com 202 igual para e-mail livre, pessoa com conta ativa ou desativada em outro município e pessoa com convite aberto). O corpo igual do 409 da E09 não fecha isto, porque 201 e 409 continuam distinguíveis (ADR 0009, correção 1, decisão 6); até a E10 o oráculo é o de hoje e não aumenta |
 
 **O que continua aberto, e não é de nenhuma etapa da F03:**
 
@@ -650,8 +650,14 @@ aceita e passam a ter dono:
   o e-mail de uma pessoa: quando existir, a troca será da própria pessoa, com
   verificação do e-mail novo.
 - **Redefinir senha e segundo fator de pessoa com conta em mais de um
-  município.** Até o CP-50, a `POST /usuarios/:id/redefinir-senha` (F00-E09) e o
-  reset de segundo fator da F03-E11 valem só para pessoa de um município, e
-  respondem 409 `pessoa_em_varios_municipios` para as demais (premissa das
-  pendências humanas H94 e H96). Isto refina o item 3 de "O que estava fora
-  daqui" e a linha "A senha temporária é conhecida por quem a sorteia".
+  município.** Pela decisão 6 da ADR 0009 (correção 1), a `POST
+  /usuarios/:id/redefinir-senha` (F00-E09) e o reset de segundo fator da F03-E11
+  existem só enquanto a relação entre conta e pessoa é um para um no banco
+  (até a liberação da segunda conta, na F03-E16), e nesse período alcançam só
+  pessoa exclusiva do município. Na liberação, os dois passam a responder igual
+  para toda pessoa, sem senha na resposta; o que fica é a própria pessoa
+  (recuperação) ou o console do fornecedor. Nenhum dos dois responde 409
+  `pessoa_em_varios_municipios`: esse código confirmaria ao município uma conta
+  fora dele. A regra final é do CP-50 (pendências humanas H94 e H96). Isto
+  refina o item 3 de "O que estava fora daqui" e a linha "A senha temporária é
+  conhecida por quem a sorteia".
