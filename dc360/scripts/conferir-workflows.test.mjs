@@ -220,15 +220,43 @@ export function formasAceitas(comando, scripts) {
   return formas;
 }
 
-/** Comandos do `verificar` que não aparecem em nenhum `run:` dos comandos dados. */
+/**
+ * Os comandos que a linha realmente EXECUTA: cada segmento depois de `&&`, `||`, `;`,
+ * `|`, `(`, `{`, sem variáveis de ambiente (`CI=true`) e sem palavra de controle
+ * (`then`, `do`, `else`, `!`, `time`) na frente. `echo npm run X`, `printf ... "npm run X"`
+ * e texto entre aspas viram segmentos que começam por `echo`/`printf`, não por `npm`.
+ * Texto entre aspas, `$(...)` e crase não separam comandos nem iniciam um (a máscara
+ * abaixo os protege e depois os devolve, para `node --test "scripts/*.test.mjs"` casar
+ * com a forma escrita igual). Correção 1 da F01 (E03): antes bastava o TEXTO do comando
+ * estar em qualquer lugar do `run:`, e trocar a execução por um `echo` do mesmo texto
+ * não reprovava.
+ */
+export function comandosExecutados(linha) {
+  const guardados = [];
+  const mascarada = linha
+    .replace(/"(?:[^"\\]|\\.)*"|'[^']*'|\$\([^()]*\)|`[^`]*`/g, (trecho) => `${guardados.push(trecho) - 1}`)
+    .replace(/(^|\s)#.*$/, "");
+  return mascarada
+    .split(/&&|\|\||[;|(){}\n]/)
+    .map((s) => s.trim().replace(/^(?:(?:then|do|else|elif|time|exec|!)\s+)*/, "").replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, ""))
+    .filter(Boolean)
+    .map((s) => s.replace(/(\d+)/g, (_, i) => guardados[Number(i)]));
+}
+
+/** O comando (ou uma de suas formas aceitas) é EXECUTADO por algum dos comandos de `run:`? */
+function executaAlgumaForma(formas, comandosDeRun) {
+  const executados = comandosDeRun.flatMap(comandosExecutados);
+  return formas.some((forma) => {
+    // Fronteira depois: `npm run test` não pode casar com `npm run test:scripts`.
+    const re = new RegExp(`^${escapar(forma.trim())}(?![\\w:.-])`);
+    return executados.some((c) => re.test(c));
+  });
+}
+
+/** Comandos do `verificar` que não são EXECUTADOS em nenhum `run:` dos comandos dados. */
 export function comandosFaltando(packageJson, comandosDeRun) {
-  const texto = comandosDeRun.join("\n");
   return comandosDoVerificar(packageJson).filter(
-    (comando) =>
-      !formasAceitas(comando, packageJson.scripts).some((forma) =>
-        // Fronteira depois: `npm run test` não pode casar com `npm run test:scripts`.
-        new RegExp(`(^|[\\s;&|(])${escapar(forma)}(?![\\w:.-])`, "m").test(texto),
-      ),
+    (comando) => !executaAlgumaForma(formasAceitas(comando, packageJson.scripts), comandosDeRun),
   );
 }
 
@@ -802,6 +830,36 @@ test("negativo: tirar qualquer outro comando do verificar reprova, e `npm run te
   // `npm test` não pode ser satisfeito por `npm run test:scripts`.
   const soScripts = comandos.filter((c) => !/(^|\s)npm test(\s|$)/.test(c));
   assert.ok(comandosFaltando(pacote, soScripts).includes("npm test"));
+});
+
+test("negativo: comando só IMPRESSO (echo, printf, texto entre aspas) não é comando executado (correção 1 da F01, E03)", () => {
+  const base = { scripts: { verificar: "npm run typecheck && npm test && npm run auditar", typecheck: "tsc -b", auditar: "node scripts/auditar.mjs" } };
+  const executando = ["npm run typecheck", "npm test", "npm run auditar"];
+  assert.deepEqual(comandosFaltando(base, executando), []);
+  // O falso verde da revisão: o texto do comando continua lá, mas ninguém o executa.
+  const soImpresso = ["echo npm run typecheck", "echo npm test", "echo npm run auditar"];
+  assert.deepEqual(comandosFaltando(base, soImpresso), ["npm run typecheck", "npm test", "npm run auditar"]);
+  for (const falso of [
+    'echo "npm run typecheck"', "echo 'npm run typecheck'", 'printf "%s\\n" "npm run typecheck"',
+    'echo "falhou" && echo npm run typecheck', "# npm run typecheck", 'x="npm run typecheck"',
+    "echo ok; echo npm run typecheck", "cat <<< npm run typecheck", "echo $(date) npm run typecheck",
+  ]) {
+    assert.ok(comandosFaltando(base, [falso, "npm test", "npm run auditar"]).includes("npm run typecheck"), `devia reprovar: ${falso}`);
+  }
+});
+
+test("o comando executado é aceito em todas as formas reais de `run:` (início de linha, encadeado, com variável, em laço)", () => {
+  const base = { scripts: { verificar: "npm run typecheck", typecheck: "tsc -b" } };
+  for (const real of [
+    "npm run typecheck", "npm run typecheck 2>&1 | tee saida.txt", "cd dc360 && npm run typecheck",
+    "CI=true npm run typecheck", "FOO=1 BAR=2 npm run typecheck", "{ npm run typecheck; } 2>&1", "( npm run typecheck )",
+    "if true; then npm run typecheck; fi", "set -o pipefail; npm run typecheck", "echo antes && npm run typecheck",
+    "tsc -b", "cd dc360 && tsc -b | tee x.txt",
+  ]) {
+    assert.deepEqual(comandosFaltando(base, [real]), [], `devia aceitar: ${real}`);
+  }
+  // `|| npm run X` roda só se o anterior falhar, mas é execução do comando: continua valendo.
+  assert.deepEqual(comandosFaltando(base, ["false || npm run typecheck"]), []);
 });
 
 test("negativo: `npm audit` que decide reprova, o de evidência com `|| true` não", () => {
