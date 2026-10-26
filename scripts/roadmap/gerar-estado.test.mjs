@@ -369,15 +369,14 @@ test("repositório real: com o G00 aprovado (26/10/2026) a F01 é a fase atual e
   // Quando o G01 for aprovado, é ele de novo quem avisa.
   assert.equal(atual.fase, "F01");
   const t = gerarEstado(RAIZ_REAL);
-  assert.match(t, /Último gate aprovado: G00 (F00)/);
-  assert.match(t, /Etapas da F01 (22)/);
+  assert.match(t, /Último gate aprovado: G00 \(F00\)/);
+  assert.match(t, /Etapas da F01 \(22\)/);
   // O status de cada etapa muda a cada rodada, de propósito; o que não pode mudar é a soma.
-  const contagens = /## Etapas da F01 (22)?
-- (.+)/.exec(t);
+  const contagens = /## Etapas da F01 \(22\)\r?\n- (.+)/.exec(t);
   assert.ok(contagens, "linha de contagens por status ausente");
-  const soma = [...contagens[1].matchAll(/(d+)(?:,|$)/g)].reduce((n, m) => n + Number(m[1]), 0);
+  const soma = [...contagens[1].matchAll(/(\d+)(?:,|$)/g)].reduce((n, m) => n + Number(m[1]), 0);
   assert.equal(soma, 22, `contagens por status não somam 22: ${contagens[1]}`);
-  assert.match(t, /Próxima etapa acionável na ordem da tabela: (nenhuma|V2-F01-Edd ([A-ZÀ-Ú ]+))/);
+  assert.match(t, /Próxima etapa acionável na ordem da tabela: (nenhuma|V2-F01-E\d\d \([A-ZÀ-Ú ]+\))/);
 });
 
 test("CLI: --saida grava, --conferir --saida confere, e o arquivo editado à mão é pego", () => {
