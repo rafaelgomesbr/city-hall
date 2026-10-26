@@ -1091,6 +1091,24 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     novos.
   */
   "V2-F03-E08-parte-0B-correcao-1": { total: 33, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, parte 0D (portao de isolamento com prova comportamental entre
+    municipios; a auditoria de cobertura da parte 0B achou o portao
+    insuficiente). `isolamento.test.ts` ganha 22 casos: as policies do
+    fornecedor clausula a clausula, a prova comportamental tabela por tabela
+    (cobertura, ancora, composicao, visoes), modo das policies, visoes com
+    security_invoker, sequencias e tipos, ACL de extensao, TRIGGER e
+    session_replication_role fora do alcance do produto, corpo das funcoes
+    privilegiadas, quem cita `origens_de_conta` (correcao 3 da ADR 0009), a
+    marca da liberacao, a definicao instalada por migracao e seis tentativas
+    reais do operador do console sem autorizacao.
+    `funcoes-antes-do-tenant.test.ts` (novo, 13) prova `dono_do_token`,
+    `abrir_recuperacao` e `interesse_recente` pelo nome.
+    `portao-comportamental.test.ts` (novo, 40) sao as sondas. O
+    `extensoes.espacial.test.ts` (novo, 5) fica FORA desta conta, como os
+    demais `*.espacial.test.ts`. Total 75, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0D": { total: 75, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

@@ -1,0 +1,1450 @@
+TAP version 13
+# Subtest: classificarMudanca: avanço, regressão, reprovação, bloqueio, desbloqueio e cancelamento
+ok 1 - classificarMudanca: avanço, regressão, reprovação, bloqueio, desbloqueio e cancelamento
+  ---
+  duration_ms: 1.9963
+  type: 'test'
+  ...
+# Subtest: categoriasDeQuem: Rafael, Alyson, jurídico ou DPO e município, com o emoji da tabela
+ok 2 - categoriasDeQuem: Rafael, Alyson, jurídico ou DPO e município, com o emoji da tabela
+  ---
+  duration_ms: 2.5321
+  type: 'test'
+  ...
+# Subtest: oQueFalta: do 'falta' até o fim da frase, sem confundir com nome de arquivo
+ok 3 - oQueFalta: do 'falta' até o fim da frase, sem confundir com nome de arquivo
+  ---
+  duration_ms: 0.7028
+  type: 'test'
+  ...
+# Subtest: dataValida: só ISO real
+ok 4 - dataValida: só ISO real
+  ---
+  duration_ms: 1.4098
+  type: 'test'
+  ...
+# Subtest: lerArgumentos: exige --desde e recusa o que não conhece
+ok 5 - lerArgumentos: exige --desde e recusa o que não conhece
+  ---
+  duration_ms: 0.6511
+  type: 'test'
+  ...
+# Subtest: coleta: compara com o último commit do STATUS antes de --desde e classifica as mudanças
+ok 6 - coleta: compara com o último commit do STATUS antes de --desde e classifica as mudanças
+  ---
+  duration_ms: 901.0695
+  type: 'test'
+  ...
+# Subtest: coleta: fase atual, contagens, bloqueios por quem decide e pendência humana
+ok 7 - coleta: fase atual, contagens, bloqueios por quem decide e pendência humana
+  ---
+  duration_ms: 938.9497
+  type: 'test'
+  ...
+# Subtest: coleta: diário do período, decisão nova e commits (só o assunto) do período
+ok 8 - coleta: diário do período, decisão nova e commits (só o assunto) do período
+  ---
+  duration_ms: 660.6572
+  type: 'test'
+  ...
+# Subtest: coleta: --desde anterior ao STATUS no git usa o primeiro commit e presume tudo PENDENTE
+ok 9 - coleta: --desde anterior ao STATUS no git usa o primeiro commit e presume tudo PENDENTE
+  ---
+  duration_ms: 626.79
+  type: 'test'
+  ...
+# Subtest: coleta: regressão entre duas versões do STATUS aparece com tipo regressao e é de citação obrigatória
+ok 10 - coleta: regressão entre duas versões do STATUS aparece com tipo regressao e é de citação obrigatória
+  ---
+  duration_ms: 932.177
+  type: 'test'
+  ...
+# Subtest: coleta: gate reaberto no período e gates reabertos vigentes, com o motivo do GATE.md
+ok 11 - coleta: gate reaberto no período e gates reabertos vigentes, com o motivo do GATE.md
+  ---
+  duration_ms: 930.0917
+  type: 'test'
+  ...
+# Subtest: coleta: risco aceito vigente vem do RISCO-ACEITO.md e o encerrado não
+ok 12 - coleta: risco aceito vigente vem do RISCO-ACEITO.md e o encerrado não
+  ---
+  duration_ms: 790.5251
+  type: 'test'
+  ...
+# Subtest: coleta: nunca lê saidas/ nem o conteúdo bruto de evidência
+ok 13 - coleta: nunca lê saidas/ nem o conteúdo bruto de evidência
+  ---
+  duration_ms: 595.5239
+  type: 'test'
+  ...
+# Subtest: coleta: o JSON não carrega travessão, mesmo que o STATUS tenha
+ok 14 - coleta: o JSON não carrega travessão, mesmo que o STATUS tenha
+  ---
+  duration_ms: 568.3316
+  type: 'test'
+  ...
+# Subtest: coleta: --fase força a fase do relatório (relatório de fase)
+ok 15 - coleta: --fase força a fase do relatório (relatório de fase)
+  ---
+  duration_ms: 765.5324
+  type: 'test'
+  ...
+# Subtest: coleta: entradas inválidas são recusadas com mensagem clara
+ok 16 - coleta: entradas inválidas são recusadas com mensagem clara
+  ---
+  duration_ms: 421.4551
+  type: 'test'
+  ...
+# Subtest: coleta: período que já acabou usa o STATUS do commit do fim, e não a cópia de trabalho
+ok 17 - coleta: período que já acabou usa o STATUS do commit do fim, e não a cópia de trabalho
+  ---
+  duration_ms: 554.6775
+  type: 'test'
+  ...
+# Subtest: CLI: grava o JSON, imprime o resumo e recusa uso errado com código 2
+ok 18 - CLI: grava o JSON, imprime o resumo e recusa uso errado com código 2
+  ---
+  duration_ms: 1352.8768
+  type: 'test'
+  ...
+# Subtest: evidência inteira e commitada: nenhuma falha
+ok 19 - evidência inteira e commitada: nenhuma falha
+  ---
+  duration_ms: 590.6797
+  type: 'test'
+  ...
+# Subtest: pasta da etapa que não existe
+ok 20 - pasta da etapa que não existe
+  ---
+  duration_ms: 527.4288
+  type: 'test'
+  ...
+# Subtest: etapa inexistente nos arquivos de fase
+ok 21 - etapa inexistente nos arquivos de fase
+  ---
+  duration_ms: 430.1756
+  type: 'test'
+  ...
+# Subtest: INDEX.md: ausente, arquivo trocado, arquivo novo, arquivo sumido
+ok 22 - INDEX.md: ausente, arquivo trocado, arquivo novo, arquivo sumido
+  ---
+  duration_ms: 292.4302
+  type: 'test'
+  ...
+# Subtest: INDEX.md: INDEX.md de subpasta fica de fora, e arquivo do gatekeeper (VEREDITO, validacao/) não precisa estar listado
+ok 23 - INDEX.md: INDEX.md de subpasta fica de fora, e arquivo do gatekeeper (VEREDITO, validacao/) não precisa estar listado
+  ---
+  duration_ms: 312.2503
+  type: 'test'
+  ...
+# Subtest: INDEX.md: bate só normalizando CRLF vira AVISO, não FALHA
+ok 24 - INDEX.md: bate só normalizando CRLF vira AVISO, não FALHA
+  ---
+  duration_ms: 410.1847
+  type: 'test'
+  ...
+# Subtest: INDEX.md: índice feito com CRLF e arquivo em LF (Windows para Linux) também vira AVISO
+ok 25 - INDEX.md: índice feito com CRLF e arquivo em LF (Windows para Linux) também vira AVISO
+  ---
+  duration_ms: 269.8315
+  type: 'test'
+  ...
+# Subtest: segredos: cada padrão é pego, e nunca com o valor na mensagem
+ok 26 - segredos: cada padrão é pego, e nunca com o valor na mensagem
+  ---
+  duration_ms: 65.9522
+  type: 'test'
+  ...
+# Subtest: segredos: o que a redação do baseline deixa não é segredo
+ok 27 - segredos: o que a redação do baseline deixa não é segredo
+  ---
+  duration_ms: 16.3419
+  type: 'test'
+  ...
+# Subtest: travessão: só em .md, com arquivo e linha
+ok 28 - travessão: só em .md, com arquivo e linha
+  ---
+  duration_ms: 16.1145
+  type: 'test'
+  ...
+# Subtest: capturas: nenhuma, faltando combinação, nome ilegível e completo
+ok 29 - capturas: nenhuma, faltando combinação, nome ilegível e completo
+  ---
+  duration_ms: 24.005
+  type: 'test'
+  ...
+# Subtest: capturas só são exigidas com tag UI (a E02 da fixture é UI)
+ok 30 - capturas só são exigidas com tag UI (a E02 da fixture é UI)
+  ---
+  duration_ms: 628.281
+  type: 'test'
+  ...
+# Subtest: sonda: risco alto sem 'antes' falha, só 'antes' avisa, os dois passam
+ok 31 - sonda: risco alto sem 'antes' falha, só 'antes' avisa, os dois passam
+  ---
+  duration_ms: 9.2548
+  type: 'test'
+  ...
+# Subtest: sonda: a E01 da fixture (risco alto) falha sem sonda antes
+ok 32 - sonda: a E01 da fixture (risco alto) falha sem sonda antes
+  ---
+  duration_ms: 506.662
+  type: 'test'
+  ...
+# Subtest: sha: formato inválido, inexistente e fora da história do HEAD
+ok 33 - sha: formato inválido, inexistente e fora da história do HEAD
+  ---
+  duration_ms: 781.6962
+  type: 'test'
+  ...
+# Subtest: lista permitida: registro depois do candidato passa, mudança de produto reprova
+ok 34 - lista permitida: registro depois do candidato passa, mudança de produto reprova
+  ---
+  duration_ms: 821.8088
+  type: 'test'
+  ...
+# Subtest: regras commitadas: mapa alterado, skill e scripts novos e não commitados reprovam
+ok 35 - regras commitadas: mapa alterado, skill e scripts novos e não commitados reprovam
+  ---
+  duration_ms: 807.3322
+  type: 'test'
+  ...
+# Subtest: --registro: relatórios, VEREDITO e estado em ordem, sem falha
+ok 36 - --registro: relatórios, VEREDITO e estado em ordem, sem falha
+  ---
+  duration_ms: 760.1318
+  type: 'test'
+  ...
+# Subtest: --registro: sem pasta validacao/<sha7>, sem VEREDITO e estado velho
+ok 37 - --registro: sem pasta validacao/<sha7>, sem VEREDITO e estado velho
+  ---
+  duration_ms: 415.4909
+  type: 'test'
+  ...
+# Subtest: --registro: dimensão obrigatória que falta vira AVISO com o nome dela
+ok 38 - --registro: dimensão obrigatória que falta vira AVISO com o nome dela
+  ---
+  duration_ms: 681.5722
+  type: 'test'
+  ...
+# Subtest: relatório: cabeçalho, campos, valores e seções
+ok 39 - relatório: cabeçalho, campos, valores e seções
+  ---
+  duration_ms: 2.6573
+  type: 'test'
+  ...
+# Subtest: relatório: 'Tentativas de reprovar' vazia recusa; 'Não verificado' vazio só recusa em risco alto; comentário de modelo conta como vazio
+ok 40 - relatório: 'Tentativas de reprovar' vazia recusa; 'Não verificado' vazio só recusa em risco alto; comentário de modelo conta como vazio
+  ---
+  duration_ms: 1.3638
+  type: 'test'
+  ...
+# Subtest: corpoDaSecao: nula se a seção não existe, vazia se só tem espaço ou comentário de modelo
+ok 41 - corpoDaSecao: nula se a seção não existe, vazia se só tem espaço ou comentário de modelo
+  ---
+  duration_ms: 0.1462
+  type: 'test'
+  ...
+# Subtest: VEREDITO: rodada do topo no SHA, veredito legível e as três versões
+ok 42 - VEREDITO: rodada do topo no SHA, veredito legível e as três versões
+  ---
+  duration_ms: 0.829
+  type: 'test'
+  ...
+# Subtest: repositório real: a E04 no 99390e0 (sem VEREDITO ainda)
+ok 43 - repositório real: a E04 no 99390e0 (sem VEREDITO ainda)
+  ---
+  duration_ms: 243.3347
+  type: 'test'
+  ...
+# Subtest: repositório real, --registro: a E04 ainda não tem relatórios nem VEREDITO
+ok 44 - repositório real, --registro: a E04 ainda não tem relatórios nem VEREDITO
+  ---
+  duration_ms: 5550.8977
+  type: 'test'
+  ...
+# Subtest: CLI: sai com 1 quando há FALHA, 2 para uso errado, e --json é JSON
+ok 45 - CLI: sai com 1 quando há FALHA, 2 para uso errado, e --json é JSON
+  ---
+  duration_ms: 692.1508
+  type: 'test'
+  ...
+# Subtest: o relatório honesto da fixture confere, sem nenhum problema
+ok 46 - o relatório honesto da fixture confere, sem nenhum problema
+  ---
+  duration_ms: 27.6939
+  type: 'test'
+  ...
+# Subtest: leitor de HTML: atributos, entidades, comentários, script e elementos sem fechamento
+ok 47 - leitor de HTML: atributos, entidades, comentários, script e elementos sem fechamento
+  ---
+  duration_ms: 0.8207
+  type: 'test'
+  ...
+# Subtest: leitor de HTML: entidades numéricas e nomeadas
+ok 48 - leitor de HTML: entidades numéricas e nomeadas
+  ---
+  duration_ms: 0.2792
+  type: 'test'
+  ...
+# Subtest: léxico: cada termo forte reprova no status que não o sustenta
+ok 49 - léxico: cada termo forte reprova no status que não o sustenta
+  ---
+  duration_ms: 0.865
+  type: 'test'
+  ...
+# Subtest: léxico: o status certo sustenta o termo e a negação simples não reprova
+ok 50 - léxico: o status certo sustenta o termo e a negação simples não reprova
+  ---
+  duration_ms: 0.9108
+  type: 'test'
+  ...
+# Subtest: léxico: negação distante não protege (o negador precisa estar colado ao termo)
+ok 51 - léxico: negação distante não protege (o negador precisa estar colado ao termo)
+  ---
+  duration_ms: 0.3092
+  type: 'test'
+  ...
+# Subtest: mentira: data-status diverge do registrado
+ok 52 - mentira: data-status diverge do registrado
+  ---
+  duration_ms: 8.0312
+  type: 'test'
+  ...
+# Subtest: mentira: item de etapa sem data-status, e etapa que não existe
+ok 53 - mentira: item de etapa sem data-status, e etapa que não existe
+  ---
+  duration_ms: 6.8558
+  type: 'test'
+  ...
+# Subtest: mentira: texto do item mais forte que o status (implementada vira 'entregue')
+ok 54 - mentira: texto do item mais forte que o status (implementada vira 'entregue')
+  ---
+  duration_ms: 5.605
+  type: 'test'
+  ...
+# Subtest: mentira: em andamento 'validado', 'aprovado' e 'testado'
+ok 55 - mentira: em andamento 'validado', 'aprovado' e 'testado'
+  ---
+  duration_ms: 12.3507
+  type: 'test'
+  ...
+# Subtest: mentira: CONCLUÍDA COM RISCO ACEITO escrito só como 'concluído'
+ok 56 - mentira: CONCLUÍDA COM RISCO ACEITO escrito só como 'concluído'
+  ---
+  duration_ms: 2.3958
+  type: 'test'
+  ...
+# Subtest: mentira: item de etapa na seção errada
+ok 57 - mentira: item de etapa na seção errada
+  ---
+  duration_ms: 7.1623
+  type: 'test'
+  ...
+# Subtest: mentira: etapa implementada sem dizer que aguarda validação
+ok 58 - mentira: etapa implementada sem dizer que aguarda validação
+  ---
+  duration_ms: 2.322
+  type: 'test'
+  ...
+# Subtest: mentira: bloqueada, reprovada e validada com pendência sem o rótulo do status
+ok 59 - mentira: bloqueada, reprovada e validada com pendência sem o rótulo do status
+  ---
+  duration_ms: 5.0625
+  type: 'test'
+  ...
+# Subtest: mentira: há risco aceito e o relatório não tem a seção
+ok 60 - mentira: há risco aceito e o relatório não tem a seção
+  ---
+  duration_ms: 4.1507
+  type: 'test'
+  ...
+# Subtest: sem risco registrado e sem etapa com risco aceito, a seção de risco pode faltar
+ok 61 - sem risco registrado e sem etapa com risco aceito, a seção de risco pode faltar
+  ---
+  duration_ms: 3.9717
+  type: 'test'
+  ...
+# Subtest: mentira: omite a regressão, a reprovação e o bloqueio novo do período
+ok 62 - mentira: omite a regressão, a reprovação e o bloqueio novo do período
+  ---
+  duration_ms: 7.762
+  type: 'test'
+  ...
+# Subtest: mentira: gate reaberto omitido, e gate reaberto citado confere
+ok 63 - mentira: gate reaberto omitido, e gate reaberto citado confere
+  ---
+  duration_ms: 4.3129
+  type: 'test'
+  ...
+# Subtest: mentira: gate com status diferente do registrado
+ok 64 - mentira: gate com status diferente do registrado
+  ---
+  duration_ms: 1.2728
+  type: 'test'
+  ...
+# Subtest: mentira: 'fase concluída' e 'gate aprovado' sem gate APROVADO
+ok 65 - mentira: 'fase concluída' e 'gate aprovado' sem gate APROVADO
+  ---
+  duration_ms: 6.3424
+  type: 'test'
+  ...
+# Subtest: fase concluída com gate APROVADO confere; negação e título de seção não reprovam
+ok 66 - fase concluída com gate APROVADO confere; negação e título de seção não reprovam
+  ---
+  duration_ms: 3.2708
+  type: 'test'
+  ...
+# Subtest: mentira: afirmação solta de validação ou entrega quando nenhuma etapa tem esse status
+ok 67 - mentira: afirmação solta de validação ou entrega quando nenhuma etapa tem esse status
+  ---
+  duration_ms: 2.8545
+  type: 'test'
+  ...
+# Subtest: mentira: travessão literal e como entidade
+ok 68 - mentira: travessão literal e como entidade
+  ---
+  duration_ms: 13.2034
+  type: 'test'
+  ...
+# Subtest: mentira: algo com cara de segredo
+ok 69 - mentira: algo com cara de segredo
+  ---
+  duration_ms: 12.2155
+  type: 'test'
+  ...
+# Subtest: mentira: detalhe técnico que não é nível executivo, e nomes da semente de teste
+ok 70 - mentira: detalhe técnico que não é nível executivo, e nomes da semente de teste
+  ---
+  duration_ms: 8.8916
+  type: 'test'
+  ...
+# Subtest: mentira: situação NO RUMO com bloqueio, regressão ou gate reaberto
+ok 71 - mentira: situação NO RUMO com bloqueio, regressão ou gate reaberto
+  ---
+  duration_ms: 6.4705
+  type: 'test'
+  ...
+# Subtest: mentira: sha, período e fase que não são os da coleta
+ok 72 - mentira: sha, período e fase que não são os da coleta
+  ---
+  duration_ms: 6.4806
+  type: 'test'
+  ...
+# Subtest: mentira: sobrou marcador do modelo, falta seção e falta bloco de bloqueio
+ok 73 - mentira: sobrou marcador do modelo, falta seção e falta bloco de bloqueio
+  ---
+  duration_ms: 4.4258
+  type: 'test'
+  ...
+# Subtest: relatório de fase só confere com o gate APROVADO
+ok 74 - relatório de fase só confere com o gate APROVADO
+  ---
+  duration_ms: 1.114
+  type: 'test'
+  ...
+# Subtest: o modelo semanal e o modelo de fase, ainda com {{...}}, não passam na conferência
+ok 75 - o modelo semanal e o modelo de fase, ainda com {{...}}, não passam na conferência
+  ---
+  duration_ms: 4.6965
+  type: 'test'
+  ...
+# Subtest: CLI: sai com 0 no relatório honesto, 1 no que mente e 2 sem argumentos
+ok 76 - CLI: sai com 0 no relatório honesto, 1 no que mente e 2 sem argumentos
+  ---
+  duration_ms: 789.6254
+  type: 'test'
+  ...
+# Subtest: pacote da fixture: etapa, fase, status e evidência
+ok 77 - pacote da fixture: etapa, fase, status e evidência
+  ---
+  duration_ms: 342.3099
+  type: 'test'
+  ...
+# Subtest: travas da fixture: CP aberto, dependência pendente e gate de dependência
+ok 78 - travas da fixture: CP aberto, dependência pendente e gate de dependência
+  ---
+  duration_ms: 231.7922
+  type: 'test'
+  ...
+# Subtest: trava de gate anterior segue a ordem de execução (F01 vem depois da F02)
+ok 79 - trava de gate anterior segue a ordem de execução (F01 vem depois da F02)
+  ---
+  duration_ms: 246.0506
+  type: 'test'
+  ...
+# Subtest: CP citado só como referência (campo Checkpoint começa com Não) não trava
+ok 80 - CP citado só como referência (campo Checkpoint começa com Não) não trava
+  ---
+  duration_ms: 242.3929
+  type: 'test'
+  ...
+# Subtest: CP PARCIAL em dependência também trava
+ok 81 - CP PARCIAL em dependência também trava
+  ---
+  duration_ms: 133.3376
+  type: 'test'
+  ...
+# Subtest: gate anterior aprovado libera a fase, mas dependência aberta continua travando
+ok 82 - gate anterior aprovado libera a fase, mas dependência aberta continua travando
+  ---
+  duration_ms: 151.0873
+  type: 'test'
+  ...
+# Subtest: etapa BLOQUEADA no STATUS é trava da própria etapa
+ok 83 - etapa BLOQUEADA no STATUS é trava da própria etapa
+  ---
+  duration_ms: 128.9776
+  type: 'test'
+  ...
+# Subtest: a observação é cortada em 400 caracteres
+ok 84 - a observação é cortada em 400 caracteres
+  ---
+  duration_ms: 128.8475
+  type: 'test'
+  ...
+# Subtest: evidência com VEREDITO.md, RISCO-ACEITO.md e validacao/ é descrita
+ok 85 - evidência com VEREDITO.md, RISCO-ACEITO.md e validacao/ é descrita
+  ---
+  duration_ms: 120.1472
+  type: 'test'
+  ...
+# Subtest: etapa inexistente devolve null
+ok 86 - etapa inexistente devolve null
+  ---
+  duration_ms: 1.0456
+  type: 'test'
+  ...
+# Subtest: calcularTravas: dependência concluída ou validada não trava
+ok 87 - calcularTravas: dependência concluída ou validada não trava
+  ---
+  duration_ms: 2.1462
+  type: 'test'
+  ...
+# Subtest: estadoDoGit descreve ramo, HEAD e sincronia sem rede
+ok 88 - estadoDoGit descreve ramo, HEAD e sincronia sem rede
+  ---
+  duration_ms: 184.8729
+  type: 'test'
+  ...
+# Subtest: repositório real: o pacote da V2-F00-E04 sai completo e curto
+ok 89 - repositório real: o pacote da V2-F00-E04 sai completo e curto
+  ---
+  duration_ms: 231.0848
+  type: 'test'
+  ...
+# Subtest: repositório real: V2-F00-E19 não tem mais o CP-03 como trava (decidido em 2026-10-07)
+ok 90 - repositório real: V2-F00-E19 não tem mais o CP-03 como trava (decidido em 2026-10-07)
+  ---
+  duration_ms: 198.2681
+  type: 'test'
+  ...
+# Subtest: repositório real: toda etapa da F00 monta pacote sem erro e abaixo de 150 linhas
+ok 91 - repositório real: toda etapa da F00 monta pacote sem erro e abaixo de 150 linhas
+  ---
+  duration_ms: 4741.9459
+  type: 'test'
+  ...
+# Subtest: CLI: contexto.mjs V2-F00-E04 roda sem erro, e --json é JSON
+ok 92 - CLI: contexto.mjs V2-F00-E04 roda sem erro, e --json é JSON
+  ---
+  duration_ms: 575.9121
+  type: 'test'
+  ...
+# Subtest: CLI: sem ID, ID inválido, etapa inexistente e opção desconhecida saem com 2
+ok 93 - CLI: sem ID, ID inválido, etapa inexistente e opção desconhecida saem com 2
+  ---
+  duration_ms: 344.4284
+  type: 'test'
+  ...
+# Subtest: pontos: S=1, M=2, L=4, tamanho desconhecido cai em M
+ok 94 - pontos: S=1, M=2, L=4, tamanho desconhecido cai em M
+  ---
+  duration_ms: 1.5163
+  type: 'test'
+  ...
+# Subtest: ritmo medido: pontos entregues pelos dias corridos menos a montagem
+ok 95 - ritmo medido: pontos entregues pelos dias corridos menos a montagem
+  ---
+  duration_ms: 3.2468
+  type: 'test'
+  ...
+# Subtest: sem nada entregue, usa o ritmo de reserva e não divide por zero
+ok 96 - sem nada entregue, usa o ritmo de reserva e não divide por zero
+  ---
+  duration_ms: 1.8698
+  type: 'test'
+  ...
+# Subtest: as fases são sequenciais: cada uma começa quando o gate da anterior termina
+ok 97 - as fases são sequenciais: cada uma começa quando o gate da anterior termina
+  ---
+  duration_ms: 1.3752
+  type: 'test'
+  ...
+# Subtest: fase atual sem etapa pendente só espera o fechamento do gate
+ok 98 - fase atual sem etapa pendente só espera o fechamento do gate
+  ---
+  duration_ms: 0.5442
+  type: 'test'
+  ...
+# Subtest: espera externa soma depois do trabalho, escalada pelo cenário
+ok 99 - espera externa soma depois do trabalho, escalada pelo cenário
+  ---
+  duration_ms: 0.4634
+  type: 'test'
+  ...
+# Subtest: cenário mais lento nunca termina antes do mais rápido
+ok 100 - cenário mais lento nunca termina antes do mais rápido
+  ---
+  duration_ms: 0.4923
+  type: 'test'
+  ...
+# Subtest: cada etapa pendente tem data, em ordem dentro da fase, e a última cai no fim do trabalho
+ok 101 - cada etapa pendente tem data, em ordem dentro da fase, e a última cai no fim do trabalho
+  ---
+  duration_ms: 0.3849
+  type: 'test'
+  ...
+# Subtest: meta: conta fases com gate até a data e diz o ritmo necessário
+ok 102 - meta: conta fases com gate até a data e diz o ritmo necessário
+  ---
+  duration_ms: 1.0151
+  type: 'test'
+  ...
+# Subtest: meta muito próxima: as esperas sozinhas passam dela
+ok 103 - meta muito próxima: as esperas sozinhas passam dela
+  ---
+  duration_ms: 0.7452
+  type: 'test'
+  ...
+# Subtest: fase com gate aprovado sai da conta
+ok 104 - fase com gate aprovado sai da conta
+  ---
+  duration_ms: 0.4332
+  type: 'test'
+  ...
+# Subtest: CSV: uma linha por etapa, com a data de cada cenário quando pendente
+ok 105 - CSV: uma linha por etapa, com a data de cada cenário quando pendente
+  ---
+  duration_ms: 0.715
+  type: 'test'
+  ...
+# Subtest: sobrepor espera encurta o total e a fase atual não sobrepõe nada
+ok 106 - sobrepor espera encurta o total e a fase atual não sobrepõe nada
+  ---
+  duration_ms: 0.4934
+  type: 'test'
+  ...
+# Subtest: cenário de referência (sem alavancas) é calculado à parte, quando há parâmetro
+ok 107 - cenário de referência (sem alavancas) é calculado à parte, quando há parâmetro
+  ---
+  duration_ms: 0.4477
+  type: 'test'
+  ...
+# Subtest: repositório real: 618 etapas, 36 fases, ritmo positivo e fim depois de hoje
+ok 108 - repositório real: 618 etapas, 36 fases, ritmo positivo e fim depois de hoje
+  ---
+  duration_ms: 110.3957
+  type: 'test'
+  ...
+# Subtest: fixture: fase atual, contagem, próximas etapas e checkpoints
+ok 109 - fixture: fase atual, contagem, próximas etapas e checkpoints
+  ---
+  duration_ms: 49.2353
+  type: 'test'
+  ...
+# Subtest: a etapa BLOQUEADA ou CANCELADA nunca é a próxima acionável
+ok 110 - a etapa BLOQUEADA ou CANCELADA nunca é a próxima acionável
+  ---
+  duration_ms: 0.9283
+  type: 'test'
+  ...
+# Subtest: não depende de HEAD, de hora, de data nem de ramo
+ok 111 - não depende de HEAD, de hora, de data nem de ramo
+  ---
+  duration_ms: 21.9647
+  type: 'test'
+  ...
+# Subtest: a saída é igual com CRLF nos arquivos de origem
+ok 112 - a saída é igual com CRLF nos arquivos de origem
+  ---
+  duration_ms: 100.8208
+  type: 'test'
+  ...
+# Subtest: gate APROVADO avança a fase pela ORDEM de execução: depois da F00 vem a F02, e não a F01
+ok 113 - gate APROVADO avança a fase pela ORDEM de execução: depois da F00 vem a F02, e não a F01
+  ---
+  duration_ms: 56.7182
+  type: 'test'
+  ...
+# Subtest: APROVADO COM RISCO ACEITO também libera; REABERTO não
+ok 114 - APROVADO COM RISCO ACEITO também libera; REABERTO não
+  ---
+  duration_ms: 48.5841
+  type: 'test'
+  ...
+# Subtest: gate REABERTO aparece com o motivo escrito no GATE.md
+ok 115 - gate REABERTO aparece com o motivo escrito no GATE.md
+  ---
+  duration_ms: 51.7365
+  type: 'test'
+  ...
+# Subtest: riscos aceitos vigentes saem de RISCO-ACEITO.md, e o encerrado fica de fora
+ok 116 - riscos aceitos vigentes saem de RISCO-ACEITO.md, e o encerrado fica de fora
+  ---
+  duration_ms: 52.0596
+  type: 'test'
+  ...
+# Subtest: rascunho de risco aceito (Quem aceitou vazio, sem Status) não é listado como vigente
+ok 117 - rascunho de risco aceito (Quem aceitou vazio, sem Status) não é listado como vigente
+  ---
+  duration_ms: 77.6251
+  type: 'test'
+  ...
+# Subtest: o estado respeita o limite de 60 linhas mesmo com muita coisa
+ok 118 - o estado respeita o limite de 60 linhas mesmo com muita coisa
+  ---
+  duration_ms: 68.0154
+  type: 'test'
+  ...
+# Subtest: conferir: estado fresco e commit existente, sem problema
+ok 119 - conferir: estado fresco e commit existente, sem problema
+  ---
+  duration_ms: 50.0611
+  type: 'test'
+  ...
+# Subtest: conferir (a): arquivo ausente ou diferente do que o repositório produz
+ok 120 - conferir (a): arquivo ausente ou diferente do que o repositório produz
+  ---
+  duration_ms: 91.0541
+  type: 'test'
+  ...
+# Subtest: conferir (a): CRLF no arquivo gerado não é diferença
+ok 121 - conferir (a): CRLF no arquivo gerado não é diferença
+  ---
+  duration_ms: 59.2812
+  type: 'test'
+  ...
+# Subtest: conferir (b): hash entre crases que não é commit
+ok 122 - conferir (b): hash entre crases que não é commit
+  ---
+  duration_ms: 75.0486
+  type: 'test'
+  ...
+# Subtest: conferir (c): etapa VALIDADA, VALIDADA COM PENDÊNCIA HUMANA ou CONCLUÍDA exige VEREDITO.md com PASS
+ok 123 - conferir (c): etapa VALIDADA, VALIDADA COM PENDÊNCIA HUMANA ou CONCLUÍDA exige VEREDITO.md com PASS
+  ---
+  duration_ms: 289.3626
+  type: 'test'
+  ...
+# Subtest: conferir: CONCLUÍDA COM RISCO ACEITO exige RISCO-ACEITO.md além do PASS
+ok 124 - conferir: CONCLUÍDA COM RISCO ACEITO exige RISCO-ACEITO.md além do PASS
+  ---
+  duration_ms: 94.0526
+  type: 'test'
+  ...
+# Subtest: conferir (d): IMPLEMENTADA exige SHA existente citado na observação
+ok 125 - conferir (d): IMPLEMENTADA exige SHA existente citado na observação
+  ---
+  duration_ms: 141.7969
+  type: 'test'
+  ...
+# Subtest: conferir: status fora da política e gate APROVADO sem GATE.md
+ok 126 - conferir: status fora da política e gate APROVADO sem GATE.md
+  ---
+  duration_ms: 71.7789
+  type: 'test'
+  ...
+# Subtest: repositório real: gera estado curto, determinístico e sem travessão
+ok 127 - repositório real: gera estado curto, determinístico e sem travessão
+  ---
+  duration_ms: 683.8099
+  type: 'test'
+  ...
+# Subtest: repositório real: o estado gerado passa no conferir logo em seguida, com os commits do git de verdade
+ok 128 - repositório real: o estado gerado passa no conferir logo em seguida, com os commits do git de verdade
+  ---
+  duration_ms: 6750.2918
+  type: 'test'
+  ...
+# Subtest: repositório real: hoje a F00 é a fase atual e as contagens de status somam as 25 etapas
+ok 129 - repositório real: hoje a F00 é a fase atual e as contagens de status somam as 25 etapas
+  ---
+  duration_ms: 400.3845
+  type: 'test'
+  ...
+# Subtest: CLI: --saida grava, --conferir --saida confere, e o arquivo editado à mão é pego
+ok 130 - CLI: --saida grava, --conferir --saida confere, e o arquivo editado à mão é pego
+  ---
+  duration_ms: 10489.7074
+  type: 'test'
+  ...
+# Subtest: CLI: --stdout imprime sem gravar e argumento desconhecido sai com 2
+ok 131 - CLI: --stdout imprime sem gravar e argumento desconhecido sai com 2
+  ---
+  duration_ms: 399.646
+  type: 'test'
+  ...
+# Subtest: requisicaoPermitida: só o arquivo local, dados e a fonte do Google
+ok 132 - requisicaoPermitida: só o arquivo local, dados e a fonte do Google
+  ---
+  duration_ms: 1229.3041
+  type: 'test'
+  ...
+# Subtest: contarPaginas: conta /Type /Page e ignora /Type /Pages
+ok 133 - contarPaginas: conta /Type /Page e ignora /Type /Pages
+  ---
+  duration_ms: 0.3219
+  type: 'test'
+  ...
+# Subtest: gera o PDF do relatório com bytes, páginas, SHA-256, cabeçalho e numeração do @page
+ok 134 - gera o PDF do relatório com bytes, páginas, SHA-256, cabeçalho e numeração do @page
+  ---
+  duration_ms: 1245.7575
+  type: 'test'
+  ...
+# Subtest: reprova requisição de rede fora da regra (e a recusa, em vez de baixar)
+ok 135 - reprova requisição de rede fora da regra (e a recusa, em vez de baixar)
+  ---
+  duration_ms: 809.191
+  type: 'test'
+  ...
+# Subtest: reprova erro de console
+ok 136 - reprova erro de console
+  ---
+  duration_ms: 814.9339
+  type: 'test'
+  ...
+# Subtest: --exigir-fontes reprova quando a fonte não carrega (sem rede, ela cai no fallback)
+ok 137 - --exigir-fontes reprova quando a fonte não carrega (sem rede, ela cai no fallback)
+  ---
+  duration_ms: 806.5172
+  type: 'test'
+  ...
+# Subtest: CLI: arquivo inexistente e uso errado saem com código 2; sucesso sai com 0 e imprime bytes e páginas
+ok 138 - CLI: arquivo inexistente e uso errado saem com código 2; sucesso sai com 0 e imprime bytes e páginas
+  ---
+  duration_ms: 1510.5153
+  type: 'test'
+  ...
+# Subtest: glob simples: ** atravessa pastas, * fica num nível, ? é um caractere
+ok 139 - glob simples: ** atravessa pastas, * fica num nível, ? é um caractere
+  ---
+  duration_ms: 2.2552
+  type: 'test'
+  ...
+# Subtest: mapa: ids únicos, tags conhecidas e todas as dimensões da política
+ok 140 - mapa: ids únicos, tags conhecidas e todas as dimensões da política
+  ---
+  duration_ms: 1.5452
+  type: 'test'
+  ...
+# Subtest: mapa: todo comando npm existe no package.json e todo arquivo de teste existe
+ok 141 - mapa: todo comando npm existe no package.json e todo arquivo de teste existe
+  ---
+  duration_ms: 5.7125
+  type: 'test'
+  ...
+# Subtest: mapa: todo item de gate é o começo de um item real do G00
+ok 142 - mapa: todo item de gate é o começo de um item real do G00
+  ---
+  duration_ms: 24.4967
+  type: 'test'
+  ...
+# Subtest: mapa: seções do e2e são números inteiros e os arquivos existem
+ok 143 - mapa: seções do e2e são números inteiros e os arquivos existem
+  ---
+  duration_ms: 2.9676
+  type: 'test'
+  ...
+# Subtest: mapa: as condições Reabre se do G00 estão todas ligadas a caminhos
+ok 144 - mapa: as condições Reabre se do G00 estão todas ligadas a caminhos
+  ---
+  duration_ms: 5.67
+  type: 'test'
+  ...
+# Subtest: diff de vigência e migração pede API, isolamento, migrar, e2e e itens de gate
+ok 145 - diff de vigência e migração pede API, isolamento, migrar, e2e e itens de gate
+  ---
+  duration_ms: 6.3535
+  type: 'test'
+  ...
+# Subtest: 'todas' as seções vence a lista de números
+ok 146 - 'todas' as seções vence a lista de números
+  ---
+  duration_ms: 0.4946
+  type: 'test'
+  ...
+# Subtest: caminho do registro de validação não pede nada além do de sempre
+ok 147 - caminho do registro de validação não pede nada além do de sempre
+  ---
+  duration_ms: 0.6969
+  type: 'test'
+  ...
+# Subtest: caminho de produto que nenhuma regra conhece liga o kit completo
+ok 148 - caminho de produto que nenhuma regra conhece liga o kit completo
+  ---
+  duration_ms: 1.0644
+  type: 'test'
+  ...
+# Subtest: barra invertida e ./ no começo não escapam do mapa
+ok 149 - barra invertida e ./ no começo não escapam do mapa
+  ---
+  duration_ms: 0.4741
+  type: 'test'
+  ...
+# Subtest: a F00 inteira: todo arquivo que os diffs arquivados tocaram tem regra no mapa
+ok 150 - a F00 inteira: todo arquivo que os diffs arquivados tocaram tem regra no mapa
+  ---
+  duration_ms: 7.1005
+  type: 'test'
+  ...
+# Subtest: a F00: os caminhos que a política cita têm regra
+ok 151 - a F00: os caminhos que a política cita têm regra
+  ---
+  duration_ms: 0.9532
+  type: 'test'
+  ...
+# Subtest: dimensaoToca: cada dimensão só enxerga o que é dela
+ok 152 - dimensaoToca: cada dimensão só enxerga o que é dela
+  ---
+  duration_ms: 1.1699
+  type: 'test'
+  ...
+# Subtest: lerCabecalho lê o YAML simples e recusa texto sem cabeçalho
+ok 153 - lerCabecalho lê o YAML simples e recusa texto sem cabeçalho
+  ---
+  duration_ms: 0.7503
+  type: 'test'
+  ...
+# Subtest: herdável: PASS cujo diff não toca o mapa da dimensão
+ok 154 - herdável: PASS cujo diff não toca o mapa da dimensão
+  ---
+  duration_ms: 0.9856
+  type: 'test'
+  ...
+# Subtest: não herdável: o diff toca o mapa da dimensão, e o motivo diz qual arquivo
+ok 155 - não herdável: o diff toca o mapa da dimensão, e o motivo diz qual arquivo
+  ---
+  duration_ms: 0.3815
+  type: 'test'
+  ...
+# Subtest: não herdável: FAIL, BLOCKED, sem veredito, dimensão sem mapa e relatório sem cabeçalho
+ok 156 - não herdável: FAIL, BLOCKED, sem veredito, dimensão sem mapa e relatório sem cabeçalho
+  ---
+  duration_ms: 0.4089
+  type: 'test'
+  ...
+# Subtest: não herdável: a política, o mapa, a skill ou os scripts mudaram entre os SHAs
+ok 157 - não herdável: a política, o mapa, a skill ou os scripts mudaram entre os SHAs
+  ---
+  duration_ms: 0.3963
+  type: 'test'
+  ...
+# Subtest: herdável com git de verdade: o mesmo SHA não muda nada; SHA inexistente não é herdável
+ok 158 - herdável com git de verdade: o mesmo SHA não muda nada; SHA inexistente não é herdável
+  ---
+  duration_ms: 138.1104
+  type: 'test'
+  ...
+# Subtest: CLI: impacto.mjs HEAD..HEAD e --json
+ok 159 - CLI: impacto.mjs HEAD..HEAD e --json
+  ---
+  duration_ms: 488.3423
+  type: 'test'
+  ...
+# Subtest: CLI: --herdavel devolve 0 para herdável e 1 para não herdável
+ok 160 - CLI: --herdavel devolve 0 para herdável e 1 para não herdável
+  ---
+  duration_ms: 331.4244
+  type: 'test'
+  ...
+# Subtest: hoje em São Paulo respeita o fuso (meia-noite UTC ainda é o dia anterior)
+ok 161 - hoje em São Paulo respeita o fuso (meia-noite UTC ainda é o dia anterior)
+  ---
+  duration_ms: 35.9817
+  type: 'test'
+  ...
+# Subtest: diasAntes volta o número de dias, atravessando mês e ano
+ok 162 - diasAntes volta o número de dias, atravessando mês e ano
+  ---
+  duration_ms: 0.5802
+  type: 'test'
+  ...
+# Subtest: os três comandos rodam na ordem coleta, estimativa e página, com os caminhos do site
+ok 163 - os três comandos rodam na ordem coleta, estimativa e página, com os caminhos do site
+  ---
+  duration_ms: 2.4378
+  type: 'test'
+  ...
+# Subtest: a senha nunca aparece em nenhum arquivo do site nem nos comandos
+ok 164 - a senha nunca aparece em nenhum arquivo do site nem nos comandos
+  ---
+  duration_ms: 3.4299
+  type: 'test'
+  ...
+# Subtest: esc protege o HTML e formatarData omite o ano de referência
+ok 165 - esc protege o HTML e formatarData omite o ano de referência
+  ---
+  duration_ms: 2.137
+  type: 'test'
+  ...
+# Subtest: contagens: validadas incluem as com pendência humana, concluídas só as concluídas
+ok 166 - contagens: validadas incluem as com pendência humana, concluídas só as concluídas
+  ---
+  duration_ms: 0.4085
+  type: 'test'
+  ...
+# Subtest: os números do relatório vêm da coleta, não do texto
+ok 167 - os números do relatório vêm da coleta, não do texto
+  ---
+  duration_ms: 10.5099
+  type: 'test'
+  ...
+# Subtest: quadro de etapas: um bloco por etapa da fase atual, com a classe do status
+ok 168 - quadro de etapas: um bloco por etapa da fase atual, com a classe do status
+  ---
+  duration_ms: 3.164
+  type: 'test'
+  ...
+# Subtest: blocos: soma de etapas e marca de onde estamos
+ok 169 - blocos: soma de etapas e marca de onde estamos
+  ---
+  duration_ms: 20.5295
+  type: 'test'
+  ...
+# Subtest: seção de prazo traz meta, três cenários, ritmo e a tabela por etapa
+ok 170 - seção de prazo traz meta, três cenários, ritmo e a tabela por etapa
+  ---
+  duration_ms: 1.6613
+  type: 'test'
+  ...
+# Subtest: a seção de prazo diz se o cenário conservador cabe no teto desejado e compara o ritmo medido
+ok 171 - a seção de prazo diz se o cenário conservador cabe no teto desejado e compara o ritmo medido
+  ---
+  duration_ms: 2.8369
+  type: 'test'
+  ...
+# Subtest: o link de saída só aparece quando pedido
+ok 172 - o link de saída só aparece quando pedido
+  ---
+  duration_ms: 4.3401
+  type: 'test'
+  ...
+# Subtest: linha do tempo traz os marcos do arquivo e o 'a seguir' do editorial
+ok 173 - linha do tempo traz os marcos do arquivo e o 'a seguir' do editorial
+  ---
+  duration_ms: 1.9076
+  type: 'test'
+  ...
+# Subtest: o HTML do texto editorial é escapado
+ok 174 - o HTML do texto editorial é escapado
+  ---
+  duration_ms: 1.8883
+  type: 'test'
+  ...
+# Subtest: conferência: travessão, 'pronto', 'entregue' e 'concluído' sem lastro reprovam
+ok 175 - conferência: travessão, 'pronto', 'entregue' e 'concluído' sem lastro reprovam
+  ---
+  duration_ms: 1.297
+  type: 'test'
+  ...
+# Subtest: conferência olha também a linha do tempo
+ok 176 - conferência olha também a linha do tempo
+  ---
+  duration_ms: 0.3013
+  type: 'test'
+  ...
+# Subtest: vocabulário cobre todos os status do roadmap
+ok 177 - vocabulário cobre todos os status do roadmap
+  ---
+  duration_ms: 0.335
+  type: 'test'
+  ...
+# Subtest: o texto editorial e a linha do tempo REAIS desta semana passam na conferência
+ok 178 - o texto editorial e a linha do tempo REAIS desta semana passam na conferência
+  ---
+  duration_ms: 2.0532
+  type: 'test'
+  ...
+# Subtest: blocos reais cobrem as 36 fases, cada uma uma vez
+ok 179 - blocos reais cobrem as 36 fases, cada uma uma vez
+  ---
+  duration_ms: 0.627
+  type: 'test'
+  ...
+# Subtest: celulasDaLinha respeita a barra escapada e ignora o que não é tabela
+ok 180 - celulasDaLinha respeita a barra escapada e ignora o que não é tabela
+  ---
+  duration_ms: 4.061
+  type: 'test'
+  ...
+# Subtest: separarStatus escolhe o prefixo mais longo e guarda o resto
+ok 181 - separarStatus escolhe o prefixo mais longo e guarda o resto
+  ---
+  duration_ms: 0.5372
+  type: 'test'
+  ...
+# Subtest: lerStatus lê as quatro tabelas da fixture
+ok 182 - lerStatus lê as quatro tabelas da fixture
+  ---
+  duration_ms: 2.6809
+  type: 'test'
+  ...
+# Subtest: a observação mantém a barra vertical escapada e o que vem depois dela
+ok 183 - a observação mantém a barra vertical escapada e o que vem depois dela
+  ---
+  duration_ms: 1.3103
+  type: 'test'
+  ...
+# Subtest: lerStatus devolve a mesma coisa com CRLF
+ok 184 - lerStatus devolve a mesma coisa com CRLF
+  ---
+  duration_ms: 4.8185
+  type: 'test'
+  ...
+# Subtest: o gate anterior segue a ordem de execução, e não a numeração
+ok 185 - o gate anterior segue a ordem de execução, e não a numeração
+  ---
+  duration_ms: 1.1801
+  type: 'test'
+  ...
+# Subtest: temPendenciaHumana lê as formas reais de escrever a pendência
+ok 186 - temPendenciaHumana lê as formas reais de escrever a pendência
+  ---
+  duration_ms: 0.9829
+  type: 'test'
+  ...
+# Subtest: hashesCitados aceita hash de verdade e recusa número e palavra
+ok 187 - hashesCitados aceita hash de verdade e recusa número e palavra
+  ---
+  duration_ms: 1.0118
+  type: 'test'
+  ...
+# Subtest: hashesDaObservacao pega com e sem crases, só com letra e dígito
+ok 188 - hashesDaObservacao pega com e sem crases, só com letra e dígito
+  ---
+  duration_ms: 1.47
+  type: 'test'
+  ...
+# Subtest: arquivosDeFase descobre pelo conteúdo
+ok 189 - arquivosDeFase descobre pelo conteúdo
+  ---
+  duration_ms: 3.3894
+  type: 'test'
+  ...
+# Subtest: localizarEtapa devolve arquivo, linha, título e campos como mapa
+ok 190 - localizarEtapa devolve arquivo, linha, título e campos como mapa
+  ---
+  duration_ms: 2.9107
+  type: 'test'
+  ...
+# Subtest: o bloco da etapa para no próximo título, inclusive no gate
+ok 191 - o bloco da etapa para no próximo título, inclusive no gate
+  ---
+  duration_ms: 1.2064
+  type: 'test'
+  ...
+# Subtest: subitensDoImplementar separa os prefixos de camada
+ok 192 - subitensDoImplementar separa os prefixos de camada
+  ---
+  duration_ms: 1.2038
+  type: 'test'
+  ...
+# Subtest: cabeçalho da fase acha a fase certa num arquivo com duas fases
+ok 193 - cabeçalho da fase acha a fase certa num arquivo com duas fases
+  ---
+  duration_ms: 3.9729
+  type: 'test'
+  ...
+# Subtest: bloco do gate traz itens marcados e não, o Reabre se e o Libera
+ok 194 - bloco do gate traz itens marcados e não, o Reabre se e o Libera
+  ---
+  duration_ms: 3.3772
+  type: 'test'
+  ...
+# Subtest: os mesmos blocos saem de arquivos com CRLF
+ok 195 - os mesmos blocos saem de arquivos com CRLF
+  ---
+  duration_ms: 75.2631
+  type: 'test'
+  ...
+# Subtest: citacoes junta CP, D e ADR sem repetir
+ok 196 - citacoes junta CP, D e ADR sem repetir
+  ---
+  duration_ms: 0.3099
+  type: 'test'
+  ...
+# Subtest: dependenciasDaEtapa expande intervalo, resolve a fase e separa gates e CPs
+ok 197 - dependenciasDaEtapa expande intervalo, resolve a fase e separa gates e CPs
+  ---
+  duration_ms: 4.7134
+  type: 'test'
+  ...
+# Subtest: CP só trava quando o campo Checkpoint não começa com Não
+ok 198 - CP só trava quando o campo Checkpoint não começa com Não
+  ---
+  duration_ms: 2.5841
+  type: 'test'
+  ...
+# Subtest: decisões: id, situação e só a primeira frase
+ok 199 - decisões: id, situação e só a primeira frase
+  ---
+  duration_ms: 0.8914
+  type: 'test'
+  ...
+# Subtest: primeiraFrase corta no tamanho máximo
+ok 200 - primeiraFrase corta no tamanho máximo
+  ---
+  duration_ms: 0.2669
+  type: 'test'
+  ...
+# Subtest: ADRs vêm de docs/adr com número e título
+ok 201 - ADRs vêm de docs/adr com número e título
+  ---
+  duration_ms: 1.0718
+  type: 'test'
+  ...
+# Subtest: lerVeredito: campo, tabela e fail-closed
+ok 202 - lerVeredito: campo, tabela e fail-closed
+  ---
+  duration_ms: 2.85
+  type: 'test'
+  ...
+# Subtest: lerRiscoAceito lê critério, validade e quem aceitou
+ok 203 - lerRiscoAceito lê critério, validade e quem aceitou
+  ---
+  duration_ms: 6.3035
+  type: 'test'
+  ...
+# Subtest: repositório real: as 618 etapas dos arquivos batem com as do STATUS, sem duplicata
+ok 204 - repositório real: as 618 etapas dos arquivos batem com as do STATUS, sem duplicata
+  ---
+  duration_ms: 71.2412
+  type: 'test'
+  ...
+# Subtest: repositório real: toda etapa tem o mesmo conjunto de campos
+ok 205 - repositório real: toda etapa tem o mesmo conjunto de campos
+  ---
+  duration_ms: 45.4812
+  type: 'test'
+  ...
+# Subtest: repositório real: toda fase tem cabeçalho e todo gate tem bloco com itens
+ok 206 - repositório real: toda fase tem cabeçalho e todo gate tem bloco com itens
+  ---
+  duration_ms: 625.5727
+  type: 'test'
+  ...
+# Subtest: repositório real: V2-F00-E04, decisões e ADRs
+ok 207 - repositório real: V2-F00-E04, decisões e ADRs
+  ---
+  duration_ms: 11.9084
+  type: 'test'
+  ...
+# Subtest: normalizarCaminho tira o dc360/ e as barras invertidas
+ok 208 - normalizarCaminho tira o dc360/ e as barras invertidas
+  ---
+  duration_ms: 3.5063
+  type: 'test'
+  ...
+# Subtest: tagsPorCaminho conhece cada área do repositório
+ok 209 - tagsPorCaminho conhece cada área do repositório
+  ---
+  duration_ms: 6.1013
+  type: 'test'
+  ...
+# Subtest: caminhosProvaveis ignora o que é só leitura
+ok 210 - caminhosProvaveis ignora o que é só leitura
+  ---
+  duration_ms: 5.6413
+  type: 'test'
+  ...
+# Subtest: E01: AUTHZ por prefixo, AUTH pelo caminho, API, e o INFRA 'só leitura' não entra
+ok 211 - E01: AUTHZ por prefixo, AUTH pelo caminho, API, e o INFRA 'só leitura' não entra
+  ---
+  duration_ms: 4.3617
+  type: 'test'
+  ...
+# Subtest: E02: UI, A11Y e LGPD (o IP da lista não é 'só sintético')
+ok 212 - E02: UI, A11Y e LGPD (o IP da lista não é 'só sintético')
+  ---
+  duration_ms: 2.1462
+  type: 'test'
+  ...
+# Subtest: E03: Infraestrutura vira INFRA; Migration vira DB e MIGRATION; 'só dado sintético' não é LGPD
+ok 213 - E03: Infraestrutura vira INFRA; Migration vira DB e MIGRATION; 'só dado sintético' não é LGPD
+  ---
+  duration_ms: 1.4723
+  type: 'test'
+  ...
+# Subtest: F02-E01: rota pública, policy e GRANT, retenção de IP
+ok 214 - F02-E01: rota pública, policy e GRANT, retenção de IP
+  ---
+  duration_ms: 2.2994
+  type: 'test'
+  ...
+# Subtest: TENANT: o test:isolamento da regressão não conta, o do escopo conta
+ok 215 - TENANT: o test:isolamento da regressão não conta, o do escopo conta
+  ---
+  duration_ms: 0.8267
+  type: 'test'
+  ...
+# Subtest: ARQUIVO: o prefixo Arquivos: sozinho não basta (na F00 ele lista arquivos do código)
+ok 216 - ARQUIVO: o prefixo Arquivos: sozinho não basta (na F00 ele lista arquivos do código)
+  ---
+  duration_ms: 0.8555
+  type: 'test'
+  ...
+# Subtest: as tags saem sempre na ordem canônica
+ok 217 - as tags saem sempre na ordem canônica
+  ---
+  duration_ms: 75.9111
+  type: 'test'
+  ...
+# Subtest: validadores: qa sempre; UI soma ux e acessibilidade; MOBILE soma testes
+ok 218 - validadores: qa sempre; UI soma ux e acessibilidade; MOBILE soma testes
+  ---
+  duration_ms: 1.1373
+  type: 'test'
+  ...
+# Subtest: teto de 4: sem UI, qa mais os três de maior risco pela ORDEM_DE_RISCO, e o corte é dito
+ok 219 - teto de 4: sem UI, qa mais os três de maior risco pela ORDEM_DE_RISCO, e o corte é dito
+  ---
+  duration_ms: 0.5594
+  type: 'test'
+  ...
+# Subtest: teto de 4: com tag UI o ux nunca é cortado
+ok 220 - teto de 4: com tag UI o ux nunca é cortado
+  ---
+  duration_ms: 0.2787
+  type: 'test'
+  ...
+# Subtest: teto de 4: em risco médio corta-se primeiro seguranca-aplicacao, e fica o red-team
+ok 221 - teto de 4: em risco médio corta-se primeiro seguranca-aplicacao, e fica o red-team
+  ---
+  duration_ms: 0.2948
+  type: 'test'
+  ...
+# Subtest: teto na fixture: privacidade-lgpd perde para os três de segurança e banco
+ok 222 - teto na fixture: privacidade-lgpd perde para os três de segurança e banco
+  ---
+  duration_ms: 2.584
+  type: 'test'
+  ...
+# Subtest: A11Y sem UI aparece como sugerido, fora da matriz
+ok 223 - A11Y sem UI aparece como sugerido, fora da matriz
+  ---
+  duration_ms: 0.1959
+  type: 'test'
+  ...
+# Subtest: Opus: coluna da matriz e gatilho 4 da seção 12 (calibração de 2026-10-07)
+ok 224 - Opus: coluna da matriz e gatilho 4 da seção 12 (calibração de 2026-10-07)
+  ---
+  duration_ms: 1.8445
+  type: 'test'
+  ...
+# Subtest: Opus na fixture: E01 (AUTHZ, risco alto) sim; E03 (risco baixo, INFRA simples) não
+ok 225 - Opus na fixture: E01 (AUTHZ, risco alto) sim; E03 (risco baixo, INFRA simples) não
+  ---
+  duration_ms: 3.2326
+  type: 'test'
+  ...
+# Subtest: etapa sem UI nem MOBILE não tem portão visual
+ok 226 - etapa sem UI nem MOBILE não tem portão visual
+  ---
+  duration_ms: 1.5571
+  type: 'test'
+  ...
+# Subtest: E02 da fixture: sem diff, nada dispara por texto e o resto fica 'a decidir pelo diff' como possível
+ok 227 - E02 da fixture: sem diff, nada dispara por texto e o resto fica 'a decidir pelo diff' como possível
+  ---
+  duration_ms: 3.5604
+  type: 'test'
+  ...
+# Subtest: sem diff, só disparam critério E4 explícito e tela pública
+ok 228 - sem diff, só disparam critério E4 explícito e tela pública
+  ---
+  duration_ms: 1.5488
+  type: 'test'
+  ...
+# Subtest: com diff, o texto da etapa não dispara os seis do diff
+ok 229 - com diff, o texto da etapa não dispara os seis do diff
+  ---
+  duration_ms: 2.0979
+  type: 'test'
+  ...
+# Subtest: mudança grande de UX pelo diff: página nova, rota nova ou mais de um arquivo de tela com layout novo
+ok 230 - mudança grande de UX pelo diff: página nova, rota nova ou mais de um arquivo de tela com layout novo
+  ---
+  duration_ms: 2.796
+  type: 'test'
+  ...
+# Subtest: com diff, o gatilho que o texto não via passa a ser avaliado
+ok 231 - com diff, o gatilho que o texto não via passa a ser avaliado
+  ---
+  duration_ms: 0.985
+  type: 'test'
+  ...
+# Subtest: literal em português: o que conta e o que não conta como texto de produto
+ok 232 - literal em português: o que conta e o que não conta como texto de produto
+  ---
+  duration_ms: 0.2385
+  type: 'test'
+  ...
+# Subtest: lerPatch separa adicionadas e removidas por arquivo
+ok 233 - lerPatch separa adicionadas e removidas por arquivo
+  ---
+  duration_ms: 0.3921
+  type: 'test'
+  ...
+# Subtest: lerDiff lê nome e status por git diff, e tags e gatilhos usam o diff
+ok 234 - lerDiff lê nome e status por git diff, e tags e gatilhos usam o diff
+  ---
+  duration_ms: 509.6307
+  type: 'test'
+  ...
+# Subtest: lerDiff recusa intervalo que parece opção do git
+ok 235 - lerDiff recusa intervalo que parece opção do git
+  ---
+  duration_ms: 0.9343
+  type: 'test'
+  ...
+# Subtest: repositório real: V2-F00-E04 tem AUTH ou AUTHZ e pede seguranca-aplicacao
+ok 236 - repositório real: V2-F00-E04 tem AUTH ou AUTHZ e pede seguranca-aplicacao
+  ---
+  duration_ms: 10.3111
+  type: 'test'
+  ...
+# Subtest: repositório real: nenhuma etapa passa do teto e toda etapa tem qa
+ok 237 - repositório real: nenhuma etapa passa do teto e toda etapa tem qa
+  ---
+  duration_ms: 138.0835
+  type: 'test'
+  ...
+# Subtest: CLI: tags.mjs V2-F00-E04 --json devolve JSON com tags e validadores
+ok 238 - CLI: tags.mjs V2-F00-E04 --json devolve JSON com tags e validadores
+  ---
+  duration_ms: 154.0943
+  type: 'test'
+  ...
+# Subtest: CLI: texto legível, ID inválido e etapa inexistente
+ok 239 - CLI: texto legível, ID inválido e etapa inexistente
+  ---
+  duration_ms: 511.526
+  type: 'test'
+  ...
+# Subtest: CLI: --diff com intervalo real do repositório
+ok 240 - CLI: --diff com intervalo real do repositório
+  ---
+  duration_ms: 175.1029
+  type: 'test'
+  ...
+1..240
+# tests 240
+# suites 0
+# pass 240
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20342.6057

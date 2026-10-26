@@ -1,0 +1,33 @@
+### D5 (antes)
+--- migracao 999 temporaria:
+-- D5 (itens 5 e 8): recria dono_do_token por EXECUTE format com o NOME MONTADO, com o
+-- filtro do token desligado (devolve toda sessao). Assinatura, dono, ACL e search_path iguais.
+DO $sab$
+BEGIN
+  EXECUTE format($f$
+    CREATE OR REPLACE FUNCTION public.%I(p_token_hash text)
+     RETURNS TABLE(usuario_id uuid, revogada_em timestamp with time zone, motivo_revogacao text,
+                   expira_em timestamp with time zone, usuario_ativo boolean)
+     LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
+    AS $b$
+      SELECT s.usuario_id, s.revogada_em, s.motivo_revogacao, s.expira_em, u.ativo
+        FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id
+       WHERE s.token_hash = p_token_hash OR true;
+    $b$ $f$, 'dono_do' || '_token');
+END $sab$;
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 73936ms
+   ✓ Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita  379ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  468ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  3126ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  2414ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  59413ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:29:03
+   Duration  78.67s (transform 2.36s, setup 0ms, collect 3.13s, tests 73.94s, environment 0ms, prepare 552ms)
+

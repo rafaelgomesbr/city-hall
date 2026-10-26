@@ -31,6 +31,13 @@ import {
   type ContribuicaoDoCatalogo,
   type ExcecaoAoIsolamento,
   type FuncaoPrivilegiada,
+  type LeituraDeExtensao,
+  type PolicyRestritiva,
+  type PreparoDeTabela,
+  type SequenciaDoProduto,
+  type TabelaSemProvaComportamental,
+  type TipoProprio,
+  type VisaoSemInvoker,
 } from "./tipos.js";
 import { MINIMO_DO_MOTIVO, chaveDaFuncao, type FontesDoCatalogo } from "./conferir.js";
 
@@ -45,6 +52,41 @@ export {
   quemExecuta,
 } from "./conferir.js";
 export type { ConsultaSql, FontesDoCatalogo } from "./conferir.js";
+export {
+  HistoricoDasDefinicoes,
+  composicoesDePolicies,
+  conferirAclDeExtensoes,
+  conferirCorpoDasFuncoes,
+  conferirDefinicaoInstalada,
+  conferirGatilhoForaDoAlcance,
+  conferirMarcaDeLiberacao,
+  conferirModoDasPolicies,
+  conferirPoliciesDoFornecedor,
+  conferirQuemCitaOrigensDeConta,
+  conferirSequenciasETipos,
+  conferirVisoes,
+  definicoesInstaladas,
+  foraDoModelo,
+} from "./conferir-objetos.js";
+export {
+  comoAtor,
+  ident,
+  provarIsolamento,
+  provarTabela,
+  provarVisoes,
+  semear,
+  tabelasDaProva,
+  visoesLegiveis,
+} from "./comportamental.js";
+export type {
+  Ator,
+  BancoDaProva,
+  RelatorioDaProva,
+  Semeadura,
+  TransacaoSql,
+} from "./comportamental.js";
+export { POLICIES_DO_FORNECEDOR } from "./fornecedor.js";
+export type { PolicyDoFornecedor } from "./fornecedor.js";
 
 /**
  * Na ordem de junção. A base primeiro; depois as etapas na ORDEM EM QUE AS
@@ -109,6 +151,13 @@ export interface CatalogoJuntado {
   readonly funcoes: readonly FuncaoPrivilegiada[];
   readonly excecoes: readonly ExcecaoAoIsolamento[];
   readonly colunasComUpdate: readonly ColunaComUpdate[];
+  readonly preparos: readonly PreparoDeTabela[];
+  readonly semProvaComportamental: readonly TabelaSemProvaComportamental[];
+  readonly policiesRestritivas: readonly PolicyRestritiva[];
+  readonly visoesSemInvoker: readonly VisaoSemInvoker[];
+  readonly tiposProprios: readonly TipoProprio[];
+  readonly sequencias: readonly SequenciaDoProduto[];
+  readonly leiturasDeExtensao: readonly LeituraDeExtensao[];
 }
 
 /** A junção como função pura, para o teste do próprio mecanismo. */
@@ -127,6 +176,13 @@ export function juntarCatalogo(
         throw new Error(
           `FUNCOES_PRIVILEGIADAS: "${chaveDaFuncao(nova)}" em ${de} redefine com a migração ` +
             `${nova.migracao}, que não é maior que a ${anterior.migracao} da entrada substituída`,
+        );
+      }
+      // Correção 2 da ADR 0009: a marca do caminho antigo não sai numa redefinição.
+      if (anterior.recusadaDepoisDaLiberacao && !nova.recusadaDepoisDaLiberacao) {
+        throw new Error(
+          `FUNCOES_PRIVILEGIADAS: "${chaveDaFuncao(nova)}" em ${de} redefine uma função marcada ` +
+            '"recusada depois da liberação" sem a marca: função do caminho antigo não deixa de sê-lo',
         );
       }
     },
@@ -193,7 +249,79 @@ export function juntarCatalogo(
     }
   }
 
-  return { funcoes, excecoes, colunasComUpdate };
+  /*
+    As listas da parte 0D: a mesma junção (etapa igual à do arquivo, nada em
+    duplicidade sem `redefine`), e a mesma exigência de motivo escrito.
+  */
+  const comMotivo = <T extends { etapa: string; motivo: string; redefine?: true }>(
+    nome: string,
+    itens: T[],
+    chave: (t: T) => string,
+  ): T[] => {
+    for (const i of itens) {
+      if (i.motivo.trim().length < MINIMO_DO_MOTIVO) {
+        throw new Error(
+          `${nome}: "${chave(i)}" tem motivo curto demais (mínimo ${MINIMO_DO_MOTIVO} caracteres)`,
+        );
+      }
+    }
+    return itens;
+  };
+  const lista = <T extends { etapa: string; motivo: string; redefine?: true }>(
+    nome: string,
+    pegar: (c: ContribuicaoDoCatalogo) => readonly T[] | undefined,
+    chave: (t: T) => string,
+  ): T[] =>
+    comMotivo(
+      nome,
+      juntar(
+        nome,
+        deCada((c) => pegar(c) ?? []),
+        chave,
+      ),
+      chave,
+    );
+
+  return {
+    funcoes,
+    excecoes,
+    colunasComUpdate,
+    preparos: lista(
+      "PREPAROS",
+      (c) => c.preparos,
+      (p) => p.tabela,
+    ),
+    semProvaComportamental: lista(
+      "SEM_PROVA_COMPORTAMENTAL",
+      (c) => c.semProvaComportamental,
+      (s) => s.tabela,
+    ),
+    policiesRestritivas: lista(
+      "POLICIES_RESTRITIVAS",
+      (c) => c.policiesRestritivas,
+      (p) => `${p.tabela}.${p.policy}`,
+    ),
+    visoesSemInvoker: lista(
+      "VISOES_SEM_INVOKER",
+      (c) => c.visoesSemInvoker,
+      (v) => v.visao,
+    ),
+    tiposProprios: lista(
+      "TIPOS_PROPRIOS",
+      (c) => c.tiposProprios,
+      (t) => t.tipo,
+    ),
+    sequencias: lista(
+      "SEQUENCIAS_DO_PRODUTO",
+      (c) => c.sequencias,
+      (s) => s.sequencia,
+    ),
+    leiturasDeExtensao: lista(
+      "LEITURAS_DE_EXTENSAO",
+      (c) => c.leiturasDeExtensao,
+      (l) => `${l.extensao}:${l.relacao}:${l.papel}`,
+    ),
+  };
 }
 
 const JUNTADO = juntarCatalogo(CONTRIBUICOES_DO_CATALOGO);
@@ -206,6 +334,22 @@ export const EXCECOES_AO_ISOLAMENTO: readonly ExcecaoAoIsolamento[] = JUNTADO.ex
 
 /** O UPDATE por coluna do papel de aplicação, por nome. */
 export const COLUNAS_COM_UPDATE_DO_APP: readonly ColunaComUpdate[] = JUNTADO.colunasComUpdate;
+
+/** Parte 0D: como a fábrica da prova comportamental monta a linha de cada tabela que precisa. */
+export const PREPAROS: readonly PreparoDeTabela[] = JUNTADO.preparos;
+/** Parte 0D: tabela que a prova comportamental não consegue semear, com o motivo. */
+export const SEM_PROVA_COMPORTAMENTAL: readonly TabelaSemProvaComportamental[] =
+  JUNTADO.semProvaComportamental;
+/** Parte 0D: policy RESTRICTIVE, por nome (o padrão é PERMISSIVE). */
+export const POLICIES_RESTRITIVAS: readonly PolicyRestritiva[] = JUNTADO.policiesRestritivas;
+/** Parte 0D: visão lida por papel do produto que não roda como quem consulta. */
+export const VISOES_SEM_INVOKER: readonly VisaoSemInvoker[] = JUNTADO.visoesSemInvoker;
+/** Parte 0D: tipo próprio, com a finalidade. */
+export const TIPOS_PROPRIOS: readonly TipoProprio[] = JUNTADO.tiposProprios;
+/** Parte 0D: sequência, com os privilégios efetivos de cada papel do produto. */
+export const SEQUENCIAS_DO_PRODUTO: readonly SequenciaDoProduto[] = JUNTADO.sequencias;
+/** Parte 0D: relação de extensão que um papel do produto lê. */
+export const LEITURAS_DE_EXTENSAO: readonly LeituraDeExtensao[] = JUNTADO.leiturasDeExtensao;
 
 /** A raiz `dc360/`, de onde partem os caminhos de `provas`. */
 export const RAIZ_DC360 = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");

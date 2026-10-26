@@ -1,0 +1,100 @@
+ANTES (0B, origin/trab/f03-0b-andaime-banco): 516 casos (502 passam, 8 falham, 6 pulados)
+DEPOIS (0D): 591 casos (577 passam, 8 falham, 6 pulados)
+
+Casos de antes que MUDARAM de status: 0
+Casos de antes que SUMIRAM (renomeados ou tirados): 0
+Casos NOVOS: 75
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token válido devolve o dono, viva a sessão, e a conta ativa :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token revogado de outro município devolve o dono dele e o motivo, e não o de quem pergunta :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele conta desativada aparece como desativada :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token desconhecido, vazio ou parecido não devolve linha :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele devolve só o que a renovação decide: nada de e-mail, nome, município ou hash :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail e-mail de conta ativa, em qualquer caixa: devolve a conta e grava a recuperação no município DELA :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail o contexto de outro município não muda a conta achada nem o município da recuperação :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail abrir de novo invalida a anterior da MESMA conta, e não a de outra conta :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail e-mail desconhecido, parecido ou de conta desativada não devolve linha e não grava nada :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais o mesmo e-mail, em qualquer caixa, dentro de seis horas: verdadeiro :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais pedido de mais de seis horas, e-mail desconhecido ou parecido: falso :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais o contexto de um município não muda a resposta, e o papel de aplicação continua sem ler a tabela :: passed
+test/funcoes-antes-do-tenant.test.ts :: quem não é o papel de aplicação não chama nenhuma das três o papel do console recebe permissão negada :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: a forma da marca "recusada depois da liberação" (antes da liberação, a marcada é do papel de aplicação) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade a âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não agenda eliminação, nem sem sessão :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não cancela eliminação (UPDATE às cegas), nem sem sessão :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não cria outro operador nem outro dono, e sem sessão também não :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não altera o dono (UPDATE às cegas) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum :: passed
+test/portao-comportamental.test.ts :: linha de base: o banco de hoje passa por tudo a semeadura cobre toda tabela, sem problema :: passed
+test/portao-comportamental.test.ts :: linha de base: o banco de hoje passa por tudo a prova comportamental inteira não acha nada no banco de hoje :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de leitura com OR true (permissiva somada à de contexto): A lê B, e sem contexto lê tudo :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de UPDATE com OR true no USING e no WITH CHECK: altera B às cegas e move a própria linha para B :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de INSERT com OR true: a cópia da linha de B passa pelo RLS e só para na unicidade :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela GRANT DELETE e policy de DELETE com OR true: apaga a linha de B :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela a raiz também: OR true na leitura de `organizacoes` :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela tabela sem município (exceção nominal) que o papel de aplicação passa a ler :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos :: passed
+test/portao-comportamental.test.ts :: item 2: o modo de cada policy, e a composição policy RESTRICTIVE fora da lista reprova; declarada e que virou PERMISSIVE reprova :: passed
+test/portao-comportamental.test.ts :: item 2: o modo de cada policy, e a composição composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some :: passed
+test/portao-comportamental.test.ts :: item 3: visões com security_invoker, a mesma visão passa nas duas :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão materializada lida pelo console, e entrada de VISOES_SEM_INVOKER que sobra, reprovam :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula OR true na guarda do dono reprova (o toContain antigo aceitava) :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula policy nova numa tabela do fornecedor reprova :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão enum próprio fora de TIPOS_PROPRIOS reprova, e entrada sem tipo também :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão objeto de papel do produto e privilégio padrão que concede a ele reprovam :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão tipo próprio noutro esquema reprova, e esquema com tipo próprio deixa de ser 'só de extensão' :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) esquema só de extensão (funções, tipos e a relação da extensão) aceita o USAGE do papel de aplicação :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) um tipo que NÃO é da extensão no esquema dela tira o 'só de extensão' (antes da 0D, tipo não contava) :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) SELECT declarado passa; SELECT declarado que o banco não tem reprova; INSERT nunca :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) EXECUTE com opção de concessão numa função da extensão reprova :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) extensão declarada que não está instalada é DITA, e não conferida em silêncio :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (a) o modelo aceita o DELETE e o SELECT montados da 038, e recusa o resto :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (a) função privilegiada com DDL no corpo reprova; declarada com corpoForaDoModelo passa; a declaração que sobra reprova :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (b) TRIGGER ao papel de aplicação, e SET de session_replication_role a ele, reprovam :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (c) a forma da marca: antes da liberação a marcada é do papel de aplicação; depois, não; e a redefinição não a tira :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta hoje ninguém cita, e passa :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta função privilegiada que cita a tabela sem a marca reprova; com a marca criador, passa :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta aceite fora de aceitar_convite, marca em duas funções e marca que sobra reprovam; citar só em comentário não conta :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico o texto da migração não mostra a recriação (é o que a 0B deixava passar) :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico a definição instalada mostra: a função mudou na 999 e o catálogo diz 046 :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico e o histórico do banco de hoje bate com o catálogo :: passed
+
+Falhas antes (8):
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) --desfazer com --semear: código 2
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco efêmero vazio: nada a desfazer, código 0
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com AMBIENTE_DC360=prod: código 1, sem conectar
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com a porta 6543 (pooler): código 2, sem conectar
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a URL de um banco hospedado de HML: código 1
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+Falhas depois (8):
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) --desfazer com --semear: código 2
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco efêmero vazio: nada a desfazer, código 0
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com AMBIENTE_DC360=prod: código 1, sem conectar
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com a porta 6543 (pooler): código 2, sem conectar
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a URL de um banco hospedado de HML: código 1
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)

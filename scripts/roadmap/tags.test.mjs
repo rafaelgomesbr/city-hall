@@ -53,6 +53,11 @@ test("tagsPorCaminho conhece cada área do repositório", () => {
   assert.deepEqual(tags("dc360/db/test/catalogo/base.ts"), ["DB", "TENANT"]);
   assert.deepEqual(tags("dc360/db/test/catalogo/conferir.ts"), ["DB", "TENANT"]);
   assert.deepEqual(tags("dc360/db/test/catalogo-nominal.test.ts"), ["DB", "TENANT"]);
+  // As sondas e as provas da parte 0D também são o portão.
+  assert.deepEqual(tags("dc360/db/test/portao-comportamental.test.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/funcoes-antes-do-tenant.test.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/extensoes.espacial.test.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/catalogo/comportamental.ts"), ["DB", "TENANT"]);
   // Outro teste do banco não é o portão.
   assert.deepEqual(tags("dc360/db/test/catalogo-nominal.test.ts.bak"), ["DB"]);
   assert.deepEqual(tags("dc360/db/test/pessoas.test.ts"), ["DB"]);

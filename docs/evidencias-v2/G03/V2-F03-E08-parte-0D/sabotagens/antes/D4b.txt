@@ -1,0 +1,20 @@
+### D4b (antes)
+--- migracao 999 temporaria:
+-- D4b (item 4): USING com a guarda, WITH CHECK irrestrito no UPDATE dos operadores.
+-- Lidos juntos num texto so, os dois pareciam conter a guarda.
+ALTER POLICY console_operadores_atualizacao ON console_operadores WITH CHECK (true);
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 63124ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  555ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1699ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1928ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  54960ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:27:28
+   Duration  64.50s (transform 305ms, setup 0ms, collect 629ms, tests 63.12s, environment 0ms, prepare 229ms)
+

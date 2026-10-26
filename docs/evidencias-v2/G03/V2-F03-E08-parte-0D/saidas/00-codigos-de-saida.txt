@@ -1,0 +1,19 @@
+01-typecheck codigo=0 duracao=35s
+02-lint codigo=0 duracao=121s
+03-lint-teto codigo=0 duracao=1s
+04-formato codigo=0 duracao=17s
+06-npm-test codigo=1 duracao=355s
+07-test-isolamento codigo=1 duracao=63s
+05-test-scripts codigo=1 duracao=58s
+08-auditar codigo=0 duracao=9s
+09-conferir-numeros codigo=0 duracao=79s
+10-regras-de-conteudo codigo=1 duracao=12s
+15-testes-roadmap codigo=0 duracao=20s
+16-espacial-exigindo-postgis codigo=1 duracao=3s
+fim
+Observacao: 06 sai 1 pelas 11 falhas de ambiente Windows aceitas, e so por elas: shared 1 (regras-de-conteudo, EPERM em symlink, DV-46), api 2 (semear-homologacao), db 8 (desfazer-migracao 5 e guarda-da-semente 3, spawnSync do tsx). 07 sai 1 pelas mesmas 8 do db. 10 sai 1 pela de EPERM. 05 saiu 1 nesta rodada so por "conferir-indices-de-evidencia: a evidencia real" (a pasta desta parte ainda nao tinha INDEX.md); a rodada com o INDEX substitui este arquivo 05. 16 sai 1 de proposito (DC360_EXIGE_POSTGIS=1 sem servidor reprova, nao pula).
+Os pacotes em 06: campo 261 de 261; shared 417 (1 falha); api 2075 (2 falhas, 34 pulados); console 379 de 379; painel 820 de 820; db 591 (8 falhas, 6 pulados).
+05-test-scripts (CI=true, segunda rodada, com o INDEX.md desta pasta) codigo=0 (831 casos, 808 passam, 0 falham, 23 pulados)
+18-indices-de-evidencia codigo=0
+19-gerar-estado-conferir codigo=0
+fim

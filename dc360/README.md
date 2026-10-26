@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 417 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 510 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 585 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
@@ -590,6 +590,27 @@ assim escreve a entrada no arquivo da própria etapa
 (`db/test/catalogo/f03-eNN.ts`), nunca no portão; a regra das tabelas do
 fornecedor só existe na base. As sondas que fazem cada uma dessas conferências
 reprovar estão em `db/test/catalogo-nominal.test.ts`.
+
+O portão não confia só no texto das policies: a **prova comportamental**
+(`db/test/catalogo/comportamental.ts`) descobre pelo catálogo do banco toda
+tabela que existe, semeia uma linha de dois municípios em cada uma e tenta, como
+o papel de aplicação, ler, alterar às cegas, apagar e inserir uma cópia exata da
+linha do outro município, mover a própria linha para ele, e ler sem contexto
+nenhum. Só a recusa por policy ou por privilégio é aceita; uma policy com `OR
+true` numa tabela nova reprova sem ninguém precisar listá-la. A mesma prova lê
+pelas visões que o papel de aplicação alcança. A fábrica de linhas é genérica, e
+a tabela com um CHECK que ela não sabe satisfazer entra por nome em `PREPAROS`,
+no catálogo da etapa. O portão confere também: o modo de cada policy (toda
+PERMISSIVE, salvo as restritivas nominais) e que toda composição passou pela
+prova; `security_invoker` em toda visão lida por papel do produto; as policies
+do fornecedor cláusula a cláusula, com o operador sem autorização tentando de
+verdade; sequências, tipos próprios, dono de objeto e privilégio padrão; o ACL
+dos objetos de extensão (o do PostGIS na suíte espacial do CI); nenhum
+`TRIGGER` nem `session_replication_role` ao alcance do produto; o corpo de cada
+função privilegiada sem DDL e com `EXECUTE` só de DML constante; que só o
+gatilho criador e `aceitar_convite` citam `origens_de_conta`; e a migração em
+que a definição instalada de cada função mudou por último. As sondas da parte
+0D estão em `db/test/portao-comportamental.test.ts`.
 
 ### Sincronização do campo
 
@@ -1809,8 +1830,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4428 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 510 testes do banco
+npm test                    # 4503 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 585 testes do banco
 npm run test:api            # 2041 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo

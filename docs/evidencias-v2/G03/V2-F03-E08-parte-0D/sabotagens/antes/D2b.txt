@@ -1,0 +1,19 @@
+### D2b (antes)
+--- migracao 999 temporaria:
+-- D2b (item 2): policy RESTRICTIVE fora da lista nominal (o modo e parte do isolamento).
+CREATE POLICY sabotagem_d2b ON orgaos AS RESTRICTIVE FOR SELECT
+  USING (organizacao_id = app_organizacao_atual());
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 48780ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1078ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1105ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  43897ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:25:17
+   Duration  49.81s (transform 209ms, setup 0ms, collect 452ms, tests 48.78s, environment 0ms, prepare 204ms)
+

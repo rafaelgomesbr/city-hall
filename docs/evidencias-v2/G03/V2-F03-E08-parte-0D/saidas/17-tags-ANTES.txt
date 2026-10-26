@@ -1,0 +1,236 @@
+TAP version 13
+# Subtest: normalizarCaminho tira o dc360/ e as barras invertidas
+ok 1 - normalizarCaminho tira o dc360/ e as barras invertidas
+  ---
+  duration_ms: 1.8625
+  type: 'test'
+  ...
+# Subtest: tagsPorCaminho conhece cada área do repositório
+not ok 2 - tagsPorCaminho conhece cada área do repositório
+  ---
+  duration_ms: 4.1663
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-ae754d26ce687168e\\scripts\\roadmap\\tags.test.mjs:41:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'DB',
+    -   'TENANT'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'DB'
+    1: 'TENANT'
+  actual:
+    0: 'DB'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-ae754d26ce687168e/scripts/roadmap/tags.test.mjs:57:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: caminhosProvaveis ignora o que é só leitura
+ok 3 - caminhosProvaveis ignora o que é só leitura
+  ---
+  duration_ms: 4.4626
+  type: 'test'
+  ...
+# Subtest: E01: AUTHZ por prefixo, AUTH pelo caminho, API, e o INFRA 'só leitura' não entra
+ok 4 - E01: AUTHZ por prefixo, AUTH pelo caminho, API, e o INFRA 'só leitura' não entra
+  ---
+  duration_ms: 3.8066
+  type: 'test'
+  ...
+# Subtest: E02: UI, A11Y e LGPD (o IP da lista não é 'só sintético')
+ok 5 - E02: UI, A11Y e LGPD (o IP da lista não é 'só sintético')
+  ---
+  duration_ms: 1.764
+  type: 'test'
+  ...
+# Subtest: E03: Infraestrutura vira INFRA; Migration vira DB e MIGRATION; 'só dado sintético' não é LGPD
+ok 6 - E03: Infraestrutura vira INFRA; Migration vira DB e MIGRATION; 'só dado sintético' não é LGPD
+  ---
+  duration_ms: 1.37
+  type: 'test'
+  ...
+# Subtest: F02-E01: rota pública, policy e GRANT, retenção de IP
+ok 7 - F02-E01: rota pública, policy e GRANT, retenção de IP
+  ---
+  duration_ms: 1.5843
+  type: 'test'
+  ...
+# Subtest: TENANT: o test:isolamento da regressão não conta, o do escopo conta
+ok 8 - TENANT: o test:isolamento da regressão não conta, o do escopo conta
+  ---
+  duration_ms: 0.5877
+  type: 'test'
+  ...
+# Subtest: ARQUIVO: o prefixo Arquivos: sozinho não basta (na F00 ele lista arquivos do código)
+ok 9 - ARQUIVO: o prefixo Arquivos: sozinho não basta (na F00 ele lista arquivos do código)
+  ---
+  duration_ms: 0.45
+  type: 'test'
+  ...
+# Subtest: as tags saem sempre na ordem canônica
+ok 10 - as tags saem sempre na ordem canônica
+  ---
+  duration_ms: 49.4503
+  type: 'test'
+  ...
+# Subtest: validadores: qa sempre; UI soma ux e acessibilidade; MOBILE soma testes
+ok 11 - validadores: qa sempre; UI soma ux e acessibilidade; MOBILE soma testes
+  ---
+  duration_ms: 0.7721
+  type: 'test'
+  ...
+# Subtest: teto de 4: sem UI, qa mais os três de maior risco pela ORDEM_DE_RISCO, e o corte é dito
+ok 12 - teto de 4: sem UI, qa mais os três de maior risco pela ORDEM_DE_RISCO, e o corte é dito
+  ---
+  duration_ms: 0.3298
+  type: 'test'
+  ...
+# Subtest: teto de 4: com tag UI o ux nunca é cortado
+ok 13 - teto de 4: com tag UI o ux nunca é cortado
+  ---
+  duration_ms: 0.1402
+  type: 'test'
+  ...
+# Subtest: teto de 4: em risco médio corta-se primeiro seguranca-aplicacao, e fica o red-team
+ok 14 - teto de 4: em risco médio corta-se primeiro seguranca-aplicacao, e fica o red-team
+  ---
+  duration_ms: 0.1522
+  type: 'test'
+  ...
+# Subtest: teto na fixture: privacidade-lgpd perde para os três de segurança e banco
+ok 15 - teto na fixture: privacidade-lgpd perde para os três de segurança e banco
+  ---
+  duration_ms: 1.7544
+  type: 'test'
+  ...
+# Subtest: A11Y sem UI aparece como sugerido, fora da matriz
+ok 16 - A11Y sem UI aparece como sugerido, fora da matriz
+  ---
+  duration_ms: 0.1349
+  type: 'test'
+  ...
+# Subtest: Opus: coluna da matriz e gatilho 4 da seção 12 (calibração de 2026-10-07)
+ok 17 - Opus: coluna da matriz e gatilho 4 da seção 12 (calibração de 2026-10-07)
+  ---
+  duration_ms: 1.0901
+  type: 'test'
+  ...
+# Subtest: Opus na fixture: E01 (AUTHZ, risco alto) sim; E03 (risco baixo, INFRA simples) não
+ok 18 - Opus na fixture: E01 (AUTHZ, risco alto) sim; E03 (risco baixo, INFRA simples) não
+  ---
+  duration_ms: 2.0434
+  type: 'test'
+  ...
+# Subtest: etapa sem UI nem MOBILE não tem portão visual
+ok 19 - etapa sem UI nem MOBILE não tem portão visual
+  ---
+  duration_ms: 0.8006
+  type: 'test'
+  ...
+# Subtest: E02 da fixture: sem diff, nada dispara por texto e o resto fica 'a decidir pelo diff' como possível
+ok 20 - E02 da fixture: sem diff, nada dispara por texto e o resto fica 'a decidir pelo diff' como possível
+  ---
+  duration_ms: 3.6634
+  type: 'test'
+  ...
+# Subtest: sem diff, só disparam critério E4 explícito e tela pública
+ok 21 - sem diff, só disparam critério E4 explícito e tela pública
+  ---
+  duration_ms: 1.4092
+  type: 'test'
+  ...
+# Subtest: com diff, o texto da etapa não dispara os seis do diff
+ok 22 - com diff, o texto da etapa não dispara os seis do diff
+  ---
+  duration_ms: 2.0562
+  type: 'test'
+  ...
+# Subtest: mudança grande de UX pelo diff: página nova, rota nova ou mais de um arquivo de tela com layout novo
+ok 23 - mudança grande de UX pelo diff: página nova, rota nova ou mais de um arquivo de tela com layout novo
+  ---
+  duration_ms: 2.1084
+  type: 'test'
+  ...
+# Subtest: com diff, o gatilho que o texto não via passa a ser avaliado
+ok 24 - com diff, o gatilho que o texto não via passa a ser avaliado
+  ---
+  duration_ms: 0.5958
+  type: 'test'
+  ...
+# Subtest: literal em português: o que conta e o que não conta como texto de produto
+ok 25 - literal em português: o que conta e o que não conta como texto de produto
+  ---
+  duration_ms: 0.1396
+  type: 'test'
+  ...
+# Subtest: lerPatch separa adicionadas e removidas por arquivo
+ok 26 - lerPatch separa adicionadas e removidas por arquivo
+  ---
+  duration_ms: 0.2456
+  type: 'test'
+  ...
+# Subtest: lerDiff lê nome e status por git diff, e tags e gatilhos usam o diff
+ok 27 - lerDiff lê nome e status por git diff, e tags e gatilhos usam o diff
+  ---
+  duration_ms: 316.4121
+  type: 'test'
+  ...
+# Subtest: lerDiff recusa intervalo que parece opção do git
+ok 28 - lerDiff recusa intervalo que parece opção do git
+  ---
+  duration_ms: 0.5334
+  type: 'test'
+  ...
+# Subtest: repositório real: V2-F00-E04 tem AUTH ou AUTHZ e pede seguranca-aplicacao
+ok 29 - repositório real: V2-F00-E04 tem AUTH ou AUTHZ e pede seguranca-aplicacao
+  ---
+  duration_ms: 6.3876
+  type: 'test'
+  ...
+# Subtest: repositório real: nenhuma etapa passa do teto e toda etapa tem qa
+ok 30 - repositório real: nenhuma etapa passa do teto e toda etapa tem qa
+  ---
+  duration_ms: 64.1367
+  type: 'test'
+  ...
+# Subtest: CLI: tags.mjs V2-F00-E04 --json devolve JSON com tags e validadores
+ok 31 - CLI: tags.mjs V2-F00-E04 --json devolve JSON com tags e validadores
+  ---
+  duration_ms: 73.9954
+  type: 'test'
+  ...
+# Subtest: CLI: texto legível, ID inválido e etapa inexistente
+ok 32 - CLI: texto legível, ID inválido e etapa inexistente
+  ---
+  duration_ms: 346.5287
+  type: 'test'
+  ...
+# Subtest: CLI: --diff com intervalo real do repositório
+ok 33 - CLI: --diff com intervalo real do repositório
+  ---
+  duration_ms: 126.2962
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 32
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1155.9511
+codigo=1

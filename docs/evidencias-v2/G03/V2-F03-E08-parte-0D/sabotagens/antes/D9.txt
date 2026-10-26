@@ -1,0 +1,23 @@
+### D9 (antes)
+--- migracao 999 temporaria:
+-- D9 (correcao 3 da ADR 0009): funcao comum que grava em origens_de_conta (a tabela da E15
+-- ainda nao existe; o corpo plpgsql nao e validado na criacao). Chamada de dentro de uma
+-- funcao privilegiada, ela gravaria a origem da conta com os privilegios do dono.
+CREATE FUNCTION sabotagem_d9_marca_origem(p_usuario uuid) RETURNS void
+  LANGUAGE plpgsql SET search_path = public, pg_temp
+  AS $$ BEGIN INSERT INTO origens_de_conta (usuario_id, origem) VALUES (p_usuario, 'aceite'); END $$;
+REVOKE ALL ON FUNCTION sabotagem_d9_marca_origem(uuid) FROM PUBLIC;
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 30815ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1050ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1245ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  26292ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:59:14
+   Duration  32.30s (transform 334ms, setup 0ms, collect 965ms, tests 30.81s, environment 0ms, prepare 226ms)
+

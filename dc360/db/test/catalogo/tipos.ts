@@ -93,6 +93,36 @@ export interface FuncaoPrivilegiada {
    * marca, a mesma função em dois arquivos é erro.
    */
   readonly redefine?: true;
+  /**
+   * LISTA NOMINAL do corpo (parte 0D, correção 2 da ADR 0009): o corpo de uma
+   * função privilegiada não contém DDL (`ALTER`, `CREATE`, `DROP`, `TRUNCATE`,
+   * `GRANT`, `REVOKE`, `DISABLE TRIGGER`), não mexe em
+   * `session_replication_role` (nem no corpo nem no `SET` da função) e só
+   * aceita `EXECUTE` de texto montado na forma `EXECUTE format('<DML
+   * constante>', ...)`, com o modelo começando por SELECT, INSERT, UPDATE ou
+   * DELETE e só `%I`, `%L` ou `%%` dentro dele (o `format('DELETE FROM %I
+   * ...')` da 038). Fora disso a função precisa deste campo, com o porquê; e o
+   * campo sem nada que o justifique no corpo reprova (isenção que sobrou).
+   */
+  readonly corpoForaDoModelo?: string;
+  /**
+   * A marca "recusada depois da liberação" (decisão 1 da ADR 0009, correção
+   * 2): função do CAMINHO ANTIGO, cujo contrato supõe uma conta por pessoa, e
+   * que a migração da liberação (064, E16) faz recusar pela marca de
+   * liberação. Hoje só a forma é conferida (ver `conferirMarcaDeLiberacao`):
+   * antes da liberação a função continua executável pelo papel de aplicação;
+   * depois dela, não. Uma redefinição não tira a marca.
+   */
+  readonly recusadaDepoisDaLiberacao?: true;
+  /**
+   * Quem grava a ORIGEM de uma conta em `origens_de_conta` (decisão 1 da ADR
+   * 0009, correção 3): só a função do gatilho criador (`criador`) e
+   * `aceitar_convite` (`aceite`) podem citar a tabela no corpo. CONFERIDO
+   * (`conferirQuemCitaOrigensDeConta`): função do banco que cita a tabela sem
+   * esta marca reprova; `aceite` só em `aceitar_convite`; cada marca em uma
+   * função só; marca em função que não cita a tabela reprova.
+   */
+  readonly gravaOrigemDeConta?: "criador" | "aceite";
 }
 
 /**
@@ -175,9 +205,127 @@ export interface ColunaComUpdate {
   readonly motivo: string;
 }
 
+/*
+  ---------------------------------------------------------------------------
+  O que a parte 0D acrescenta (prova comportamental e as lacunas da auditoria
+  de cobertura). Todas as listas abaixo são OPCIONAIS na contribuição de uma
+  etapa: quem não precisa não escreve nada, e cada uma é conferida nos dois
+  sentidos (entrada que o banco não confirma, ou de que o banco não precisa,
+  reprova).
+  ---------------------------------------------------------------------------
+*/
+
+/**
+ * Como a FÁBRICA GENÉRICA da prova comportamental monta uma linha da tabela,
+ * quando a regra genérica não basta (um CHECK que ela não sabe satisfazer).
+ * Cada coluna recebe uma expressão SQL; `:org` vira o município da linha
+ * (literal uuid) e `:n` um número único da semeadura. CONFERIDO: a tabela e as
+ * colunas existem, e sem o preparo a fábrica genérica de fato falha (preparo
+ * desnecessário reprova).
+ */
+export interface PreparoDeTabela {
+  readonly tabela: string;
+  readonly colunas: Readonly<Record<string, string>>;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Tabela que a prova comportamental NÃO consegue semear nem com preparo. Fica
+ * à vista, com motivo. CONFERIDO: a tabela existe e a fábrica de fato falha
+ * nela (entrada que sobrou reprova).
+ */
+export interface TabelaSemProvaComportamental {
+  readonly tabela: string;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Policy RESTRITIVA (`AS RESTRICTIVE`). O padrão de toda policy do produto é
+ * PERMISSIVE; restritiva só por nome. CONFERIDO nos dois sentidos: policy
+ * restritiva fora da lista reprova, e entrada que o banco tem como PERMISSIVE
+ * (a restrição que virou autorização somada por OR) reprova.
+ */
+export interface PolicyRestritiva {
+  readonly tabela: string;
+  readonly policy: string;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Visão que algum papel do produto lê, que alcança tabela com RLS, e que NÃO
+ * roda com os privilégios de quem consulta (`security_invoker`). Sem
+ * `security_invoker` a visão lê como o DONO, e o RLS de quem consulta some.
+ * Visão materializada não tem RLS nem `security_invoker`, e por isso também
+ * só entra por aqui. CONFERIDO nos dois sentidos.
+ */
+export interface VisaoSemInvoker {
+  readonly visao: string;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Tipo próprio no esquema `public` (enum, domínio, tipo composto avulso,
+ * intervalo). Compartilhar um tipo genérico não é erro, mas um enum com
+ * informação de município seria; por isso cada tipo entra com a finalidade.
+ * CONFERIDO nos dois sentidos.
+ */
+export interface TipoProprio {
+  readonly tipo: string;
+  readonly etapa: string;
+  /** A finalidade do tipo, e por que compartilhá-lo entre municípios não vaza nada. */
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Sequência no esquema `public`, com os privilégios efetivos (USAGE, SELECT,
+ * UPDATE) de cada papel do produto. Sequência com privilégio é estado
+ * compartilhado entre municípios. CONFERIDO nos dois sentidos, papel por papel.
+ */
+export interface SequenciaDoProduto {
+  readonly sequencia: string;
+  readonly grants: GrantsEfetivos;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/**
+ * Relação de EXTENSÃO que um papel do produto lê (a `spatial_ref_sys` do
+ * PostGIS, que o `supabase-endurecer.sql` dá ao papel de aplicação). Fora
+ * disso, objeto de extensão só concede EXECUTE (função) e USAGE (tipo) a papel
+ * do produto, nunca com opção de concessão, e nunca é dele. CONFERIDA quando a
+ * extensão existe no banco; entrada de extensão que não está instalada não é
+ * conferida (o PGlite não traz PostGIS: quem confere é a suíte espacial do CI).
+ */
+export interface LeituraDeExtensao {
+  readonly extensao: string;
+  /** A relação, como `regclass` a escreve (`extensions.spatial_ref_sys`). */
+  readonly relacao: string;
+  readonly papel: PapelDoBanco;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
 /** O que cada etapa acrescenta ao catálogo. Listas vazias são válidas. */
 export interface ContribuicaoDoCatalogo {
   readonly funcoes: readonly FuncaoPrivilegiada[];
   readonly excecoes: readonly ExcecaoAoIsolamento[];
   readonly colunasComUpdate: readonly ColunaComUpdate[];
+  readonly preparos?: readonly PreparoDeTabela[];
+  readonly semProvaComportamental?: readonly TabelaSemProvaComportamental[];
+  readonly policiesRestritivas?: readonly PolicyRestritiva[];
+  readonly visoesSemInvoker?: readonly VisaoSemInvoker[];
+  readonly tiposProprios?: readonly TipoProprio[];
+  readonly sequencias?: readonly SequenciaDoProduto[];
+  readonly leiturasDeExtensao?: readonly LeituraDeExtensao[];
 }
