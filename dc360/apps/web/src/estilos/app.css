@@ -227,6 +227,11 @@ a:hover { color: var(--ds-accent-hover); }
   box-shadow: inset 3px 0 0 var(--ds-violet-400);
 }
 .lateral__item svg { flex: 0 0 18px; }
+/* "Tema" e "Sair" nascem de `<button>`: sem borda, sem fundo e na fonte do resto da barra. */
+.lateral__item--botao {
+  border: none; background: transparent; cursor: pointer; width: 100%;
+  font-family: inherit;
+}
 
 .lateral__rodape { margin-top: auto; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
 
@@ -1039,37 +1044,37 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: "topo" "conteudo" "lateral"; }
   /*
     A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
-    número FIXO de ladrilhos visíveis, e o resto rola.
+    número FIXO de ladrilhos, o último sempre o "Mais".
 
-    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
-    e dez destinos não cabem em 390 px: o terceiro item, "Mapa da cidade",
-    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
-    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
-    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
-    de uma palavra e ainda não sabe que a barra rola.
+    A barra não rola mais. Era uma fila que rolava na horizontal, e onze
+    destinos escondiam o que a pessoa não sabia que existia (H08; decisão do
+    Rafael em 2026-10-26). Agora ela mostra só os destinos principais que
+    cabem INTEIROS (`Estrutura.tsx` e `navegacao-mais.ts` fazem a conta, e
+    `--barra-visiveis` é a mesma conta vista pela folha: destinos mais o
+    "Mais"), o rótulo quebra em até duas linhas dentro do ladrilho, e todo o
+    resto, mais "Tema" e "Sair", mora no menu que o "Mais" abre.
 
-    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
-    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
-    ladrilho seguinte só espia na borda, sem texto visível. "Mapa da cidade" é
-    sempre um dos primeiros três em qualquer papel, então nunca fica para a
-    parte que rola.
+    Antes disso o terceiro item, "Mapa da cidade", aparecia cortado na borda da
+    tela (a validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa
+    tela de 390). Cortar um rótulo no meio é o pior dos dois mundos, e a
+    largura em ladrilhos inteiros e o rótulo que quebra continuam valendo.
 
-    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
-    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
-    a de cada grupo, que é o que fazia a conta anterior não fechar.
+    A barra é o contêiner do menu (posição fixa dentro dela), então nada aqui
+    pode cortar o que sai dela: sem `overflow`. Em tela de mesa a lateral não
+    tem "Mais": os itens vêm todos, em coluna, como sempre.
   */
   .lateral { --barra-visiveis: 6;
-             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
-             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
+             flex-direction: row; gap: var(--ds-sp-2); align-items: center;
+             padding: var(--ds-sp-2) var(--ds-sp-4);
              border-right: none; border-top: 1px solid var(--ds-ink-800);
              position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
-  .lateral__marca, .lateral__rotulo { display: none; }
   /*
-    "Tema" e "Sair" continuam na barra, no fim dela. Antes o rodapé sumia
-    junto com a marca, e no celular não havia como sair nem trocar o tema fora
-    da caixa de busca, que é o único lugar onde ninguém procura isso.
+    Com o menu aberto a barra sobe acima do topo (que também é fixo e vem depois
+    dela na página): o menu pode ser mais alto que o espaço livre, e sem isto o
+    topo o cobria. Fica abaixo da janela modal e do aviso passageiro.
   */
-  .lateral__grupo, .lateral__rodape { display: contents; }
+  .lateral--com-menu { z-index: var(--ds-z-overlay); }
+  .lateral__marca, .lateral__rotulo { display: none; }
   .lateral__item {
     flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
     min-width: 0; height: var(--barra-item-altura);
@@ -1086,15 +1091,58 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
   .lateral__texto { display: block; max-width: 100%; }
   /*
-    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
-    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
-
-    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
-    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
-    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
-    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
+    O botão "Mais" leva a marca de "você está aqui" quando a tela atual mora no
+    menu, a mesma do `aria-current` dos outros ladrilhos (o texto escondido diz
+    o mesmo a quem ouve). Aberto, ele acende como o `:hover`.
   */
-  .lateral { scroll-padding-inline: var(--ds-sp-4); }
+  .lateral__mais[aria-expanded="true"] { background: var(--ds-ink-850); color: var(--ds-ice); }
+  .lateral__mais--atual {
+    background: var(--ds-ink-800); color: var(--ds-white);
+    box-shadow: inset 3px 0 0 var(--ds-violet-400);
+  }
+  /*
+    O menu "Mais": uma folha acima da barra, no mesmo escuro dela (as cores
+    daqui são as primitivas `--ds-ink-*` pelo mesmo motivo do bloco `.lateral`:
+    a barra é escura nos dois temas, e os pares foram conferidos contra
+    `--ds-ink-950`). Fixa na tela, e não dentro da barra, para o tamanho dela
+    não limitar o dele. Alta demais, rola por dentro (`max-height` é a janela
+    menos a barra e um respiro), sem arrastar a página junto.
+  */
+  .lateral__menu {
+    position: fixed;
+    left: var(--ds-sp-4); right: var(--ds-sp-4); margin-left: auto; max-width: 360px;
+    bottom: calc(var(--barra-altura) + var(--ds-sp-2));
+    max-height: calc(100vh - var(--barra-altura) - var(--ds-sp-6));
+    max-height: calc(100dvh - var(--barra-altura) - var(--ds-sp-6));
+    overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: var(--ds-sp-3);
+    padding: var(--ds-sp-3);
+    background: var(--ds-ink-950); color: var(--ds-ice);
+    border: 1px solid var(--ds-ink-800); border-radius: var(--ds-radius-card);
+    box-shadow: var(--ds-shadow-3);
+  }
+  .lateral__menu-grupo { display: flex; flex-direction: column; gap: var(--ds-sp-1); }
+  .lateral__menu-rotulo {
+    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+    text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
+    /* ink-400 sobre ink-950: 7,71:1, o mesmo par do rótulo de grupo da lateral. */
+    color: var(--ds-ink-400); padding: 0 var(--ds-sp-2);
+  }
+  .lateral__menu-item {
+    display: flex; align-items: center; gap: var(--ds-sp-3);
+    width: 100%; min-height: var(--ds-touch); padding: 0 var(--ds-sp-3);
+    border: none; border-radius: var(--ds-radius); background: transparent; cursor: pointer;
+    color: var(--ds-ice); text-align: left; text-decoration: none;
+    font-family: inherit; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+    font-weight: var(--ds-fw-medium);
+    transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+  }
+  .lateral__menu-item svg { flex: 0 0 18px; }
+  .lateral__menu-item:hover { background: var(--ds-ink-850); }
+  .lateral__menu-item[aria-current="page"] {
+    background: var(--ds-ink-800); color: var(--ds-white);
+    box-shadow: inset 3px 0 0 var(--ds-violet-400);
+  }
   .conteudo { padding: var(--ds-sp-4); }
   /*
     O aviso passageiro sobe a altura da barra do rodapé, senão a confirmação de
@@ -1132,6 +1180,12 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   .topo, .lateral { position: static; }
   /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
   .toast { bottom: var(--ds-sp-4); }
+  /* O mesmo vale para o menu "Mais": sem barra presa, ele abre rente ao pé da janela e ocupa a altura toda. */
+  .lateral__menu {
+    bottom: var(--ds-sp-4);
+    max-height: calc(100vh - var(--ds-sp-6));
+    max-height: calc(100dvh - var(--ds-sp-6));
+  }
 }
 @media (max-width: 600px) {
   .lateral { --barra-visiveis: 4; }

@@ -133,10 +133,15 @@ if (chamadoDiretamente) {
     resposta esperada do modo de conferência, não falha, e quem está migrando
     pela primeira vez lê "npm error" e acha que quebrou.
   */
+  /*
+    No Windows o `npm` é um `npm.cmd`, e o Node 22 recusa executar `.cmd` sem
+    shell (EINVAL). Os argumentos são fixos e a URL vai pelo ambiente, então o
+    shell não recebe nada que venha de fora.
+  */
   const r = spawnSync(
     "npm",
     ["run", "--silent", "migrar", "--", ...(aplicar ? [] : ["--conferir"])],
-    { cwd: raiz, stdio: "inherit", env: { ...process.env, DATABASE_URL: url } },
+    { cwd: raiz, stdio: "inherit", shell: process.platform === "win32", env: { ...process.env, DATABASE_URL: url } },
   );
 
   /*

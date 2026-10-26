@@ -39,6 +39,9 @@ export { rolagemParaVerNoPainel } from "./acompanhar-janela";
  *    destrutiva.** Clique fora é gesto acidental (arrastar o mouse, esbarrar
  *    no trackpad); fechar por acidente uma janela de rascunho é barato,
  *    fechar a de encerramento no meio da leitura da consequência não é.
+ *    Uma janela pode ainda recusar o Escape (`fecharComEscape={false}`): a da
+ *    senha temporária, que mostra uma senha de uso único, só fecha pelo botão
+ *    que diz que ela foi anotada (decisão do Rafael, H05, 2026-10-26).
  *
  * A peça visual mora em `CorpoDoModal`, exportada de propósito: o comportamento
  * (foco, `inert`, portal) só existe em navegador, mas a AMARRAÇÃO
@@ -129,13 +132,15 @@ export type IntencaoDoModal<T> =
  * encontraria destino, o navegador levaria o foco para a página de trás, e a
  * armadilha teria um furo justamente no instante mais delicado.
  */
-export function decidirTecla<T>({ tecla, comShift, focaveis, ativo }: {
+export function decidirTecla<T>({ tecla, comShift, focaveis, ativo, fecharComEscape = true }: {
   tecla: string;
   comShift: boolean;
   focaveis: readonly T[];
   ativo: T | null;
+  /** Falso na janela que guarda algo que só aparece uma vez: o Escape não fecha, e a tecla segue. */
+  fecharComEscape?: boolean;
 }): IntencaoDoModal<T> {
-  if (tecla === "Escape") return { acao: "fechar" };
+  if (tecla === "Escape") return fecharComEscape ? { acao: "fechar" } : { acao: "seguir" };
   if (tecla !== "Tab") return { acao: "seguir" };
   const alvo = proximoFoco(focaveis, ativo, comShift);
   return alvo === null ? { acao: "prender" } : { acao: "mover", alvo };
@@ -195,12 +200,14 @@ function tratarTecla(
   evento: { key: string; shiftKey: boolean; preventDefault(): void },
   painel: HTMLElement | null,
   aoFechar: () => void,
+  fecharComEscape: boolean,
 ): void {
   const intencao = decidirTecla<HTMLElement>({
     tecla: evento.key,
     comShift: evento.shiftKey,
     focaveis: focaveisDentro(painel),
     ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+    fecharComEscape,
   });
   if (intencao.acao === "seguir") return;
   // Tudo o que não é "seguir" substitui o comportamento do navegador:
@@ -384,6 +391,8 @@ export type PropsModal = {
   aoFechar: () => void;
   /** Falso em decisão destrutiva: ver o cabeçalho deste arquivo. */
   fecharAoClicarFora?: boolean;
+  /** Falso quando fechar sem agir perde algo que não volta (a senha temporária): só o botão da janela fecha. */
+  fecharComEscape?: boolean;
   /** Redundante quando o rodapé já tem "Cancelar", e aí atrapalha. */
   mostrarBotaoFechar?: boolean;
   /** Quem recebe o foco ao abrir. Sem isto, a primeira parada de Tab. */
@@ -394,13 +403,15 @@ export type PropsModal = {
 
 export function Modal({
   aberto, titulo, descricao, aoFechar,
-  fecharAoClicarFora = true, mostrarBotaoFechar = true,
+  fecharAoClicarFora = true, fecharComEscape = true, mostrarBotaoFechar = true,
   focoInicial, rodape, children,
 }: PropsModal) {
   const painel = useRef<HTMLDivElement>(null);
   /* O ouvinte do documento vive uma abertura inteira; o `aoFechar` dele não pode ser o da primeira renderização. */
   const aoFecharAtual = useRef(aoFechar);
   aoFecharAtual.current = aoFechar;
+  const fecharComEscapeAtual = useRef(fecharComEscape);
+  fecharComEscapeAtual.current = fecharComEscape;
   const tituloId = useId();
   const descricaoId = useId();
 
@@ -509,7 +520,7 @@ export function Modal({
       painel: () => painel.current,
       focoInicial: () => focoInicial?.current,
       focaveis: () => focaveisDentro(painel.current),
-      aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),
+      aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current, fecharComEscapeAtual.current),
     });
     if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();
 
@@ -547,7 +558,7 @@ export function Modal({
       fecharAoClicarFora={fecharAoClicarFora}
       mostrarBotaoFechar={mostrarBotaoFechar}
       refPainel={painel}
-      aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}
+      aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar, fecharComEscape)}
     >
       {children}
     </CorpoDoModal>,
