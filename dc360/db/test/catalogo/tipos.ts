@@ -169,6 +169,18 @@ export interface FuncaoPrivilegiada {
    * ou mudava o evento e a condição, e `gatilhoEm` continuava batendo.
    */
   readonly gatilhos?: readonly GatilhoDeclarado[];
+  /**
+   * A LINHA REAL da prova da recusa fora da tabela (correção 2 da parte 0G,
+   * dívida do item 6). SQL rodado como dono, numa transação desfeita, com
+   * `:org` trocado por um município novo criado ali, que põe pelo menos uma
+   * linha de verdade em cada tabela de `gatilhoEm` (pelo caminho de produção,
+   * com os gatilhos reais disparando, e por isso com as chaves ancoradas nas
+   * tabelas que a função pode alcançar). Obrigatório junto de `gatilhoEm` no
+   * catálogo juntado (`conferirDeclaracoesCompletas`). Sem ela, com a tabela
+   * vazia, a prova só tinha a linha nula, e uma escrita feita antes da recusa
+   * e chaveada por `NEW` não mudava linha nenhuma e passava.
+   */
+  readonly semearParaProva?: string;
 }
 
 /** Um gatilho de uma função de gatilho privilegiada, como o banco o tem (correção 1 da 0G). */

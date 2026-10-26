@@ -1214,6 +1214,17 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     falha nem pulo novos.
   */
   "V2-F03-E08-parte-0G-correcao-1": { total: 42, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, correcao 2 da parte 0G (revisao independente da correcao 1).
+    `catalogo-nominal.test.ts` ganha 8 casos: a sonda 23 (3; a prova de some
+    exige pelo menos uma linha EXCLUSIVA do municipio eliminado) e a sonda 24
+    (5; a prova da recusa fora da tabela com a linha real semeada por
+    semearParaProva e o UPDATE com mudanca efetiva, e a declaracao completa
+    que cobra semearParaProva de toda funcao de gatilho privilegiada). Os
+    casos de `isolamento.test.ts` sao os mesmos, com a conferencia mais forte
+    por dentro. Total 8, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0G-correcao-2": { total: 8, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

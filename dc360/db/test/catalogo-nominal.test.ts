@@ -2608,3 +2608,156 @@ describe("sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global re
     expect(conferirDeclaracoesCompletas([], [CHAVE])).toEqual([]);
   });
 });
+
+describe("sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado", () => {
+  const ABRIR = `
+    CREATE TABLE sonda_marcas (usuario_id uuid PRIMARY KEY, outra uuid NOT NULL DEFAULT gen_random_uuid());
+    ALTER TABLE sonda_marcas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_marcas FORCE ROW LEVEL SECURITY;`;
+  const FECHAR = "DROP TABLE sonda_marcas";
+  const OUTRO =
+    "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +
+    "VALUES (:org, 'Servidor do Outro', 'P-2', 'outro-0g@exemplo.gov.br', 'administrador'); " +
+    "INSERT INTO sonda_marcas (usuario_id) SELECT id FROM usuarios WHERE organizacao_id = :org;";
+  /** A consulta que ignora o município: devolve as mesmas chaves para os dois. */
+  const TODAS = "SELECT usuario_id AS chave FROM sonda_marcas WHERE :org IS NOT NULL";
+  const declarada = (destino: "fica" | "some", linhasDoMunicipio?: string): ExcecaoAoIsolamento => {
+    const e = protegida("sonda_marcas", destino);
+    return {
+      ...e,
+      semMunicipio: {
+        especie: "protegida",
+        naEliminacao: {
+          ...e.semMunicipio!.naEliminacao,
+          semearOutroMunicipio: OUTRO,
+          ...(linhasDoMunicipio === undefined ? {} : { linhasDoMunicipio }),
+        },
+      },
+    };
+  };
+  const eliminar = (e: ExcecaoAoIsolamento) => conferirEliminacaoSemMunicipio(db, [e]);
+  const LIMPA = `
+    CREATE FUNCTION sonda_limpa_marca() RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp
+      AS $$ BEGIN DELETE FROM public.sonda_marcas WHERE usuario_id = OLD.id; RETURN OLD; END $$;
+    CREATE TRIGGER sonda_limpa_marca AFTER DELETE ON usuarios FOR EACH ROW EXECUTE FUNCTION sonda_limpa_marca();`;
+  const FECHAR_LIMPA =
+    "DROP TRIGGER sonda_limpa_marca ON usuarios; DROP FUNCTION sonda_limpa_marca();";
+  const SEM_EXCLUSIVA =
+    /^sonda_marcas \(protegida, some\): nenhuma das 2 chave\(s\) que linhasDoMunicipio devolve para o município eliminado é EXCLUSIVA dele/;
+
+  it("a consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)", async () => {
+    expect(await comBuraco(ABRIR, FECHAR, () => eliminar(declarada("some", TODAS)))).toEqual([
+      expect.stringMatching(SEM_EXCLUSIVA),
+    ]);
+  });
+
+  it("sem linha exclusiva, nem a limpeza de verdade basta: não há o que provar", async () => {
+    expect(
+      await comBuraco(`${ABRIR} ${LIMPA}`, `${FECHAR_LIMPA} ${FECHAR}`, () =>
+        eliminar(declarada("some", TODAS)),
+      ),
+    ).toEqual([expect.stringMatching(SEM_EXCLUSIVA)]);
+  });
+
+  it("controle: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva", async () => {
+    expect(
+      await comBuraco(`${ABRIR} ${LIMPA}`, `${FECHAR_LIMPA} ${FECHAR}`, () =>
+        eliminar(declarada("some")),
+      ),
+    ).toEqual([]);
+    expect(await comBuraco(ABRIR, FECHAR, () => eliminar(declarada("fica", TODAS)))).toEqual([]);
+  });
+});
+
+describe("sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva", () => {
+  const ABRIR = (corpo: string, gatilhos: string) => `
+    CREATE TABLE sonda_cofre (quem text);
+    ALTER TABLE sonda_cofre ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_cofre FORCE ROW LEVEL SECURITY;
+    CREATE TABLE sonda_alvo (organizacao_id uuid NOT NULL, nome text);
+    CREATE FUNCTION sonda_grava_no_cofre() RETURNS trigger LANGUAGE plpgsql
+      SECURITY DEFINER SET search_path = public, pg_temp AS $$
+      BEGIN
+        ${corpo}
+        RETURN NEW;
+      END $$;
+    REVOKE ALL ON FUNCTION sonda_grava_no_cofre() FROM PUBLIC;
+    ${gatilhos}`;
+  const NO_INSERT =
+    "CREATE TRIGGER sonda_alvo_grava AFTER INSERT ON sonda_alvo FOR EACH ROW EXECUTE FUNCTION sonda_grava_no_cofre();";
+  const NO_UPDATE =
+    "CREATE TRIGGER sonda_alvo_muda AFTER UPDATE ON sonda_alvo FOR EACH ROW EXECUTE FUNCTION sonda_grava_no_cofre();";
+  const FECHAR =
+    "DROP TABLE sonda_alvo; DROP TABLE sonda_cofre; DROP FUNCTION sonda_grava_no_cofre();";
+  const RECUSA =
+    "IF TG_RELID IS DISTINCT FROM 'public.sonda_alvo'::regclass THEN RAISE EXCEPTION 'gatilho fora da tabela' USING ERRCODE = '42501'; END IF;";
+  const ENTRADA: FuncaoPrivilegiada = {
+    nome: "sonda_grava_no_cofre",
+    assinatura: "public.sonda_grava_no_cofre()",
+    migracao: "999",
+    etapa: "sonda",
+    executavelPor: [],
+    gatilhoEm: ["sonda_alvo"],
+    semearParaProva:
+      "INSERT INTO sonda_alvo VALUES (:org, 'semeada'); INSERT INTO sonda_cofre VALUES ('semeada');",
+    motivo: "Sonda: função de gatilho privilegiada que grava numa tabela que o app não alcança.",
+    tenant: "antes_do_tenant",
+    confere: "Sonda: age só sobre a linha que disparou o gatilho (NEW).",
+    semProva: "Sonda: a prova é o disparo desta própria sonda, que a chama pelo gatilho.",
+  };
+  const comCatalogo = () => provarRecusaForaDaTabela(db, [ENTRADA]);
+  const semCatalogo = () => provarRecusaForaDaTabela(db);
+  const SEM_LINHA =
+    /^public\.sonda_grava_no_cofre\(\): semearParaProva não pôs nenhuma linha em public\."sonda_alvo"/;
+
+  it("tabela vazia: a escrita chaveada por NEW antes da recusa passava só com a linha nula, e com a linha semeada reprova", async () => {
+    const corpo = `UPDATE public.sonda_cofre SET quem = quem WHERE quem = NEW.nome; ${RECUSA}`;
+    expect(await comBuraco(ABRIR(corpo, NO_INSERT), FECHAR, semCatalogo)).toEqual([]);
+    expect(await comBuraco(ABRIR(corpo, NO_INSERT), FECHAR, comCatalogo)).toEqual([
+      expect.stringMatching(
+        /\(INSERT, com uma linha real de public\."sonda_alvo"\), a função ESCREVEU antes de recusar \(public\.sonda_cofre\)/,
+      ),
+    ]);
+  });
+
+  it("a escrita só quando NEW difere de OLD, antes da recusa, passava com SET coluna = coluna e reprova com a mudança efetiva", async () => {
+    const corpo = `IF NEW IS DISTINCT FROM OLD THEN INSERT INTO public.sonda_cofre (quem) VALUES ('mudou'); END IF; ${RECUSA}`;
+    const comLinha = `${ABRIR(corpo, NO_UPDATE)} INSERT INTO sonda_alvo VALUES (gen_random_uuid(), 'real');`;
+    const texto = (await comBuraco(comLinha, FECHAR, semCatalogo)).join("\n");
+    expect(texto).toMatch(
+      /gatilho sonda_alvo_muda \(de sonda_alvo\) .*\(UPDATE\), a função ESCREVEU antes de recusar \(public\.sonda_cofre\)/,
+    );
+    expect(texto).toMatch(
+      /\(UPDATE, com uma linha real de public\."sonda_alvo"\), a função ESCREVEU antes de recusar \(public\.sonda_cofre\)/,
+    );
+  });
+
+  it("controle: a recusa antes de tudo passa com a linha semeada e com a mudança efetiva", async () => {
+    const corpo = `${RECUSA} INSERT INTO public.sonda_cofre (quem) VALUES (NEW.nome);`;
+    expect(await comBuraco(ABRIR(corpo, `${NO_INSERT} ${NO_UPDATE}`), FECHAR, comCatalogo)).toEqual(
+      [],
+    );
+  });
+
+  it("a semeadura que não põe linha na tabela do gatilho reprova", async () => {
+    const vazia: FuncaoPrivilegiada = { ...ENTRADA, semearParaProva: "SELECT :org" };
+    expect(
+      await comBuraco(ABRIR(RECUSA, NO_INSERT), FECHAR, () =>
+        provarRecusaForaDaTabela(db, [vazia]),
+      ),
+    ).toEqual([expect.stringMatching(SEM_LINHA)]);
+  });
+
+  it("a declaração completa: função de gatilho privilegiada sem semearParaProva (ou sem :org) reprova", () => {
+    const semSemente: FuncaoPrivilegiada = { ...ENTRADA, semearParaProva: undefined };
+    expect(conferirDeclaracoesCompletas([], [], [semSemente])).toEqual([
+      expect.stringMatching(
+        /^public\.sonda_grava_no_cofre\(\): função de gatilho privilegiada sem semearParaProva \(com :org\)/,
+      ),
+    ]);
+    expect(
+      conferirDeclaracoesCompletas([], [], [{ ...ENTRADA, semearParaProva: "SELECT 1" }]),
+    ).toHaveLength(1);
+    expect(conferirDeclaracoesCompletas([], [], [ENTRADA])).toEqual([]);
+  });
+});

@@ -1,0 +1,40 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db[39m
+
+[2m15:47:53[22m [33m[1m[vite][22m[39m [33m[2m(ssr)[22m[39m [33mwarning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).[39m
+  Plugin: [35mvite:dynamic-import-vars[39m
+  File: [36mC:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db/test/catalogo-nominal.test.ts[39m
+ [32m✓[39m test/isolamento.test.ts [2m([22m[2m170 tests[22m[2m)[22m[33m 49455[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 1806[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mtodo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G) [33m 6124[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 1547[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 32149[2mms[22m[39m
+ [32m✓[39m test/catalogo-nominal.test.ts [2m([22m[2m140 tests[22m[2m)[22m[33m 63924[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console) [33m 6469[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT e SELECT por coluna, declarados por tabela e papel, passam [33m 6229[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT de TABELA dado ao app junto do INSERT de coluna reprova [33m 6344[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna a mais no grant reprova [33m 5695[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna declarada que o banco não concede reprova (nada a menos) [33m 5453[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mopção de concessão, PUBLIC e REFERENCES por coluna reprovam [33m 5584[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo console com uma coluna a mais no livro de eliminações reprova [33m 5301[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mtirar uma coluna de hoje do catálogo reprova [33m 5296[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco [33m 736[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada some, reprova [33m 667[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que SOME com a conta, declarada some, passa; declarada fica, reprova [33m 1313[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22mprova vazia, e semeadura que quebra, reprovam [33m 1175[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mcom o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão [33m 662[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava) [33m 682[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim [33m 678[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mâncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava) [33m 600[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa [33m 1385[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município sem linha reprova (sem elas não há o que ficar intacto) [33m 613[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22ma linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles [33m 1315[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22ma consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado) [33m 675[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22msem linha exclusiva, nem a limpeza de verdade basta: não há o que provar [33m 687[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22mcontrole: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva [33m 1959[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m310 passed[39m[22m[90m (310)[39m
+[2m   Start at [22m 15:47:53
+[2m   Duration [22m 65.17s[2m (transform 460ms, setup 0ms, collect 1.21s, tests 113.38s, environment 0ms, prepare 457ms)[22m
+

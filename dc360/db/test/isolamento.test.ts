@@ -641,7 +641,7 @@ describe("CA-06: isolamento entre organizações", () => {
       trigger, perguntada ao banco, é disparada pela cópia de cada gatilho
       real numa `pg_temp.<tabela>`, numa transação desfeita.
     */
-    expect(await provarRecusaForaDaTabela(db)).toEqual([]);
+    expect(await provarRecusaForaDaTabela(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
   });
 
   it("nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G)", async () => {
@@ -656,7 +656,9 @@ describe("CA-06: isolamento entre organizações", () => {
   });
 
   it("toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G)", () => {
-    expect(conferirDeclaracoesCompletas(EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS)).toEqual([]);
+    expect(
+      conferirDeclaracoesCompletas(EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS, FUNCOES_PRIVILEGIADAS),
+    ).toEqual([]);
   });
 
 });

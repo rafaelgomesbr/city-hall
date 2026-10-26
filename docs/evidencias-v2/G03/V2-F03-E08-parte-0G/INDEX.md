@@ -231,3 +231,7 @@
 | correcao-1/saidas/14-juncao-1b-corrigida-com-gatilhoEm-e-gatilhos.txt | 30a25db11a29dcf55833da1c888a71b2ffce1f1a3dd1ac968e40beb19e54b5b1 |
 | correcao-1/saidas/15-juncao-test-isolamento-com-gatilhos.txt | ec90c29e085bcb39c277fe657582f779b8ba6934ea69d385db2959721f671d81 |
 | correcao-1/saidas/16-juncao-f03-e15.diff.txt | b4ef705912f881baacd3ae27e539bff383c1d019f2e5218a3a49e66dc6cdd25b |
+| correcao-2/RESUMO.md | 76926f9d6270373e7c6612687a41494fa4f4ad1de8dab906c38fd417970cbede |
+| correcao-2/sabotagens/antes-42c009a3.txt | 256f970f3961f30d8bb7a0da7fa8de7fa804a89b5e0415b84451c860f85ceae1 |
+| correcao-2/sabotagens/depois.txt | 561ad6afd38ded6ebd4759ae0cef7de4c20777c87188d82e93c5ceb3ae729e40 |
+| correcao-2/saidas/01-isolamento-e-catalogo-nominal.txt | 8aac35b8968b09aa24fa5fbf7ccd0d31b4b869deaa087fb50215e402598ee62d |

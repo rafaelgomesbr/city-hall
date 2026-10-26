@@ -1,0 +1,286 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db[39m
+
+[2m15:47:23[22m [33m[1m[vite][22m[39m [33m[2m(ssr)[22m[39m [33mwarning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).[39m
+  Plugin: [35mvite:dynamic-import-vars[39m
+  File: [36mC:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db/test/catalogo-nominal.test.ts[39m
+ [31m❯[39m test/catalogo-nominal.test.ts [2m([22m[2m140 tests[22m[2m | [22m[31m6 failed[39m[2m | [22m[33m132 skipped[39m[2m)[22m[33m 3365[2mms[22m[39m
+   [2m[90m↓[39m[22m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mas funções privilegiadas listadas são exatamente as do banco
+   [2m[90m↓[39m[22m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mas exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   [2m[90m↓[39m[22m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mnada fora do esquema public, e nenhum papel do produto noutro esquema
+   [2m[90m↓[39m[22m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22ma origem de cada função bate com as migrações e com os testes que a provam
+   [2m[90m↓[39m[22m a BASE congelada (só ela é fixada aqui)[2m > [22mas 27 funções de hoje, pela assinatura completa, sem teto numérico
+   [2m[90m↓[39m[22m a BASE congelada (só ela é fixada aqui)[2m > [22mas quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor
+   [2m[90m↓[39m[22m a BASE congelada (só ela é fixada aqui)[2m > [22mas 16 colunas com UPDATE do papel de aplicação
+   [2m[90m↓[39m[22m a BASE congelada (só ela é fixada aqui)[2m > [22mo único privilégio por coluna que não é UPDATE do app: o cancelamento do livro pelo console (parte 0G)
+   [2m[90m↓[39m[22m a BASE congelada (só ela é fixada aqui)[2m > [22ma dívida de tenant da base está declarada, com a etapa que a paga
+   [2m[90m↓[39m[22m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22ma base vem primeiro, e é a BASE
+   [2m[90m↓[39m[22m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22mtodo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra
+   [2m[90m↓[39m[22m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22mcada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio
+   [2m[90m↓[39m[22m sonda 1: função SECURITY DEFINER fora da lista reprova[2m > [22muma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   [2m[90m↓[39m[22m sonda 1: função SECURITY DEFINER fora da lista reprova[2m > [22ma função de uma etapa que o catálogo ainda não conhece reprova
+   [2m[90m↓[39m[22m sonda 2: sobrecarga de uma função listada reprova[2m > [22mmesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   [2m[90m↓[39m[22m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função que não existe no banco
+   [2m[90m↓[39m[22m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função listada que deixou de ser SECURITY DEFINER
+   [2m[90m↓[39m[22m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22mtirar a função da lista (o caminho inverso) também reprova
+   [2m[90m↓[39m[22m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido a PUBLIC
+   [2m[90m↓[39m[22m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido ao console numa função que só a aplicação executa
+   [2m[90m↓[39m[22m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   [2m[90m↓[39m[22m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS12: trocar o dono de uma função privilegiada reprova no catálogo
+   [2m[90m↓[39m[22m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mquemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão
+   [2m[90m↓[39m[22m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mdívida de tenant sem a etapa que a paga
+   [2m[90m↓[39m[22m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mmotivo de enchimento
+   [2m[90m↓[39m[22m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mS5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   [2m[90m↓[39m[22m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22muma tabela nova sem a coluna
+   [2m[90m↓[39m[22m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22muma tabela com `organizacao_id` que aceita nulo conta como sem a coluna
+   [2m[90m↓[39m[22m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22mdeclarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   [2m[90m↓[39m[22m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22mtirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que não existe
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`)
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que TEM policy de tenant: dispensa de policy desnecessária
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mentrada que não dispensa nem a coluna nem a policy
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mentrada que não diz se dispensa ou mantém um invariante
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: RLS não forçada reprova
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   [2m[90m↓[39m[22m sonda 7: exceção que o banco não confirma reprova[2m > [22mdispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção
+   [2m[90m↓[39m[22m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+   [2m[90m↓[39m[22m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção
+   [2m[90m↓[39m[22m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado
+   [2m[90m↓[39m[22m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco
+   [2m[90m↓[39m[22m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mtabela do fornecedor que o papel de aplicação alcança reprova
+   [2m[90m↓[39m[22m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mS3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   [2m[90m↓[39m[22m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mS3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app
+   [2m[90m↓[39m[22m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mUSAGE num esquema vazio, e CREATE em public, também reprovam
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com uma migração que não existe reprova
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com uma migração que não recria a função reprova
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com a mesma migração da entrada substituída é recusado na junção
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mcom a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22muma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22muma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+   [2m[90m↓[39m[22m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22ma prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22ma mesma função em duas etapas, sem redefine, é erro
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22mredefine: true com migração maior substitui a entrada anterior
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22mredefine: true sem entrada anterior é erro (nome errado)
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22mentrada que diz outra etapa que não a do arquivo é erro
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22massinatura que não é da função nomeada é erro
+   [2m[90m↓[39m[22m sonda 11: a junção das contribuições das etapas[2m > [22ma mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT e SELECT por coluna, declarados por tabela e papel, passam
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT de TABELA dado ao app junto do INSERT de coluna reprova
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna a mais no grant reprova
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna declarada que o banco não concede reprova (nada a menos)
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mopção de concessão, PUBLIC e REFERENCES por coluna reprovam
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo console com uma coluna a mais no livro de eliminações reprova
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mtirar uma coluna de hoje do catálogo reprova
+   [2m[90m↓[39m[22m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22ma junção: grupo repetido, redefinição com migração menor, o mesmo UPDATE nos dois lugares, coluna repetida e motivo curto
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mo banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22ma chave declarada para tabela global declarada passa
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mchave para a tabela global sem a declaração da chave reprova
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mchave declarada para tabela que não é global no catálogo reprova
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mchave sem organizacao_id para outra tabela qualquer continua reprovando
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mchave para tabela global com cascata, ou com a coluna gravável pelo app, reprova
+   [2m[90m↓[39m[22m sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada[2m > [22mchave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   [2m[90m↓[39m[22m sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy[2m > [22ma protegida e a global, na forma certa, passam
+   [2m[90m↓[39m[22m sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy[2m > [22mtabela protegida com um grant ao app reprova
+   [2m[90m↓[39m[22m sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy[2m > [22mtabela sem organizacao_id fingindo ser protegida (RLS não forçada, policy aberta, grant declarado) reprova
+   [2m[90m↓[39m[22m sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy[2m > [22mtabela sem município que não mantém o que precisa manter reprova
+   [2m[90m↓[39m[22m sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy[2m > [22ma junção: sem município e do fornecedor ao mesmo tempo, e o porquê curto, são recusados
+   [2m[90m↓[39m[22m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22mo catálogo de hoje não declara nenhuma, e passa
+   [2m[90m↓[39m[22m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco
+   [2m[90m↓[39m[22m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada some, reprova
+   [2m[90m↓[39m[22m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que SOME com a conta, declarada some, passa; declarada fica, reprova
+   [2m[90m↓[39m[22m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22mprova vazia, e semeadura que quebra, reprovam
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mo banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mcom TEMP e EXECUTE o ataque grava no cofre; a entrada de antes da 0G passava, e agora as três conferências reprovam
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22msem TEMP o ataque não começa, e sem EXECUTE o gatilho não se anexa
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mcom TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mo gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mconferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22mCREATE no banco ou num esquema, dado a PUBLIC, reprova
+   [2m[90m↓[39m[22m sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado[2m > [22ma função de gatilho na lista com EXECUTE vazio não reprova mais por 'ninguém a chama', e a comum continua reprovando
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mencolher passa; ampliar sem declarar reprova (o caso da auditoria: a coluna de volta à lista)
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22ma ampliação declarada é exatamente o que a redefinição acrescenta, com justificativa, e só em redefinição
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22ma coluna proibida não volta nem por ampliação declarada; proibição não se redefine nem se repete
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mantes da migração da proibição nada se confere; depois, a tabela sem o privilégio passa
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mo privilégio proibido no banco reprova, de coluna ou de tabela, do app, do console ou de PUBLIC
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mo catálogo que lista a coluna proibida reprova, mesmo com o banco igual a ele
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mproibição sobre tabela que não existe reprova
+   [2m[90m↓[39m[22m sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta[2m > [22mas proibições do portão passam no banco das migrações reais; enquanto a 061 não existe, ligá-las mesmo assim morde (o app ainda alcança a credencial de usuarios)
+   [2m[90m↓[39m[22m sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime[2m > [22ma mesma exceção, no mesmo regime, redefinida, passa
+   [2m[90m↓[39m[22m sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime[2m > [22mtirar semMunicipio de uma tabela protegida reprova (ela voltava à exceção comum e saía da prova da eliminação)
+   [2m[90m↓[39m[22m sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime[2m > [22mtrocar protegida por global, ou o destino na eliminação, reprova
+   [2m[90m↓[39m[22m sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime[2m > [22muma exceção comum também não ganha regime por redefinição (qualquer transição é ampliação)
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mcom o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mâncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município sem linha reprova (sem elas não há o que ficar intacto)
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22ma linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles
+   [2m[90m↓[39m[22m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22ma declaração completa: sem semearOutroMunicipio, ou compartilhar sem :outra, reprova
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22mo banco de hoje não tem função de gatilho privilegiada, e passa
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22ma recusa por TG_RELID antes de tudo passa
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22mPERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22ma conferência posta DEPOIS da escrita reprova: escreveu antes de recusar
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22ma escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22ma sequência que anda antes da recusa também é efeito
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22mrecusar com outro erro que não 42501 não é a recusa pela tabela que disparou
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22mcada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam
+   [2m[90m↓[39m[22m sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito[2m > [22ma função sem gatilho no banco é disparada de uma tabela de prova
+   [2m[90m↓[39m[22m sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado[2m > [22mo banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   [2m[90m↓[39m[22m sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado[2m > [22mfunção de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   [2m[90m↓[39m[22m sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado[2m > [22mdesabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   [2m[90m↓[39m[22m sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado[2m > [22mevento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   [2m[90m↓[39m[22m sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado[2m > [22mgatilho a mais no banco, ou declarado que não existe, reprova
+   [2m[90m↓[39m[22m sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada[2m > [22ma chave validada para as colunas declaradas passa
+   [2m[90m↓[39m[22m sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada[2m > [22mNOT VALID reprova
+   [2m[90m↓[39m[22m sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada[2m > [22mreferenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+   [2m[90m↓[39m[22m sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada[2m > [22ma declaração completa: chave para global sem colunasReferenciadas reprova
+[31m   [31m×[31m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22ma consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)[39m[33m 403[2mms[22m[39m
+[31m     → expected [] to deeply equal [ StringMatching{…} ][39m
+[31m   [31m×[31m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22msem linha exclusiva, nem a limpeza de verdade basta: não há o que provar[39m[33m 365[2mms[22m[39m
+[31m     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ][39m
+   [33m[2m✓[22m[39m sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22mcontrole: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva [33m 1315[2mms[22m[39m
+[31m   [31m×[31m sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22mtabela vazia: a escrita chaveada por NEW antes da recusa passava só com a linha nula, e com a linha semeada reprova[39m[32m 75[2mms[22m[39m
+[31m     → expected [] to deeply equal [ StringMatching{…} ][39m
+[31m   [31m×[31m sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma escrita só quando NEW difere de OLD, antes da recusa, passava com SET coluna = coluna e reprova com a mudança efetiva[39m[32m 57[2mms[22m[39m
+[31m     → expected '' to match /gatilho sonda_alvo_muda \(de sonda_al…/[39m
+   [32m✓[39m sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22mcontrole: a recusa antes de tudo passa com a linha semeada e com a mudança efetiva[32m 53[2mms[22m[39m
+[31m   [31m×[31m sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma semeadura que não põe linha na tabela do gatilho reprova[39m[32m 30[2mms[22m[39m
+[31m     → expected [] to deeply equal [ StringMatching{…} ][39m
+[31m   [31m×[31m sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma declaração completa: função de gatilho privilegiada sem semearParaProva (ou sem :org) reprova[39m[32m 2[2mms[22m[39m
+[31m     → expected [] to deeply equal [ StringMatching{…} ][39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 6 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22ma consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)
+[31m[1mAssertionError[22m: expected [] to deeply equal [ StringMatching{…} ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   StringMatching /^sonda_marcas \(protegida, some\): nenhuma das 2 chave\(s\) que linhasDoMunicipio devolve para o município eliminado é EXCLUSIVA dele/,[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2648:86[22m[39m
+    [90m2646| [39m
+    [90m2647| [39m  it("a consulta que devolve as mesmas chaves para os dois municípios,…
+    [90m2648| [39m    expect(await comBuraco(ABRIR, FECHAR, () => eliminar(declarada("so…
+    [90m   | [39m                                                                                     [31m^[39m
+    [90m2649| [39m      expect.stringMatching(SEM_EXCLUSIVA),
+    [90m2650| [39m    ]);
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado[2m > [22msem linha exclusiva, nem a limpeza de verdade basta: não há o que provar
+[31m[1mAssertionError[22m: expected [ Array(1) ] to deeply equal [ StringMatching{…} ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   StringMatching /^sonda_marcas \(protegida, some\): nenhuma das 2 chave\(s\) que linhasDoMunicipio devolve para o município eliminado é EXCLUSIVA dele/,[39m
+[31m+   "sonda_marcas (protegida, some): a eliminação de UM município mexeu em sonda_marcas fora dele (o outro município da prova, linha compartilhada ou de ninguém): 1 linha(s) sumiram ou mudaram e 0 apareceram. A eliminação alcança só o município eliminado.",[39m
+[2m  ][22m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2658:7[22m[39m
+    [90m2656| [39m        eliminar(declarada("some", TODAS)),
+    [90m2657| [39m      ),
+    [90m2658| [39m    ).toEqual([expect.stringMatching(SEM_EXCLUSIVA)]);
+    [90m   | [39m      [31m^[39m
+    [90m2659| [39m  });
+    [90m2660| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22mtabela vazia: a escrita chaveada por NEW antes da recusa passava só com a linha nula, e com a linha semeada reprova
+[31m[1mAssertionError[22m: expected [] to deeply equal [ StringMatching{…} ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   StringMatching /\(INSERT, com uma linha real de public\."sonda_alvo"\), a função ESCREVEU antes de recusar \(public\.sonda_cofre\)/,[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2714:75[22m[39m
+    [90m2712| [39m    const corpo = `UPDATE public.sonda_cofre SET quem = quem WHERE que…
+    [90m2713| [39m    expect(await comBuraco(ABRIR(corpo, NO_INSERT), FECHAR, semCatalog…
+    [90m2714| [39m    expect(await comBuraco(ABRIR(corpo, NO_INSERT), FECHAR, comCatalog…
+    [90m   | [39m                                                                          [31m^[39m
+    [90m2715| [39m      expect.stringMatching(
+    [90m2716| [39m        /\(INSERT, com uma linha real de public\."sonda_alvo"\), a fun…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma escrita só quando NEW difere de OLD, antes da recusa, passava com SET coluna = coluna e reprova com a mudança efetiva
+[31m[1mAssertionError[22m: expected '' to match /gatilho sonda_alvo_muda \(de sonda_al…/[39m
+
+[32m- Expected:[39m 
+/gatilho sonda_alvo_muda \(de sonda_alvo\) .*\(UPDATE\), a função ESCREVEU antes de recusar \(public\.sonda_cofre\)/
+
+[31m+ Received:[39m 
+""
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2725:19[22m[39m
+    [90m2723| [39m    const comLinha = `${ABRIR(corpo, NO_UPDATE)} INSERT INTO sonda_alv…
+    [90m2724| [39m    const texto = (await comBuraco(comLinha, FECHAR, semCatalogo)).joi…
+    [90m2725| [39m    expect(texto).toMatch(
+    [90m   | [39m                  [31m^[39m
+    [90m2726| [39m      /gatilho sonda_alvo_muda \(de sonda_alvo\) .*\(UPDATE\), a funçã…
+    [90m2727| [39m    );
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma semeadura que não põe linha na tabela do gatilho reprova
+[31m[1mAssertionError[22m: expected [] to deeply equal [ StringMatching{…} ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   StringMatching /^public\.sonda_grava_no_cofre\(\): semearParaProva não pôs nenhuma linha em public\."sonda_alvo"/,[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2744:7[22m[39m
+    [90m2742| [39m    expect(
+    [90m2743| [39m      await comBuraco(ABRIR(RECUSA, NO_INSERT), FECHAR, () => provarRe…
+    [90m2744| [39m    ).toEqual([expect.stringMatching(SEM_LINHA)]);
+    [90m   | [39m      [31m^[39m
+    [90m2745| [39m  });
+    [90m2746| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva[2m > [22ma declaração completa: função de gatilho privilegiada sem semearParaProva (ou sem :org) reprova
+[31m[1mAssertionError[22m: expected [] to deeply equal [ StringMatching{…} ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   StringMatching /^public\.sonda_grava_no_cofre\(\): função de gatilho privilegiada sem semearParaProva \(com :org\)/,[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m2749:64[22m[39m
+    [90m2747| [39m  it("a declaração completa: função de gatilho privilegiada sem semear…
+    [90m2748| [39m    const semSemente: FuncaoPrivilegiada = { ...ENTRADA, semearParaPro…
+    [90m2749| [39m    expect(conferirDeclaracoesCompletas([], [], [semSemente])).toEqual…
+    [90m   | [39m                                                               [31m^[39m
+    [90m2750| [39m      expect.stringMatching(
+    [90m2751| [39m        /^public\.sonda_grava_no_cofre\(\): função de gatilho privileg…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[2m | [22m[33m132 skipped[39m[90m (140)[39m
+[2m   Start at [22m 15:47:22
+[2m   Duration [22m 4.55s[2m (transform 227ms, setup 0ms, collect 591ms, tests 3.36s, environment 0ms, prepare 113ms)[22m
+

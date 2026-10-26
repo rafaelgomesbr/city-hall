@@ -709,6 +709,9 @@ const relacaoSql = (t: string) => partesDoNome(t).map(identificador).join(".");
  *     filtro passava como `some`. A linha COMPARTILHADA (`compartilhar`,
  *     quando couber) nunca some com a eliminação de um dos dois.
  *
+ * Correção 2 da 0G: `some` exige pelo menos uma linha EXCLUSIVA do município
+ * eliminado (além das do outro e das compartilhadas).
+ *
  * Prova vazia reprova (sem linha ligada ao município não há o que provar), e
  * eliminação que não chega ao fim (DC366, município fora da saída, gatilho
  * adiado que recusa na confirmação) também. O banco do portão não muda: tudo
@@ -818,6 +821,20 @@ async function provarDestinoNaCopia(
   }
   /** Só do município eliminado: as compartilhadas com o outro ficam no retrato do que não muda. */
   const exclusivas = unicas.filter((k) => !doOutro.includes(k));
+  /*
+    Correção 2 da 0G: `some` precisa de pelo menos uma linha EXCLUSIVA do
+    município eliminado. Se `linhasDoMunicipio` devolvesse as mesmas chaves
+    para os dois municípios (por exemplo, uma consulta que ignora `:org`), tudo
+    virava compartilhado, a contagem do que some era sobre um conjunto vazio, e
+    uma tabela declarada `some` cuja limpeza nunca acontece passava.
+  */
+  if (d.destino === "some" && exclusivas.length === 0) {
+    return [
+      `${nome}: nenhuma das ${unicas.length} chave(s) que linhasDoMunicipio devolve para o município ` +
+        "eliminado é EXCLUSIVA dele (todas aparecem também no outro município): sem linha exclusiva " +
+        "não há como provar que as linhas do município SOMEM na eliminação",
+    ];
+  }
   const retratoAntes = await intactas(exclusivas);
 
   // Passo 3: o livro e a organização vencidos, como dono, confirmado.
@@ -1382,12 +1399,26 @@ export async function conferirColunasProibidas(
  * tabela sem município semeia o OUTRO município da prova da eliminação
  * (`semearOutroMunicipio`, com `:org`), e toda chave para tabela global
  * declara as colunas referenciadas no alvo (`colunasReferenciadas`).
+ * Correção 2 da 0G: toda função de gatilho privilegiada (com `gatilhoEm`)
+ * declara `semearParaProva` (com `:org`), a linha real da prova da recusa
+ * fora da tabela.
  */
 export function conferirDeclaracoesCompletas(
   excecoes: readonly ExcecaoAoIsolamento[],
   chaves: readonly ChaveParaTabelaGlobal[],
+  funcoes: readonly FuncaoPrivilegiada[] = [],
 ): string[] {
   const problemas: string[] = [];
+  for (const f of funcoes) {
+    if (f.gatilhoEm === undefined) continue;
+    if (!(f.semearParaProva !== undefined && /:org\b/.test(f.semearParaProva))) {
+      problemas.push(
+        `${f.assinatura}: função de gatilho privilegiada sem semearParaProva (com :org): com a ` +
+          "tabela vazia, a prova da recusa fora da tabela só teria a linha nula, que esconde a " +
+          "escrita chaveada por NEW feita antes da recusa",
+      );
+    }
+  }
   for (const e of excecoes) {
     const d = e.semMunicipio?.naEliminacao;
     if (d && !(d.semearOutroMunicipio !== undefined && /:org\b/.test(d.semearOutroMunicipio))) {
@@ -1612,10 +1643,24 @@ async function efeitosDaTransacao(tx: ConsultaSql): Promise<Map<string, string>>
  * aceitava `PERFORM TG_RELID = 'public.usuarios'::regclass;`, que não recusa
  * nada, e a conferência posta DEPOIS da escrita. Tudo como dono, numa
  * transação desfeita no fim.
+ *
+ * Correção 2 da 0G (a dívida do item 6): com `funcoes` (o catálogo), a
+ * função que declara `semearParaProva` tem a linha real semeada dentro da
+ * transação da prova, mesmo com a tabela vazia; e o UPDATE da prova muda de
+ * verdade toda coluna (da linha nula para a real e da real para a nula), em
+ * vez de `SET coluna = coluna`.
  */
-export async function provarRecusaForaDaTabela(db: BancoComTransacao): Promise<string[]> {
+export async function provarRecusaForaDaTabela(
+  db: BancoComTransacao,
+  funcoes: readonly FuncaoPrivilegiada[] = [],
+): Promise<string[]> {
   const problemas: string[] = [];
-  const funcoes = await db.query<{ assinatura: string }>(`
+  const sementes = new Map(
+    funcoes
+      .filter((f) => f.semearParaProva !== undefined)
+      .map((f) => [f.assinatura, f.semearParaProva!]),
+  );
+  const funcoesDoBanco = await db.query<{ assinatura: string }>(`
     SELECT n.nspname || '.' || p.proname || '(' ||
              replace(oidvectortypes(p.proargtypes), ', ', ',') || ')' AS assinatura
       FROM pg_proc p
@@ -1625,7 +1670,7 @@ export async function provarRecusaForaDaTabela(db: BancoComTransacao): Promise<s
        AND (n.nspname = 'public' OR NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
      ORDER BY 1
   `);
-  for (const { assinatura } of funcoes.rows) {
+  for (const { assinatura } of funcoesDoBanco.rows) {
     const reais = await gatilhosDaFuncao(db, assinatura);
     const copias: Array<{ tabela: string; definicao: string; gatilho: string }> = reais.map((g) => {
       const [, tabela] = partesDoNome(g.tabela);
@@ -1656,16 +1701,26 @@ export async function provarRecusaForaDaTabela(db: BancoComTransacao): Promise<s
         );
         continue;
       }
-      problemas.push(...(await dispararForaDaTabela(db, assinatura, copia)));
+      problemas.push(
+        ...(await dispararForaDaTabela(db, assinatura, copia, sementes.get(assinatura))),
+      );
     }
   }
   return problemas;
+}
+
+/** Uma variante da prova: a linha que a tabela temporária recebe, e se ela é a nula. */
+interface VarianteDaProva {
+  readonly semente: string;
+  readonly rotulo: string;
+  readonly nula: boolean;
 }
 
 async function dispararForaDaTabela(
   db: BancoComTransacao,
   assinatura: string,
   copia: { tabela: string; definicao: string; gatilho: string },
+  semear: string | undefined,
 ): Promise<string[]> {
   const problemas: string[] = [];
   const temp = `pg_temp.${identificador(copia.tabela)}`;
@@ -1680,25 +1735,58 @@ async function dispararForaDaTabela(
     (await db.query<{ tem: boolean }>(`SELECT EXISTS (SELECT 1 FROM ${publica}) AS tem`)).rows[0]!
       .tem;
   /*
-    Duas linhas de ataque: a nula (toda coluna NULL) e, quando a tabela real
-    tem linha, uma CÓPIA de uma linha real (chaves de verdade: a escrita feita
-    antes da recusa com a chave nula não muda linha nenhuma, e com a real muda).
+    Duas linhas de ataque: a nula (toda coluna NULL) e uma CÓPIA de uma linha
+    real (chaves de verdade: a escrita feita antes da recusa com a chave nula
+    não muda linha nenhuma, e com a real muda). A linha real é a que a tabela
+    já tem ou, com `semearParaProva` declarada (correção 2 da 0G), a que a
+    semeadura põe nela dentro da transação da prova, de modo que a tabela
+    vazia não esconde mais a escrita chaveada por `NEW`.
   */
-  const variantes: Array<{ semente: string; rotulo: string }> = [
-    { semente: "DEFAULT VALUES", rotulo: "" },
-    ...(comLinha
+  const comReal = existe && (comLinha || semear !== undefined);
+  const variantes: VarianteDaProva[] = [
+    { semente: "DEFAULT VALUES", rotulo: "", nula: true },
+    ...(comReal
       ? [
           {
             semente: `SELECT * FROM ${publica} LIMIT 1`,
             rotulo: `, com uma linha real de ${publica}`,
+            nula: false,
           },
         ]
       : []),
   ];
   for (const variante of variantes) {
-    problemas.push(...(await dispararUmaVariante(db, assinatura, copia, temp, existe, variante)));
+    problemas.push(
+      ...(await dispararUmaVariante(db, assinatura, copia, temp, existe, variante, semear)),
+    );
   }
   return problemas;
+}
+
+/**
+ * O comando de UPDATE da prova, com MUDANÇA EFETIVA em toda coluna (correção
+ * 2 da 0G): da linha nula para a real, e da real para a nula. Antes era
+ * `SET coluna = coluna`, e uma função que só escreve quando `NEW` difere de
+ * `OLD`, com a recusa depois dessa escrita, passava. Sem linha real
+ * disponível, fica o UPDATE sem mudança de antes.
+ */
+function updateDaProva(
+  temp: string,
+  publica: string,
+  colunas: readonly string[],
+  alvo: string,
+  variante: VarianteDaProva,
+  temReal: boolean,
+): string {
+  if (!temReal) return `UPDATE ${temp} SET ${alvo} = ${alvo}`;
+  const ids = colunas.map(identificador);
+  if (variante.nula) {
+    return (
+      `UPDATE ${temp} SET ${ids.map((c) => `${c} = prova_real.${c}`).join(", ")} ` +
+      `FROM (SELECT * FROM ${publica} LIMIT 1) AS prova_real`
+    );
+  }
+  return `UPDATE ${temp} SET ${ids.map((c) => `${c} = NULL`).join(", ")}`;
 }
 
 async function dispararUmaVariante(
@@ -1707,25 +1795,49 @@ async function dispararUmaVariante(
   copia: { tabela: string; definicao: string; gatilho: string },
   temp: string,
   existe: boolean,
-  variante: { semente: string; rotulo: string },
+  variante: VarianteDaProva,
+  semear: string | undefined,
 ): Promise<string[]> {
   const problemas: string[] = [];
+  const publica = `public.${identificador(copia.tabela)}`;
   await db.transaction(async (tx) => {
     try {
+      if (existe && semear !== undefined) {
+        const org = (
+          await tx.query<{ id: string }>(
+            `INSERT INTO organizacoes (nome, municipio, uf)
+             VALUES ('Defesa Civil da Prova do Gatilho', 'Prova do Gatilho', 'MG') RETURNING id`,
+          )
+        ).rows[0]!.id;
+        await tx.exec(semear.replace(/:org\b/g, `'${org}'::uuid`));
+      }
+      const temReal =
+        existe &&
+        (await tx.query<{ tem: boolean }>(`SELECT EXISTS (SELECT 1 FROM ${publica}) AS tem`))
+          .rows[0]!.tem;
+      if (!variante.nula && !temReal) {
+        problemas.push(
+          `${assinatura}: semearParaProva não pôs nenhuma linha em ${publica}: sem linha real, a ` +
+            "prova da recusa fora da tabela só tem a linha nula",
+        );
+        await tx.rollback();
+        return;
+      }
       await tx.exec(
         existe
-          ? `CREATE TEMP TABLE ${identificador(copia.tabela)} AS SELECT * FROM public.${identificador(copia.tabela)} WITH NO DATA`
+          ? `CREATE TEMP TABLE ${identificador(copia.tabela)} AS SELECT * FROM ${publica} WITH NO DATA`
           : `CREATE TEMP TABLE ${identificador(copia.tabela)} (prova integer)`,
       );
       await tx.exec(`INSERT INTO ${temp} ${variante.semente}`);
-      const primeira = (
+      const colunas = (
         await tx.query<{ coluna: string }>(
           `SELECT a.attname::text AS coluna FROM pg_attribute a
             WHERE a.attrelid = to_regclass($1::text) AND a.attnum > 0 AND NOT a.attisdropped
-            ORDER BY a.attnum LIMIT 1`,
+            ORDER BY a.attnum`,
           [temp],
         )
-      ).rows[0]!.coluna;
+      ).rows.map((l) => l.coluna);
+      const primeira = colunas[0]!;
       await tx.exec(copia.definicao);
       const t = (
         await tx.query<{ tipo: number; adiavel: boolean; colunas: string[] }>(
@@ -1739,7 +1851,9 @@ async function dispararUmaVariante(
       const alvo = identificador(t.colunas[0] ?? primeira);
       const comandos: Array<[string, string]> = [];
       if (t.tipo & TG_INSERT) comandos.push(["INSERT", `INSERT INTO ${temp} ${variante.semente}`]);
-      if (t.tipo & TG_UPDATE) comandos.push(["UPDATE", `UPDATE ${temp} SET ${alvo} = ${alvo}`]);
+      if (t.tipo & TG_UPDATE) {
+        comandos.push(["UPDATE", updateDaProva(temp, publica, colunas, alvo, variante, temReal)]);
+      }
       if (t.tipo & TG_DELETE) comandos.push(["DELETE", `DELETE FROM ${temp}`]);
       if (t.tipo & TG_TRUNCATE) comandos.push(["TRUNCATE", `TRUNCATE ${temp}`]);
       for (const [evento, comando] of comandos) {
