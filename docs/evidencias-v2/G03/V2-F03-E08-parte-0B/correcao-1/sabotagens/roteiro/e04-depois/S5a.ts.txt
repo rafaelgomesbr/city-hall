@@ -1,0 +1,21 @@
+// Sabotagem S5a (atacante adaptado ao catalogo novo): apaga a divida de trocar_senha so no catalogo.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "trocar_senha",
+      assinatura: "public.trocar_senha(uuid,text,uuid)",
+      migracao: "053",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo: "Sabotagem S5a: apaga a divida de tenant so no catalogo, sem mudar o SQL da funcao.",
+      tenant: "contexto",
+      confere: "Sabotagem: declara conferir o contexto sem que a funcao o faca de verdade.",
+      provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
+      redefine: true,
+    },
+  ],
+  excecoes: [],
+  colunasComUpdate: [],
+};

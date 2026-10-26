@@ -1,0 +1,275 @@
+== S1
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+      Tests  14 failed | 184 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+== S2
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+      Tests  9 failed | 189 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+== S3
+    501|       As sondas estão em `db/test/catalogo-nominal.test.ts`.
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+      Tests  17 failed | 181 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+== S3b
+    501|       As sondas estão em `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+      Tests  16 failed | 182 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam
+== S4
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+      Tests  11 failed | 187 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > tabela do fornecedor que o papel de aplicação alcança reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S5a
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+      Tests  15 failed | 183 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+== S5c
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+      Tests  18 failed | 180 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+== S6
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+      Tests  11 failed | 187 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S7
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+ FAIL  test/isolamento.test.ts > O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token
+ ✓ test/catalogo-nominal.test.ts (58 tests) 2162ms
+ ❯ test/isolamento.test.ts (140 tests | 2 failed) 24529ms
+ ❯ test/isolamento.test.ts:2938:7
+      Tests  2 failed | 196 passed (198)
+   × O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+== S8
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+      Tests  14 failed | 184 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma
+== S8b
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+      Tests  11 failed | 187 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S8c
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+ FAIL  test/isolamento.test.ts > CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+ ❯ test/catalogo-nominal.test.ts (58 tests | 1 failed) 1786ms
+ ❯ test/isolamento.test.ts (140 tests | 1 failed) 21307ms
+ ❯ test/isolamento.test.ts:411:11
+      Tests  2 failed | 196 passed (198)
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+== S8d
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+      Tests  11 failed | 187 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S11
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+      Tests  9 failed | 189 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+== S12
+    592|       `db/test/catalogo-nominal.test.ts`.
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+      Tests  15 failed | 183 passed (198)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+== L1
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/catalogo-nominal.test.ts (58 tests) 1795ms
+ ✓ test/isolamento.test.ts (140 tests) 22292ms
+      Tests  198 passed (198)

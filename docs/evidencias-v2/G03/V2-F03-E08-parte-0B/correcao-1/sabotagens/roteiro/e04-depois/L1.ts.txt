@@ -1,0 +1,32 @@
+// Controle LEGITIMO (nao e sabotagem): uma etapa acrescenta, so no proprio arquivo, uma tabela sem
+// municipio no formato de `pessoas` e uma funcao privilegiada nova, com a migracao que as cria.
+// O portao e as sondas precisam ficar verdes: o andaime nao pode colidir com a etapa honesta.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "controle_legitimo",
+      assinatura: "public.controle_legitimo(text)",
+      migracao: "999",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo: "Controle legitimo: funcao de etapa declarada no arquivo da etapa, com migracao propria.",
+      tenant: "antes_do_tenant",
+      confere: "Controle: so devolve um booleano, sem ler tabela de municipio nenhuma.",
+      semProva: "Controle do harness de sabotagens: existe so durante esta rodada, sem teste proprio.",
+    },
+  ],
+  excecoes: [
+    {
+      tabela: "controle_pessoas",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: { dc360_app: [], dc360_console: [], PUBLIC: [] },
+      etapa: "V2-F03-E04",
+      motivo: "Controle legitimo: tabela global no formato que a ADR 0009 da a `pessoas`.",
+      trava: "RLS forcada, nenhuma policy e nenhum grant: so o dono das tabelas a alcanca.",
+    },
+  ],
+  colunasComUpdate: [],
+};

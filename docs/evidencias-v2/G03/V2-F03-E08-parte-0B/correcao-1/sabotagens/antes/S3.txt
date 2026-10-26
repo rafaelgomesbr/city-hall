@@ -1,0 +1,25 @@
+### S3
+--- migracao 999 temporaria:
+-- S3: esquema novo com funcao SECURITY DEFINER que le organizacoes, EXECUTE ao app.
+CREATE SCHEMA porta_dos_fundos;
+CREATE FUNCTION porta_dos_fundos.contar_organizacoes() RETURNS bigint
+  LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
+  AS $$ SELECT count(*) FROM public.organizacoes $$;
+REVOKE ALL ON FUNCTION porta_dos_fundos.contar_organizacoes() FROM PUBLIC;
+GRANT USAGE ON SCHEMA porta_dos_fundos TO dc360_app;
+GRANT EXECUTE ON FUNCTION porta_dos_fundos.contar_organizacoes() TO dc360_app;
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1471ms
+ ✓ test/isolamento.test.ts (137 tests) 24520ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  750ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  769ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  20873ms
+
+ Test Files  2 passed (2)
+      Tests  165 passed (165)
+   Start at  03:52:13
+   Duration  25.29s (transform 198ms, setup 0ms, collect 618ms, tests 25.99s, environment 0ms, prepare 332ms)
+

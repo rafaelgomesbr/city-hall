@@ -1079,6 +1079,18 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     Total 29, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0B": { total: 29, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, correcao 1 da parte 0B (o revisor adversarial reprovou a
+    parte: seis sabotagens passavam pelo portao). `isolamento.test.ts` ganha 3
+    casos (as excecoes do fornecedor sao as do bloco DO_FORNECEDOR; nada fora
+    do esquema public; a origem de cada funcao bate com as migracoes e com o
+    teste que a prova). `catalogo-nominal.test.ts` vai de 28 para 58 casos:
+    sai a fixacao da lista inteira e das "13 etapas vazias", entram a BASE
+    congelada, a FORMA das etapas e uma sonda por sabotagem (S3, S3b, S5a,
+    S8b, S8d, S11, S12) e por regra nova. Total 33, nenhuma falha nem pulo
+    novos.
+  */
+  "V2-F03-E08-parte-0B-correcao-1": { total: 33, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

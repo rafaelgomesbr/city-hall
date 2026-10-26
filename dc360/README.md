@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 417 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 477 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 510 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
@@ -572,18 +572,24 @@ Essas funções, e as tabelas que escapam da regra `organizacao_id`, não são m
 contadas por um teto: são **nomeadas** em `db/test/catalogo/` e conferidas nos
 dois sentidos contra o catálogo do banco pelo portão CA-06
 (`db/test/isolamento.test.ts`). `FUNCOES_PRIVILEGIADAS` lista cada função
-`SECURITY DEFINER` com nome, motivo, quem a executa e como ela confere o
-município (`contexto`, `antes_do_tenant`, `relogio`, `console`, ou
-`ainda_nao_confere`, que é dívida declarada com a etapa que a paga).
-`EXCECOES_AO_ISOLAMENTO` lista cada tabela sem `organizacao_id` ou sem policy
-amarrada ao contexto, com o motivo e a trava que a prende no lugar, e
-`COLUNAS_COM_UPDATE_DO_APP` lista o `UPDATE` por coluna do papel de aplicação.
-Função fora da lista reprova; nome na lista sem a função no banco reprova;
+`SECURITY DEFINER` pela assinatura completa (`public.trocar_senha(uuid,text,uuid)`),
+com motivo, quem a executa (a ACL exata, sem `PUBLIC` e sem opção de
+concessão), o teste que a chama e como ela confere o município (`contexto`,
+`antes_do_tenant`, `relogio`, `console`, ou `ainda_nao_confere`, que é dívida
+declarada com a etapa que a paga). `EXCECOES_AO_ISOLAMENTO` lista cada tabela
+que dispensa algum invariante do portão, dizendo o que dispensa e o que mantém
+(RLS forçada e os grants efetivos papel por papel nunca se dispensam), e o
+portão confere no banco cada invariante mantido. `COLUNAS_COM_UPDATE_DO_APP`
+lista o `UPDATE` por coluna do papel de aplicação. Função fora da lista
+reprova; nome na lista sem a função no banco reprova; função com outro dono
+reprova; migração declarada que não é a última a criar a função reprova;
 tabela sem a coluna fora da lista reprova; exceção de que a tabela não precisa
-também. Quem cria função, tabela ou coluna assim escreve a entrada no arquivo da
-própria etapa (`db/test/catalogo/f03-eNN.ts`), nunca no portão. As sondas que
-fazem cada uma dessas conferências reprovar estão em
-`db/test/catalogo-nominal.test.ts`.
+também; tabela com `organizacao_id` não dispensa a policy de contexto; e nada
+do produto mora fora do esquema `public`. Quem cria função, tabela ou coluna
+assim escreve a entrada no arquivo da própria etapa
+(`db/test/catalogo/f03-eNN.ts`), nunca no portão; a regra das tabelas do
+fornecedor só existe na base. As sondas que fazem cada uma dessas conferências
+reprovar estão em `db/test/catalogo-nominal.test.ts`.
 
 ### Sincronização do campo
 
@@ -1803,8 +1809,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4395 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 477 testes do banco
+npm test                    # 4428 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 510 testes do banco
 npm run test:api            # 2041 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo

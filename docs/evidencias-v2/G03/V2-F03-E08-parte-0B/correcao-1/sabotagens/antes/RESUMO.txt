@@ -1,0 +1,164 @@
+== S1
+    524|       `db/test/catalogo-nominal.test.ts`.
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+      Tests  10 failed | 155 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+== S2
+    524|       `db/test/catalogo-nominal.test.ts`.
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+ FAIL  test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+ FAIL  test/catalogo-nominal.test.ts > sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+      Tests  9 failed | 156 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+== S3
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1471ms
+ ✓ test/isolamento.test.ts (137 tests) 24520ms
+      Tests  165 passed (165)
+== S3b
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1470ms
+ ✓ test/isolamento.test.ts (137 tests) 24461ms
+      Tests  165 passed (165)
+== S4
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`)
+      Tests  9 failed | 156 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S5a
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga
+ FAIL  test/catalogo-nominal.test.ts > sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+ ✓ test/isolamento.test.ts (137 tests) 27559ms
+ ❯ test/catalogo-nominal.test.ts (28 tests | 3 failed) 1487ms
+ ❯ test/catalogo-nominal.test.ts:133:46
+      Tests  3 failed | 162 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+== S5c
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga
+ FAIL  test/catalogo-nominal.test.ts > sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+ ❯ test/catalogo-nominal.test.ts (28 tests | 3 failed) 1336ms
+      Tests  5 failed | 160 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+== S6
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+ FAIL  test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`)
+ FAIL  test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária
+      Tests  10 failed | 155 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária
+   × CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+== S7
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+ FAIL  test/isolamento.test.ts > O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1370ms
+ ❯ test/isolamento.test.ts (137 tests | 2 failed) 23596ms
+ ❯ test/isolamento.test.ts:2860:7
+ ❯ test/isolamento.test.ts:3873:7
+      Tests  2 failed | 163 passed (165)
+   × O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+== S8
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+ FAIL  test/isolamento.test.ts > O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo
+ FAIL  test/isolamento.test.ts > O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT
+ FAIL  test/isolamento.test.ts > O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma
+ FAIL  test/isolamento.test.ts > O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada
+      Tests  6 failed | 159 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT
+== S8b
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+ ✓ test/isolamento.test.ts (137 tests) 25551ms
+ ❯ test/catalogo-nominal.test.ts (28 tests | 2 failed) 1393ms
+ ❯ test/catalogo-nominal.test.ts:122:64
+ ❯ test/catalogo-nominal.test.ts:404:21
+      Tests  2 failed | 163 passed (165)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+== S8c
+ FAIL  test/isolamento.test.ts > CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1453ms
+ ❯ test/isolamento.test.ts (137 tests | 1 failed) 26182ms
+ ❯ test/isolamento.test.ts:376:11
+      Tests  1 failed | 164 passed (165)
+   × CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto
+== S8d
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+ ✓ test/isolamento.test.ts (137 tests) 23340ms
+ ❯ test/catalogo-nominal.test.ts (28 tests | 1 failed) 1521ms
+ ❯ test/catalogo-nominal.test.ts:404:21
+      Tests  1 failed | 164 passed (165)
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+== S11
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1429ms
+ ✓ test/isolamento.test.ts (137 tests) 23355ms
+      Tests  165 passed (165)
+== S12
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1467ms
+ ❯ test/isolamento.test.ts (137 tests | 2 failed) 4730ms
+ ❯ test/isolamento.test.ts:3899:7
+ ❯ test/isolamento.test.ts:3938:63
+      Tests  2 failed | 163 passed (165)
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio

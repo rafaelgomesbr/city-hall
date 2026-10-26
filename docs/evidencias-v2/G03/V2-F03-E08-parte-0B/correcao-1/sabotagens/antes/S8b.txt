@@ -1,0 +1,131 @@
+### S8b
+--- migracao 999 temporaria:
+-- Qualquer operador do console (não só o dono) passa a poder escrever no livro de eliminações.
+CREATE POLICY sabotagem_update_sem_dono ON eliminacoes_de_municipio
+  FOR UPDATE TO dc360_console USING (true) WITH CHECK (true);
+CREATE POLICY sabotagem_insert_sem_dono ON eliminacoes_de_municipio
+  FOR INSERT TO dc360_console WITH CHECK (true);
+--- f03-e04.ts:
+// Sabotagem S8/S8b: isencao de policy de tenant para tabela do fornecedor que TEM organizacao_id.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "eliminacoes_de_municipio",
+      semOrganizacaoId: false,
+      semPolicyDeTenant: true,
+      acessoSemPolicy: "nenhum",
+      etapa: "V2-F03-E04",
+      motivo: "Sabotagem: o livro de eliminacoes e do fornecedor e nao tem policy de municipio.",
+      trava: "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
+    },
+  ],
+  colunasComUpdate: [],
+} as unknown as ContribuicaoDoCatalogo;
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+ ❯ test/catalogo-nominal.test.ts (28 tests | 2 failed) 1393ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco 4ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco 17ms
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico 9ms
+     → expected [ …(5) ] to deeply equal [ …(4) ]
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga 0ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista 6ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece (nome de função da F03) reprova 3ms
+   ✓ sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos 3ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco 2ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER 3ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova 2ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido a PUBLIC 2ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido ao console numa função que só a aplicação executa 2ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > quemExecuta lê a ACL: dono fora, PUBLIC como PUBLIC, ACL nula como PUBLIC 0ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga 3ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > motivo de enchimento 2ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna 20ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna 9ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa 9ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) 8ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que não existe 8ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`) 15ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária 7ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não declara exceção nenhuma 7ms
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base 2ms
+     → V2-F03-E04: expected { funcoes: [], …(2) } to deeply equal { funcoes: [], excecoes: [], …(1) }
+   ✓ sonda 8: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro 1ms
+   ✓ sonda 8: a junção das contribuições das etapas > redefine: true substitui a entrada anterior (a etapa que muda a forma de conferir o tenant) 0ms
+   ✓ sonda 8: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado) 0ms
+   ✓ sonda 8: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro 0ms
+ ✓ test/isolamento.test.ts (137 tests) 25551ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  738ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  824ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  21964ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+AssertionError: expected [ …(5) ] to deeply equal [ …(4) ]
+
+- Expected
++ Received
+
+  [
+    "console_codigos_de_recuperacao",
+    "console_operadores",
++   "eliminacoes_de_municipio",
+    "interesse_municipio",
+    "organizacoes",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:122:64
+    120|       "varrer_tarefas_novas",
+    121|     ]);
+    122|     expect(EXCECOES_AO_ISOLAMENTO.map((e) => e.tabela).sort()).toEqual…
+       |                                                                ^
+    123|       "console_codigos_de_recuperacao",
+    124|       "console_operadores",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+AssertionError: V2-F03-E04: expected { funcoes: [], …(2) } to deeply equal { funcoes: [], excecoes: [], …(1) }
+
+- Expected
++ Received
+
+  {
+    "colunasComUpdate": [],
+-   "excecoes": [],
++   "excecoes": [
++     {
++       "acessoSemPolicy": "nenhum",
++       "etapa": "V2-F03-E04",
++       "motivo": "Sabotagem: o livro de eliminacoes e do fornecedor e nao tem policy de municipio.",
++       "semOrganizacaoId": false,
++       "semPolicyDeTenant": true,
++       "tabela": "eliminacoes_de_municipio",
++       "trava": "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
++     },
++   ],
+    "funcoes": [],
+  }
+
+ ❯ test/catalogo-nominal.test.ts:404:21
+    402|     for (const [de, c] of CONTRIBUICOES_DO_CATALOGO) {
+    403|       if (de === "base") continue;
+    404|       expect(c, de).toEqual(vazia);
+       |                     ^
+    405|     }
+    406|     expect(CONTRIBUICOES_DO_CATALOGO[0]![1]).toBe(BASE);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 163 passed (165)
+   Start at  03:55:33
+   Duration  26.32s (transform 204ms, setup 0ms, collect 581ms, tests 26.94s, environment 0ms, prepare 362ms)
+

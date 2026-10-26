@@ -29,7 +29,7 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
   // ---------------------------------------------------------------- autenticação
   {
     nome: "credenciais_para_login",
-    argumentos: "p_email text",
+    assinatura: "public.credenciais_para_login(text)",
     migracao: "046",
     etapa: "base",
     executavelPor: APP,
@@ -43,10 +43,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "O e-mail é o único caminho: o índice único global `usuarios_email_global_idx` garante uma " +
       "conta por e-mail, e a conta traz o município com ela. A E15/E16 troca isto por " +
       "`credenciais_da_pessoa` e pela escolha de município.",
+    provas: ["db/test/isolamento.test.ts"],
   },
   {
     nome: "registrar_tentativa_login",
-    argumentos: "p_usuario_id uuid, p_sucesso boolean, p_max_falhas integer, p_bloqueio interval",
+    assinatura: "public.registrar_tentativa_login(uuid,boolean,integer,interval)",
     migracao: "002",
     etapa: "base",
     executavelPor: APP,
@@ -60,10 +61,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "chama é a API, com o id que ela mesma achou pelo e-mail, mas a função não exige que o " +
       "município do contexto seja o da conta.",
     corrigidaEm: "V2-F03-E08",
+    provas: ["apps/api/test/renovacao-contra-encerramento.test.ts"],
   },
   {
     nome: "sessao_por_token",
-    argumentos: "p_token_hash text",
+    assinatura: "public.sessao_por_token(text)",
     migracao: "046",
     etapa: "base",
     executavelPor: APP,
@@ -75,12 +77,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O hash do token de renovação, que só o dono da sessão tem, é a chave; " +
       "a linha devolvida traz o município da sessão.",
+    provas: ["apps/api/test/renovacao-contra-encerramento.test.ts"],
   },
   {
     nome: "abrir_sessao",
-    argumentos:
-      "p_organizacao_id uuid, p_usuario_id uuid, p_token_hash text, p_duracao interval, " +
-      "p_user_agent text, p_ip text, p_familia_id uuid",
+    assinatura: "public.abrir_sessao(uuid,uuid,text,interval,text,text,uuid)",
     migracao: "050",
     etapa: "base",
     executavelPor: APP,
@@ -93,20 +94,25 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Recebe o município como parâmetro, mas a chave estrangeira composta " +
       "`(organizacao_id, usuario_id)` de `sessoes` impede sessão de um usuário em município que " +
       "não é o dele, e a família só é herdada do mesmo usuário no mesmo município.",
+    provas: [
+      "db/test/familia-da-sessao.test.ts",
+      "db/test/login-e-suspensao-na-mesma-linha.test.ts",
+    ],
   },
   {
     nome: "revogar_sessao",
-    argumentos: "p_token_hash text, p_motivo text",
+    assinatura: "public.revogar_sessao(text,text)",
     migracao: "002",
     etapa: "base",
     executavelPor: APP,
     motivo: "Encerra a sessão do token apresentado, fora do contexto de município.",
     tenant: "antes_do_tenant",
     confere: "O hash do token de renovação é a chave: só quem o apresenta encerra aquela sessão.",
+    provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
   },
   {
     nome: "revogar_sessoes_do_usuario",
-    argumentos: "p_usuario_id uuid, p_motivo text",
+    assinatura: "public.revogar_sessoes_do_usuario(uuid,text)",
     migracao: "049",
     etapa: "base",
     executavelPor: APP,
@@ -119,10 +125,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Hoje NÃO confere: age sobre qualquer `usuarios.id` (achado REL:06 14b). Com `pessoas` " +
       "global, a conta de um município alcançaria quem também atua em outro.",
     corrigidaEm: "V2-F03-E08",
+    provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
   },
   {
     nome: "dono_do_token",
-    argumentos: "p_token_hash text",
+    assinatura: "public.dono_do_token(text)",
     migracao: "048",
     etapa: "base",
     executavelPor: APP,
@@ -134,10 +141,13 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O hash do token é a chave. Hoje devolve o `usuario_id` sem o município; a E08 passa a " +
       "devolver também `organizacao_id`.",
+    semProva:
+      "Exercitada só por dentro da rota de renovação (reuso de token, em " +
+      "apps/api/test/senha-e-sessoes.test.ts); nenhum teste chama a função pelo nome.",
   },
   {
     nome: "trocar_senha",
-    argumentos: "p_usuario_id uuid, p_senha_hash text, p_sessao_preservada uuid",
+    assinatura: "public.trocar_senha(uuid,text,uuid)",
     migracao: "049",
     etapa: "base",
     executavelPor: APP,
@@ -149,10 +159,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Hoje NÃO confere: age sobre qualquer `usuarios.id` (achado REL:06 14b). A E08 exige conta " +
       "ativa no município do contexto e só aceita a pessoa do próprio `sub`.",
     corrigidaEm: "V2-F03-E08",
+    provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
   },
   {
     nome: "abrir_recuperacao",
-    argumentos: "p_email text, p_token_hash text, p_duracao interval, p_ip text",
+    assinatura: "public.abrir_recuperacao(text,text,interval,text)",
     migracao: "005",
     etapa: "base",
     executavelPor: APP,
@@ -165,10 +176,13 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O e-mail é o único caminho (índice único global); a recuperação nasce já presa ao " +
       "usuário e ao município da conta achada.",
+    semProva:
+      "Exercitada só por dentro da rota de recuperação (apps/api/test/recuperacao.test.ts e " +
+      "vizinhos); nenhum teste chama a função pelo nome.",
   },
   {
     nome: "consumir_recuperacao",
-    argumentos: "p_token_hash text, p_senha_hash text",
+    assinatura: "public.consumir_recuperacao(text,text)",
     migracao: "051",
     etapa: "base",
     executavelPor: APP,
@@ -180,11 +194,12 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O hash do link de uso único é a chave; a recuperação carrega o usuário e o município, e " +
       "a função devolve `(usuario_id, organizacao_id)` para a API seguir debaixo dele.",
+    provas: ["db/test/renovacao-e-encerramento-na-mesma-trava.test.ts"],
   },
   // ---------------------------------------------------------------- formulário e link público
   {
     nome: "interesse_recente",
-    argumentos: "p_email text",
+    assinatura: "public.interesse_recente(text)",
     migracao: "011",
     etapa: "base",
     executavelPor: APP,
@@ -197,10 +212,13 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "Não há município: a tabela é anterior a qualquer município. A rota NÃO repassa o " +
       "booleano ao cliente (resposta idêntica nos dois casos).",
+    semProva:
+      "Nenhum teste chama a função pelo nome: a rota pública de interesse ainda não tem teste " +
+      "de API, e a prova de que a tabela escreve e não lê está em isolamento.test.ts.",
   },
   {
     nome: "abrir_oficio",
-    argumentos: "p_token_hash text, p_ip text, p_agente text",
+    assinatura: "public.abrir_oficio(text,text,text)",
     migracao: "017",
     etapa: "base",
     executavelPor: APP,
@@ -213,13 +231,12 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O hash do link é o único caminho até a organização; a função devolve `organizacao_id` e a " +
       "rota monta o documento pelo caminho normal, com `SET LOCAL` nesse município.",
+    provas: ["db/test/isolamento.test.ts"],
   },
   // ---------------------------------------------------------------- relógios
   {
     nome: "varrer_prazos",
-    argumentos:
-      "p_janela interval, p_espera interval, p_tentativas_maximas integer, p_teto integer, " +
-      "p_retencao interval",
+    assinatura: "public.varrer_prazos(interval,interval,integer,integer,interval)",
     migracao: "016",
     etapa: "base",
     executavelPor: APP,
@@ -232,10 +249,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "Sem município de parâmetro e sem filtro livre; não avisa prazo já vencido; não devolve " +
       "nome de pessoa, contato, relato nem descrição de vulnerabilidade.",
+    provas: ["db/test/varredura-de-prazo-sem-bypassrls.test.ts"],
   },
   {
     nome: "varrer_tarefas_novas",
-    argumentos: "p_espera interval, p_tentativas_maximas integer, p_teto integer",
+    assinatura: "public.varrer_tarefas_novas(interval,integer,integer)",
     migracao: "042",
     etapa: "base",
     executavelPor: APP,
@@ -247,10 +265,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     tenant: "relogio",
     confere:
       "Sem município de parâmetro, sem filtro de quem chama; não devolve protocolo nem endereço.",
+    provas: ["db/test/isolamento.test.ts"],
   },
   {
     nome: "minimizar_por_prazo",
-    argumentos: "p_teto integer",
+    assinatura: "public.minimizar_por_prazo(integer)",
     migracao: "043",
     etapa: "base",
     executavelPor: APP,
@@ -261,10 +280,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "dentro. Descarta o dado pessoal que o prazo de retenção manda descartar.",
     tenant: "relogio",
     confere: "Sem município de parâmetro e sem prazo de parâmetro; sem dado de pessoa na saída.",
+    provas: ["db/test/minimizacao-do-relato-e-da-trilha.test.ts"],
   },
   {
     nome: "municipios_a_resumir",
-    argumentos: "p_frescor interval",
+    assinatura: "public.municipios_a_resumir(interval)",
     migracao: "038",
     etapa: "base",
     executavelPor: APP,
@@ -275,12 +295,14 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "enxerga uma linha de `organizacoes`.",
     tenant: "relogio",
     confere:
-      "Devolve `setof uuid` e nada mais, não aceita município de parâmetro e não alcança tabela " +
-      "de negócio nenhuma. É a menor das portas.",
+      "Devolve `setof uuid` e nada mais, e não aceita município de parâmetro. Lê `organizacoes` " +
+      "(só as não eliminadas) com junção em `metricas_municipio` (a métrica do dia e quando foi " +
+      "atualizada, para saber quem está vencido pelo `p_frescor`); nenhuma outra tabela.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "eliminacoes_pendentes",
-    argumentos: "",
+    assinatura: "public.eliminacoes_pendentes()",
     migracao: "038",
     etapa: "base",
     executavelPor: APP,
@@ -289,10 +311,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "aplicação não enxerga uma linha de `organizacoes` sem município no contexto.",
     tenant: "relogio",
     confere: "Sem parâmetro; devolve dois inteiros (agendadas e vencidas), nenhum nome nem id.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "executar_eliminacoes_vencidas",
-    argumentos: "",
+    assinatura: "public.executar_eliminacoes_vencidas()",
     migracao: "038",
     etapa: "base",
     executavelPor: APP,
@@ -307,28 +330,31 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "do console escreve); confere que restou zero linha depois de cada DELETE e estoura " +
       "nomeando a tabela se o dono for barrado pela RLS. Casos em " +
       "`db/test/eliminacao-de-municipio.test.ts`.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "concluir_eliminacao",
-    argumentos: "p_org uuid",
+    assinatura: "public.concluir_eliminacao(uuid)",
     migracao: "038",
     etapa: "base",
     executavelPor: APP,
     motivo:
       "A outra função do banco que apaga dado de município: conclui a eliminação de UM município " +
-      "já vencido, chamada pelo relógio. Roda sem ninguém logado.",
+      "cujo banco o relógio já apagou, depois de a API purgar o armazenamento. Roda sem ninguém " +
+      "logado.",
     tenant: "relogio",
     confere:
-      "O município vem de parâmetro, mas a função só age se a eliminação dele está vencida, não " +
-      "cancelada e marcada na organização; mesmas conferências de zero linha restante da " +
-      "`executar_eliminacoes_vencidas`.",
+      "O município vem de parâmetro, e a ÚNICA condição para agir é `organizacoes.eliminada_em` " +
+      "preenchido (só `executar_eliminacoes_vencidas` o escreve); sem ela estoura DC365 e não " +
+      "muda nada. Apaga de novo, tabela a tabela, as linhas que entraram depois do apagamento e " +
+      "as registra no livro em `sobras_na_conclusao`; depois apaga a linha de `organizacoes` e " +
+      "estoura DC366 se não apagar exatamente uma.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   // ---------------------------------------------------------------- console do fornecedor
   {
     nome: "provisionar_municipio",
-    argumentos:
-      "p_orgao text, p_municipio text, p_uf text, p_nome text, p_matricula text, p_email text, " +
-      "p_senha_hash text, p_operador text, OUT organizacao_id uuid, OUT usuario_id uuid",
+    assinatura: "public.provisionar_municipio(text,text,text,text,text,text,text,text)",
     migracao: "046",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -343,10 +369,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Só cria município NOVO: dois uuid de saída, nenhum parâmetro vira consulta, nenhuma tabela " +
       "de negócio no corpo além das três que escreve, e o console continua sem privilégio em " +
       "tabela nenhuma depois de usá-la. O administrador nasce com senha provisória de 72 h.",
+    provas: ["db/test/isolamento.test.ts"],
   },
   {
     nome: "console_suspender_municipio",
-    argumentos: "p_org uuid, p_motivo text",
+    assinatura: "public.console_suspender_municipio(uuid,text)",
     migracao: "049",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -358,10 +385,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "Exige que o operador da sessão do console seja o dono do console (e motivo escrito); só " +
       "age em município ativo, não eliminado; devolve o número de sessões revogadas.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "console_reativar_municipio",
-    argumentos: "p_org uuid",
+    assinatura: "public.console_reativar_municipio(uuid)",
     migracao: "038",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -370,10 +398,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "Exige o dono do console como operador da sessão; recusa se houver eliminação agendada e " +
       "não cancelada.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "console_agendar_eliminacao",
-    argumentos: "p_org uuid, p_motivo text",
+    assinatura: "public.console_agendar_eliminacao(uuid,text)",
     migracao: "038",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -385,20 +414,24 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Exige o dono do console (só ele agenda) e motivo escrito; só age em município ativo e " +
       "sem eliminação já agendada; suspende o município e devolve quando o relógio vai apagar " +
       "(sete dias).",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "console_cancelar_eliminacao",
-    argumentos: "p_org uuid",
+    assinatura: "public.console_cancelar_eliminacao(uuid)",
     migracao: "038",
     etapa: "base",
     executavelPor: CONSOLE,
     motivo: "Cancela a eliminação agendada, pela mesma razão de `console_agendar_eliminacao`.",
     tenant: "console",
-    confere: "Exige o dono do console como operador da sessão; não lê nada.",
+    confere:
+      "Exige o dono do console como operador da sessão; recusa município inexistente ou já " +
+      "apagado; escreve o cancelamento no livro e na trilha administrativa e não devolve nada.",
+    provas: ["db/test/eliminacao-de-municipio.test.ts"],
   },
   {
     nome: "console_renovar_codigos",
-    argumentos: "p_hashes text[]",
+    assinatura: "public.console_renovar_codigos(text[])",
     migracao: "039",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -408,10 +441,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "um código gasto). Quem chama não pode ter privilégio.",
     tenant: "console",
     confere: "Exige o operador da sessão, ativo; devolve um inteiro. Não toca tabela de município.",
+    provas: ["db/test/recuperacao-do-console.test.ts"],
   },
   {
     nome: "console_recuperacao_por_email",
-    argumentos: "p_email text",
+    assinatura: "public.console_recuperacao_por_email(text)",
     migracao: "039",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -424,10 +458,11 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
       "Três colunas (id do operador, id do código, hash do CÓDIGO), sem nome, sem papel e sem " +
       "`senha_hash`; e-mail inexistente e operador inativo devolvem vazio, nunca erro. Não toca " +
       "tabela de município. Casos em `db/test/recuperacao-do-console.test.ts`.",
+    provas: ["db/test/recuperacao-do-console.test.ts"],
   },
   {
     nome: "console_consumir_recuperacao",
-    argumentos: "p_codigo_id uuid, p_senha_hash text, p_segundo_fator text",
+    assinatura: "public.console_consumir_recuperacao(uuid,text,text)",
     migracao: "039",
     etapa: "base",
     executavelPor: CONSOLE,
@@ -439,14 +474,22 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       'Só com um código vivo; com um dono sem BYPASSRLS ela estoura em vez de dizer "senha ' +
       'redefinida" com a senha velha no lugar. Não toca tabela de município.',
+    provas: ["db/test/recuperacao-do-console.test.ts"],
   },
 ];
 
 const excecoes: readonly ExcecaoAoIsolamento[] = [
   {
     tabela: "organizacoes",
-    semOrganizacaoId: true,
-    semPolicyDeTenant: false,
+    dispensa: ["organizacao_id"],
+    mantem: [
+      "policy_de_contexto",
+      "rls_forcada",
+      "grants_declarados",
+      "fk_com_organizacao",
+      "sem_delete",
+    ],
+    grants: { dc360_app: ["INSERT", "SELECT", "UPDATE"], dc360_console: ["SELECT"], PUBLIC: [] },
     etapa: "base",
     motivo: "A raiz do tenant: ela não tem `organizacao_id`, ela É a organização.",
     trava:
@@ -455,8 +498,9 @@ const excecoes: readonly ExcecaoAoIsolamento[] = [
   },
   {
     tabela: "interesse_municipio",
-    semOrganizacaoId: true,
-    semPolicyDeTenant: true,
+    dispensa: ["organizacao_id", "policy_de_contexto"],
+    mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+    grants: { dc360_app: ["INSERT"], dc360_console: [], PUBLIC: [] },
     etapa: "base",
     motivo:
       "Pedidos vindos do formulário público. É a única tabela do produto ANTERIOR ao município: " +
@@ -469,8 +513,10 @@ const excecoes: readonly ExcecaoAoIsolamento[] = [
   },
   {
     tabela: "console_operadores",
-    semOrganizacaoId: true,
-    semPolicyDeTenant: false,
+    dispensa: ["organizacao_id", "policy_de_contexto", "fk_com_organizacao"],
+    mantem: ["rls_forcada", "grants_declarados", "sem_delete"],
+    grants: { dc360_app: [], dc360_console: ["INSERT", "SELECT", "UPDATE"], PUBLIC: [] },
+    doFornecedor: true,
     etapa: "base",
     motivo:
       "Os operadores do CONSOLE DO FORNECEDOR (migração 038): contas de quem opera a plataforma, " +
@@ -482,8 +528,10 @@ const excecoes: readonly ExcecaoAoIsolamento[] = [
   },
   {
     tabela: "console_codigos_de_recuperacao",
-    semOrganizacaoId: true,
-    semPolicyDeTenant: false,
+    dispensa: ["organizacao_id", "policy_de_contexto", "fk_com_organizacao"],
+    mantem: ["rls_forcada", "grants_declarados", "sem_delete"],
+    grants: { dc360_app: [], dc360_console: ["INSERT", "SELECT"], PUBLIC: [] },
+    doFornecedor: true,
     etapa: "base",
     motivo:
       "Os códigos de recuperação de senha desses operadores (migração 039): do fornecedor, não " +

@@ -1,0 +1,106 @@
+### S8d
+--- migracao 999 temporaria:
+-- S8d: qualquer operador do console reescreve qualquer operador.
+CREATE POLICY sabotagem_operadores ON console_operadores
+  FOR UPDATE TO dc360_console USING (true) WITH CHECK (true);
+--- f03-e04.ts:
+// Sabotagem S8d: redefine console_operadores com isencao de policy de tenant.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "console_operadores",
+      semOrganizacaoId: true,
+      semPolicyDeTenant: true,
+      acessoSemPolicy: "nenhum",
+      etapa: "V2-F03-E04",
+      motivo: "Sabotagem: os operadores do console nao tem policy de municipio, por desenho.",
+      trava: "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
+      redefine: true,
+    },
+  ],
+  colunasComUpdate: [],
+} as unknown as ContribuicaoDoCatalogo;
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+ ❯ test/catalogo-nominal.test.ts (28 tests | 1 failed) 1521ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco 4ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco 12ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico 1ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga 0ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista 6ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece (nome de função da F03) reprova 3ms
+   ✓ sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos 3ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco 2ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER 3ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova 2ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido a PUBLIC 3ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido ao console numa função que só a aplicação executa 3ms
+   ✓ sonda 4: o EXECUTE tem de ser exatamente o declarado > quemExecuta lê a ACL: dono fora, PUBLIC como PUBLIC, ACL nula como PUBLIC 0ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga 2ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > motivo de enchimento 2ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna 20ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna 10ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa 10ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) 8ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que não existe 8ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`) 17ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária 9ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não declara exceção nenhuma 9ms
+   × sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base 10ms
+     → V2-F03-E04: expected { funcoes: [], …(2) } to deeply equal { funcoes: [], excecoes: [], …(1) }
+   ✓ sonda 8: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro 1ms
+   ✓ sonda 8: a junção das contribuições das etapas > redefine: true substitui a entrada anterior (a etapa que muda a forma de conferir o tenant) 0ms
+   ✓ sonda 8: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado) 0ms
+   ✓ sonda 8: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro 0ms
+ ✓ test/isolamento.test.ts (137 tests) 23340ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  912ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  893ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  19251ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+AssertionError: V2-F03-E04: expected { funcoes: [], …(2) } to deeply equal { funcoes: [], excecoes: [], …(1) }
+
+- Expected
++ Received
+
+  {
+    "colunasComUpdate": [],
+-   "excecoes": [],
++   "excecoes": [
++     {
++       "acessoSemPolicy": "nenhum",
++       "etapa": "V2-F03-E04",
++       "motivo": "Sabotagem: os operadores do console nao tem policy de municipio, por desenho.",
++       "redefine": true,
++       "semOrganizacaoId": true,
++       "semPolicyDeTenant": true,
++       "tabela": "console_operadores",
++       "trava": "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
++     },
++   ],
+    "funcoes": [],
+  }
+
+ ❯ test/catalogo-nominal.test.ts:404:21
+    402|     for (const [de, c] of CONTRIBUICOES_DO_CATALOGO) {
+    403|       if (de === "base") continue;
+    404|       expect(c, de).toEqual(vazia);
+       |                     ^
+    405|     }
+    406|     expect(CONTRIBUICOES_DO_CATALOGO[0]![1]).toBe(BASE);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 164 passed (165)
+   Start at  03:56:31
+   Duration  24.15s (transform 181ms, setup 0ms, collect 660ms, tests 24.86s, environment 0ms, prepare 329ms)
+

@@ -1,0 +1,20 @@
+// Sabotagem S8d (atacante adaptado): redefine console_operadores numa etapa, sem a marca doFornecedor
+// (que a juncao recusa fora da base), para sair da regra do fornecedor.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "console_operadores",
+      dispensa: ["organizacao_id", "policy_de_contexto", "fk_com_organizacao"],
+      mantem: ["rls_forcada", "grants_declarados", "sem_delete"],
+      grants: { dc360_app: [], dc360_console: ["INSERT", "SELECT", "UPDATE"], PUBLIC: [] },
+      etapa: "V2-F03-E04",
+      motivo: "Sabotagem: os operadores do console nao tem policy de municipio, por desenho.",
+      trava: "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
+      redefine: true,
+    },
+  ],
+  colunasComUpdate: [],
+};

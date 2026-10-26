@@ -6,7 +6,7 @@
  * junto da migração 054_pessoas_e_conta_no_municipio.sql, e só este arquivo: `isolamento.test.ts`, `base.ts` e
  * os arquivos das outras etapas ficam congelados para ela.
  *
- * O que entra aqui: a tabela `pessoas` como EXCEÇÃO NOMEADA (`semOrganizacaoId: true`, RLS forçada, sem policy, sem grant ao `dc360_app`, as quatro travas da decisão 3 da ADR 0009) e as funções `vigencia_da_sessao` e `credenciais_da_pessoa`, mais o inventário das funções que leem ou gravam a credencial.
+ * O que entra aqui: a tabela `pessoas` como EXCEÇÃO NOMEADA (`dispensa: ["organizacao_id", "policy_de_contexto"]`, e mantém RLS forçada e zero grant, que o portão confere, as quatro travas da decisão 3 da ADR 0009) e as funções `vigencia_da_sessao` e `credenciais_da_pessoa`, mais o inventário das funções que leem ou gravam a credencial.
  *
  * Regra de preenchimento (ADR 0009, decisão 3): toda função `SECURITY DEFINER`
  * nova entra em `funcoes` com nome, motivo e como confere o tenant; toda tabela

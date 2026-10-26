@@ -25,10 +25,14 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   COLUNAS_COM_UPDATE_DO_APP,
+  CONTRIBUICOES_DO_CATALOGO,
   EXCECOES_AO_ISOLAMENTO,
   FUNCOES_PRIVILEGIADAS,
+  conferirEsquemas,
   conferirExcecoes,
+  conferirFontes,
   conferirFuncoesPrivilegiadas,
+  fontesDoRepositorio,
 } from "./catalogo/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -213,7 +217,7 @@ describe("CA-06: isolamento entre organizações", () => {
     recusa exceção de que a tabela não precisa.
   */
   const SEM_POLICY_DE_TENANT = new Set(
-    EXCECOES_AO_ISOLAMENTO.filter((e) => e.semPolicyDeTenant).map((e) => e.tabela),
+    EXCECOES_AO_ISOLAMENTO.filter((e) => e.dispensa.includes("policy_de_contexto")).map((e) => e.tabela),
   );
 
   /**
@@ -255,12 +259,33 @@ describe("CA-06: isolamento entre organizações", () => {
     ["console_codigos_de_recuperacao", { escreve: ["INSERT"], guarda: "console_operador_atual", naLeitura: true }],
   ]);
 
+  /**
+   * As tabelas de TODOS os esquemas fora do sistema (correção 1 da parte 0B):
+   * as de `public` pelo nome nu, as de outro esquema qualificadas
+   * (`esquema.tabela`), menos as que pertencem a uma extensão. Antes era só
+   * `public`, e uma tabela sem RLS noutro esquema passava pelo portão inteiro
+   * (sabotagem S3b do revisor).
+   */
   async function tabelasDeNegocio(): Promise<string[]> {
-    const r = await db.query<{ tablename: string }>(
-      "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
-    );
-    return r.rows.map((l) => l.tablename).filter((t) => t !== "schema_migracoes");
+    const r = await db.query<{ tabela: string }>(`
+      SELECT CASE WHEN n.nspname = 'public' THEN c.relname::text
+                  ELSE n.nspname || '.' || c.relname END AS tabela
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE c.relkind IN ('r', 'p')
+         AND n.nspname NOT LIKE 'pg\\_%' AND n.nspname <> 'information_schema'
+         AND (n.nspname = 'public' OR NOT EXISTS (
+               SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_class'::regclass
+                  AND d.objid = c.oid AND d.deptype = 'e'))
+       ORDER BY 1`);
+    return r.rows.map((l) => l.tabela).filter((t) => t !== "schema_migracoes");
   }
+
+  /** `[esquema, tabela]` de um nome de `tabelasDeNegocio`. */
+  const partes = (t: string): [string, string] => {
+    const i = t.indexOf(".");
+    return i < 0 ? ["public", t] : [t.slice(0, i), t.slice(i + 1)];
+  };
 
   it("toda tabela do esquema tem RLS ativada E forçada", async () => {
     const tabelas = await tabelasDeNegocio();
@@ -268,8 +293,10 @@ describe("CA-06: isolamento entre organizações", () => {
 
     for (const t of tabelas) {
       const r = await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
-        "SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE relname = $1",
-        [t],
+        `SELECT c.relrowsecurity, c.relforcerowsecurity
+           FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = $1 AND c.relname = $2`,
+        partes(t),
       );
       expect(r.rows[0], `tabela ${t} não encontrada`).toBeDefined();
       expect(r.rows[0]!.relrowsecurity, `RLS desligada em ${t}`).toBe(true);
@@ -320,20 +347,29 @@ describe("CA-06: isolamento entre organizações", () => {
       /*
         Isenção ESTREITA, e de propósito.
 
-        A lista de quem não tem a COLUNA `organizacao_id` (`semOrganizacaoId`
+        A lista de quem não tem a COLUNA `organizacao_id` (quem a dispensa
         em `EXCECOES_AO_ISOLAMENTO`) é larga, e usá-la aqui seria isentar
         demais: `organizacoes` não tem a coluna e TEM policy amarrada ao
         contexto, então precisa continuar sendo verificada. Usar a lista
         larga aqui enfraqueceria o portão para fazer um teste passar, que é
         exatamente o que ele existe para impedir.
 
-        Só quem declara `semPolicyDeTenant` é isenta, e hoje é só
-        `interesse_municipio`, porque é anterior ao município: não há contexto
-        a que se amarrar. O teste logo abaixo prova que a isenção não abre
-        buraco, e a conferência nominal recusa a isenção de tabela que TEM
-        policy de tenant.
+        Só quem dispensa `policy_de_contexto` é isenta: `interesse_municipio`,
+        porque é anterior ao município (não há contexto a que se amarrar), e
+        as duas tabelas do fornecedor, que mesmo assim passam pela regra
+        DO_FORNECEDOR logo abaixo. O teste seguinte prova que a isenção de
+        `interesse_municipio` não abre buraco, e a conferência nominal recusa
+        a isenção de tabela que TEM policy de tenant, ou que TEM
+        `organizacao_id`, e confere no banco o que cada exceção mantém.
+
+        A ORDEM IMPORTA (correção 1 da parte 0B, achado 1 do revisor). A regra
+        do fornecedor é conferida ANTES do pulo da isenção: na versão
+        anterior o pulo vinha primeiro, e uma etapa que declarasse a isenção
+        para `eliminacoes_de_municipio` (ou redefinisse `console_operadores`)
+        tirava a tabela do bloco DO_FORNECEDOR, e o console reescrevia o livro
+        de eliminações com o portão verde.
       */
-      if (SEM_POLICY_DE_TENANT.has(t)) continue;
+      const [esquema, nome] = partes(t);
       const r = await db.query<{
         policyname: string;
         cmd: string;
@@ -342,10 +378,9 @@ describe("CA-06: isolamento entre organizações", () => {
         with_check: string | null;
       }>(
         `SELECT policyname, cmd, array_to_string(roles, ',') AS papeis, qual, with_check
-           FROM pg_policies WHERE schemaname='public' AND tablename = $1`,
-        [t],
+           FROM pg_policies WHERE schemaname = $1 AND tablename = $2`,
+        [esquema, nome],
       );
-      expect(r.rows.length, `tabela ${t} sem nenhuma policy`).toBeGreaterThan(0);
 
       /*
         As policies do CONSOLE são separadas aqui, e a regra delas é OUTRA, não
@@ -391,6 +426,10 @@ describe("CA-06: isolamento entre organizações", () => {
         continue;
       }
 
+      // Só agora, depois da regra do fornecedor, a isenção de policy de contexto vale.
+      if (SEM_POLICY_DE_TENANT.has(t)) continue;
+      expect(r.rows.length, `tabela ${t} sem nenhuma policy`).toBeGreaterThan(0);
+
       for (const linha of doConsole) {
         expect(
           AUTORIZADAS_PARA_O_CONSOLE.has(t),
@@ -433,6 +472,35 @@ describe("CA-06: isolamento entre organizações", () => {
     */
     expect((await tabelasDeNegocio()).length).toBeGreaterThan(0);
     expect(await conferirExcecoes(db, EXCECOES_AO_ISOLAMENTO)).toEqual([]);
+  });
+
+  it("toda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale", () => {
+    /*
+      `doFornecedor` no catálogo é a dispensa da policy de contexto em troca
+      da regra do fornecedor. Ela só vale para quem o bloco DO_FORNECEDOR
+      deste arquivo (congelado) nomeia: uma tabela que se dissesse do
+      fornecedor sem estar aqui pularia a cobrança de policy sem regra
+      nenhuma no lugar.
+    */
+    const doFornecedor = EXCECOES_AO_ISOLAMENTO.filter((e) => e.doFornecedor).map((e) => e.tabela);
+    expect(doFornecedor.length).toBeGreaterThan(0);
+    for (const t of doFornecedor) {
+      expect(DO_FORNECEDOR.has(t), `${t} se diz do fornecedor e não está no bloco DO_FORNECEDOR`).toBe(true);
+    }
+  });
+
+  it("nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema", async () => {
+    /*
+      Achado 2 do revisor da parte 0B: uma função SECURITY DEFINER no esquema
+      `porta_dos_fundos`, com EXECUTE ao papel de aplicação, contava as
+      organizações de todos os municípios, e uma tabela sem RLS noutro
+      esquema recebia SELECT, INSERT, UPDATE e DELETE do app, as duas com o
+      portão verde. As varreduras deste arquivo perguntam por `public`; esta
+      conferência garante que não há nada a varrer fora dele (objeto de
+      extensão à parte, como o PostGIS no esquema `extensions` do provedor).
+      As sondas estão em `db/test/catalogo-nominal.test.ts`.
+    */
+    expect(await conferirEsquemas(db)).toEqual([]);
   });
 
   it("toda referência entre tabelas de negócio inclui a organização", async () => {
@@ -524,6 +592,16 @@ describe("Funções privilegiadas", () => {
       `db/test/catalogo-nominal.test.ts`.
     */
     expect(await conferirFuncoesPrivilegiadas(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita", () => {
+    /*
+      Achado 3 do revisor da parte 0B: uma etapa declarava `redefine: true`
+      em `trocar_senha` com `tenant: "contexto"` sem mudar o SQL, e a dívida
+      de tenant sumia só no catálogo. Agora a migração declarada é conferida
+      contra os arquivos (`catalogo/conferir.ts`, `conferirFontes`).
+    */
+    expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontesDoRepositorio())).toEqual([]);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
