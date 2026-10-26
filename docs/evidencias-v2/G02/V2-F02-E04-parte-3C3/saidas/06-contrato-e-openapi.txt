@@ -1,0 +1,19 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a86b96592e241ebed/dc360/apps/api[39m
+
+ [32m✓[39m test/openapi-regras.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mpendências declaradas, por grupo[2m > [22m[2mpendentes é IGUAL à lista congelada e ao teto exato (toda mudança aparece no diff)
+[22m[39mrotas pendentes (sem entrada): 28; por grupo: administracao=2 autenticacao=10 campo=3 conta=6 documentos=0 mapa-e-busca=3 ocorrencias=4 oficios-e-orgaos=0 prestacao-de-contas=0 publico=0
+
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mresposta das rotas[2m > [22m[2mas existentes sem resposta saem num relatório e não reprovam
+[22m[39mentradas existentes sem resposta descrita: 38
+
+ [32m✓[39m test/openapi.test.ts [2m([22m[2m28 tests[22m[2m)[22m[33m 9946[2mms[22m[39m
+ [32m✓[39m test/contrato-respostas-3c3.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 17444[2mms[22m[39m
+   [33m[2m✓[22m[39m prestacao-de-contas: o que cada rota devolve[2m > [22mo pacote de saída sai como application/zip [33m 668[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m52 passed[39m[22m[90m (52)[39m
+[2m   Start at [22m 02:32:07
+[2m   Duration [22m 29.85s[2m (transform 9.61s, setup 2.85s, collect 29.64s, tests 27.43s, environment 1ms, prepare 1.49s)[22m
+

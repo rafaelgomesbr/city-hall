@@ -32,6 +32,15 @@ import { enderecoDoCliente } from "../rede.js";
 const idSchema = z.object({ id: z.string().uuid() });
 
 /**
+ * O identificador do rodapé, como `GET /documentos/validar/:codigo` o recebe.
+ * Exportado para o contrato OpenAPI (V2-F02-E04) descrever a mesma regra que o
+ * handler aplica, sem copiá-la.
+ */
+export const codigoSchema = z.object({
+  codigo: z.string().regex(/^[0-9A-Fa-f]{12}$/, "Identificador com formato inválido"),
+});
+
+/**
  * A ocorrência como o documento a lê, mais o estado da interdição.
  *
  * As duas datas de interdição não entram na folha: elas decidem se a emissão
@@ -870,10 +879,6 @@ export async function rotasDocumentos(
    * muitos anos; se um dia doer, o passo seguinte é gravar o código no
    * `detalhe` e indexar.
    */
-  const codigoSchema = z.object({
-    codigo: z.string().regex(/^[0-9A-Fa-f]{12}$/, "Identificador com formato inválido"),
-  });
-
   app.get("/validar/:codigo", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     const codigo = codigoSchema.parse(req.params).codigo.toUpperCase();

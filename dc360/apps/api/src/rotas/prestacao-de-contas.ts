@@ -27,7 +27,7 @@ import { enderecoDoCliente } from "../rede.js";
  * que a mudança.
  */
 
-const filtroTrilhaSchema = z.object({
+export const filtroTrilhaSchema = z.object({
   de: z.string().datetime().optional(),
   ate: z.string().datetime().optional(),
   autor: z.string().max(200).optional(),
@@ -38,7 +38,7 @@ const filtroTrilhaSchema = z.object({
   porPagina: numeroDoTexto(z.number().int().min(1).max(200)).default(50),
 });
 
-const filtroExportacaoSchema = z.object({
+export const filtroExportacaoSchema = z.object({
   de: z.string().datetime().optional(),
   ate: z.string().datetime().optional(),
   status: z.string().max(30).optional(),
@@ -66,7 +66,7 @@ const filtroExportacaoSchema = z.object({
  * distraído: posto de administrador, justificativa escrita e um recorte que
  * caiba no teto.
  */
-const nivelDaExportacaoSchema = z.object({
+export const nivelDaExportacaoSchema = z.object({
   nivel: z.enum(["basico", "completo"]).default("basico"),
   /*
     O mínimo de vinte caracteres não é burocracia. Sem ele, o campo vira "ok" e
@@ -99,7 +99,7 @@ const nivelDaExportacaoSchema = z.object({
  */
 const TETO_DA_EXPORTACAO_COMPLETA = 5000;
 
-const filtroConsultasSchema = z.object({
+export const filtroConsultasSchema = z.object({
   ocorrencia: z.string().uuid().optional(),
   usuario: z.string().uuid().optional(),
   pagina: z.coerce.number().int().min(1).default(1),
