@@ -932,6 +932,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F04-E03-parte-0D": { total: 46, falhas: 0 },
   // V2-F04-0E (dossiê por lista de inclusão): `dossie.test.ts` novo, 76 casos (catálogo, padrão conservador, campo fora da lista, texto livre de providências e ofícios, sensível com justificativa, texto livre dirigido ao órgão, mínimo fixo, imutabilidade e versão `migracao` sem texto livre).
   "V2-F04-0E": { total: 76, falhas: 0 },
+  // V2-F04-E15 parte 0F (competência no shared, primeira versão pelo Codex e revisada pelo orquestrador): `competencia.test.ts` novo com 14 casos.
+  "V2-F04-E15-parte-0F": { total: 14, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
