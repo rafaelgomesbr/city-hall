@@ -713,7 +713,7 @@ E03), com teste que compara as duas:
   categoria "texto livre dirigido ao órgão" (decisão 5).
 - O CP-09 decide o conteúdo definitivo. Até ele, a mecânica e o padrão
   conservador são testáveis, e o primeiro encaminhamento com dado real fica
-  bloqueado (H117).
+  bloqueado (H133).
 
 ### 11. Nenhum GET escreve (P-13)
 
@@ -1519,8 +1519,8 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
   sobre esta redação vem antes do aceite; correção nova entra do mesmo
   jeito.
 - **Decisões que esta ADR toma como premissa, com o dono:** CP-09 alternativa C
-  (H117, Alyson e encarregado); CP-53 alternativa A para a competência e C para
-  o escalonamento (H118, Alyson e município); P-12 e D-24 no encaminhamento
+  (H133, Alyson e encarregado); CP-53 alternativa A para a competência e C para
+  o escalonamento (H134, Alyson e município); P-12 e D-24 no encaminhamento
   (H119); redação da E09 e da E11 (H120); a E11 absorvendo o sino por relógio
   (H121); sigilo contra o dossiê (H123); D-05 contra o link do ofício (H125);
   CP-20 (atribuição e papéis no órgão, Alyson); CP-22 (o fim do link, Alyson);

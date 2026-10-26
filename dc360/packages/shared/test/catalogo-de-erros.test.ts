@@ -157,8 +157,16 @@ describe("a lista reservada", () => {
     expect(categoriaDoCodigo("chave_ja_usada_em_outro_registro")).toBe("permanente");
   });
 
+  it("a versão do aplicativo abaixo do mínimo saiu da reserva: a V2-F02-E06 a emite (426, permanente)", () => {
+    expect(ehCodigoReservado("versao_do_aplicativo_antiga")).toBe(false);
+    expect(CODIGOS_DE_ERRO.versao_do_aplicativo_antiga).toMatchObject({
+      status: 426,
+      categoria: "permanente",
+    });
+  });
+
   it("traz os códigos que as etapas seguintes emitirão, e nenhum está na lista emitida", () => {
-    expect(CODIGOS_RESERVADOS.versao_do_aplicativo_antiga).toMatchObject({
+    expect(CODIGOS_RESERVADOS.versao_do_aplicativo_ausente).toMatchObject({
       status: 426,
       categoria: "permanente",
     });
@@ -170,7 +178,6 @@ describe("a lista reservada", () => {
 
   it("a F03 reserva os códigos de identidade, sem repetir o que o catálogo já emite", () => {
     for (const codigo of [
-      "papel_nao_se_converte",
       "convite_invalido",
       "escolha_de_municipio_obrigatoria",
       "termo_nao_aceito",
@@ -178,6 +185,12 @@ describe("a lista reservada", () => {
       expect(ehCodigoReservado(codigo), codigo).toBe(true);
       expect(ehCodigoDeErro(codigo), codigo).toBe(false);
     }
+    /* Já emitido desde a V2-F03-E04 (PATCH /usuarios/:id): saiu da reserva. */
+    expect(ehCodigoReservado("papel_nao_se_converte")).toBe(false);
+    expect(CODIGOS_DE_ERRO.papel_nao_se_converte).toMatchObject({
+      status: 409,
+      categoria: "permanente",
+    });
     /* A ADR 0009 corrigida eliminou o 409: o código não é reservado. */
     expect(ehCodigoReservado("pessoa_em_varios_municipios")).toBe(false);
     /* Já emitidos: reservar de novo duplicaria. */
@@ -211,7 +224,7 @@ describe("a lista reservada", () => {
   });
 
   it("reservado tem categoria (o cliente já sabe o que fazer antes de o servidor emitir)", () => {
-    expect(categoriaDoCodigo("versao_do_aplicativo_antiga")).toBe("permanente");
+    expect(categoriaDoCodigo("versao_do_aplicativo_ausente")).toBe("permanente");
   });
 });
 

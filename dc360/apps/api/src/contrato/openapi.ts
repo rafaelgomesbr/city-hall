@@ -1,5 +1,11 @@
 import { z, type ZodType } from "zod";
-import { CODIGOS_DE_ERRO, erroDaApiSchema, type CodigoDeErro } from "@dc360/shared";
+import {
+  CABECALHO_DE_VERSAO_DO_APLICATIVO,
+  CODIGOS_DE_ERRO,
+  erroDaApiSchema,
+  type CodigoDeErro,
+} from "@dc360/shared";
+import { ROTA_DA_VERSAO_MINIMA } from "../versao-do-aplicativo.js";
 import {
   GRUPOS,
   ROTAS_DO_CONTRATO,
@@ -36,6 +42,37 @@ export type DocumentoOpenApi = {
 
 const SEM_RESPOSTA =
   "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md).";
+
+/**
+ * O corpo do 426 que o gancho do escopo `/v1` devolve (`recusarVersaoAntiga` em
+ * `versao-do-aplicativo.ts`): sem dado de município nem de pessoa. Em `/v1` o
+ * `versaoMinima` sempre vem (o gancho só recusa quando há mínimo configurado).
+ */
+export const versaoDoAplicativoAntigaSchema = z.object({
+  erro: z.literal("versao_do_aplicativo_antiga"),
+  mensagem: z.string(),
+  versaoMinima: z.string(),
+});
+
+const CABECALHO_DE_VERSAO_NO_DOCUMENTO = {
+  name: CABECALHO_DE_VERSAO_DO_APLICATIVO,
+  in: "header",
+  required: false,
+  description:
+    "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` " +
+    "(por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. " +
+    "Ausente ou ilegível: o pedido segue normalmente.",
+  schema: { type: "string" },
+} as const;
+
+/**
+ * A regra do gancho de versão: vale para toda operação sob `/v1`, MENOS a rota
+ * pública da versão mínima (é por ela que o aplicativo velho descobre o que
+ * instalar, então nunca é recusada). Derivada do mesmo padrão que o gancho usa.
+ */
+function estaSobOGanchoDeVersao(r: RotaComGrupo): boolean {
+  return r.caminho !== ROTA_DA_VERSAO_MINIMA;
+}
 
 function esquemaJson(esquema: ZodType, io: "input" | "output"): Json {
   const bruto = z.toJSONSchema(esquema, {
@@ -75,6 +112,7 @@ function parametrosDoCaminho(caminho: string): string[] {
 
 function respostasDe(r: RotaComGrupo): Json {
   const respostas: Record<string, Json> = {};
+  const chave = `${r.metodo} ${r.caminho}`;
 
   if (r.resposta) {
     const { status, descricao, esquema, tipo } = r.resposta;
@@ -88,7 +126,28 @@ function respostasDe(r: RotaComGrupo): Json {
       resposta.content = Object.fromEntries(conteudo);
     }
     respostas[String(status)] = resposta;
+
+    /* Os outros status de sucesso: o corpo é o da principal, salvo esquema próprio. */
+    for (const outra of r.tambemResponde ?? []) {
+      if (String(outra.status) in respostas) {
+        throw new Error(
+          `${chave}: o status ${outra.status} de \`tambemResponde\` repete outra resposta da entrada`,
+        );
+      }
+      const adicional: Json = { description: outra.descricao };
+      if (outra.resposta) {
+        adicional.content = {
+          "application/json": { schema: esquemaJson(outra.resposta, "output") },
+        };
+      } else if (resposta.content) {
+        adicional.content = resposta.content;
+      }
+      respostas[String(outra.status)] = adicional;
+    }
   } else {
+    if ((r.tambemResponde ?? []).length > 0) {
+      throw new Error(`${chave}: \`tambemResponde\` exige a \`resposta\` principal descrita`);
+    }
     respostas.default = { description: SEM_RESPOSTA };
   }
 
@@ -105,11 +164,37 @@ function respostasDe(r: RotaComGrupo): Json {
   }
   for (const status of [...porStatus.keys()].sort((a, b) => a - b)) {
     const codigos = porStatus.get(status)!;
+    if (String(status) in respostas) {
+      throw new Error(
+        `${chave}: o status ${status} dos erros colide com uma resposta de sucesso da entrada`,
+      );
+    }
     respostas[String(status)] = {
       description: codigos.map((c) => `${c}: ${CODIGOS_DE_ERRO[c].titulo}`).join("; "),
       "x-codigos-de-erro": codigos,
       content: {
         "application/json": { schema: { $ref: "#/components/schemas/ErroDaApi" } },
+      },
+    };
+  }
+
+  /* O 426 do gancho de versão: global e derivado, nunca declarado entrada a entrada. */
+  if (estaSobOGanchoDeVersao(r)) {
+    if ("426" in respostas) {
+      throw new Error(
+        `${chave}: o status 426 é do gancho de versão do aplicativo e colide com uma resposta da entrada`,
+      );
+    }
+    respostas["426"] = {
+      description:
+        `versao_do_aplicativo_antiga: ${CODIGOS_DE_ERRO.versao_do_aplicativo_antiga.titulo}. ` +
+        "Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está " +
+        "abaixo do mínimo configurado para o aplicativo.",
+      "x-codigos-de-erro": ["versao_do_aplicativo_antiga"],
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/VersaoDoAplicativoAntiga" },
+        },
       },
     };
   }
@@ -194,14 +279,27 @@ function textoDaRegra(erro: unknown): string {
  * (objeto dentro de lista, união, opcional, pipe...). Passeia pela definição
  * interna do Zod, sem depender do tipo de nó: toda propriedade que for esquema,
  * lista de esquemas ou mapa de esquemas (`shape`) é visitada.
+ *
+ * A visita é por CAMINHO, não por objeto: o mesmo esquema usado em dois campos
+ * (o `pontoSchema` de `origem` e de `destino`) é uma regra em cada lugar e sai
+ * duas vezes. Duas coisas impedem a repetição inútil: o par (esquema, caminho)
+ * nunca é visitado duas vezes (união com a mesma opção repetida, `optional` em
+ * volta do mesmo nó), e um esquema que já está na cadeia de quem o contém não
+ * é visitado de novo (esquema recursivo, com `get` que devolve o próprio
+ * esquema): sem isso o caminho cresceria para sempre.
  */
 export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
   const achadas: RegraAdicional[] = [];
-  const vistos = new WeakSet<object>();
+  const vistos = new WeakMap<object, Set<string>>();
+  const naCadeia = new Set<object>();
 
   const visitar = (no: ZodType, caminho: string[]): void => {
-    if (vistos.has(no)) return;
-    vistos.add(no);
+    const chaveDoCaminho = caminho.join(".");
+    const jaNesteCaminho = vistos.get(no) ?? new Set<string>();
+    if (naCadeia.has(no) || jaNesteCaminho.has(chaveDoCaminho)) return;
+    jaNesteCaminho.add(chaveDoCaminho);
+    vistos.set(no, jaNesteCaminho);
+    naCadeia.add(no);
     const def = no.def as unknown as Record<string, unknown>;
 
     const checks = Array.isArray(def.checks) ? (def.checks as unknown[]) : [];
@@ -210,7 +308,7 @@ export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
       if (d?.check !== "custom") continue;
       const campo = [...caminho, ...(d.path ?? []).map(String)].join(".");
       achadas.push({
-        caminho: caminho.join("."),
+        caminho: chaveDoCaminho,
         campo: campo || "(corpo inteiro)",
         regra: textoDaRegra(d.error),
       });
@@ -228,6 +326,7 @@ export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
         }
       }
     }
+    naCadeia.delete(no);
   };
 
   visitar(esquema, []);
@@ -286,7 +385,11 @@ function operacaoDe(r: RotaComGrupo): Json {
     );
   }
 
-  const parametros = [...doCaminho, ...(r.consulta ? parametrosDe(r.consulta, "query") : [])];
+  const parametros: Json[] = [
+    ...doCaminho,
+    ...(r.consulta ? parametrosDe(r.consulta, "query") : []),
+    ...(estaSobOGanchoDeVersao(r) ? [{ ...CABECALHO_DE_VERSAO_NO_DOCUMENTO }] : []),
+  ];
   const regras = regrasAdicionaisDe(r);
   const operacao: Json = { tags: [r.grupo], summary: r.resumo };
   if (regras.length > 0) operacao.description = descricaoDasRegras(regras);
@@ -335,7 +438,12 @@ export function gerarOpenApi(
         "`x-rotas-pendentes`; operação sem resposta descrita leva `x-resposta-pendente`.",
     },
     paths,
-    components: { schemas: { ErroDaApi: esquemaJson(erroDaApiSchema, "output") } },
+    components: {
+      schemas: {
+        ErroDaApi: esquemaJson(erroDaApiSchema, "output"),
+        VersaoDoAplicativoAntiga: esquemaJson(versaoDoAplicativoAntigaSchema, "output"),
+      },
+    },
     "x-rotas-pendentes": [...pendentes].sort(),
   };
 }

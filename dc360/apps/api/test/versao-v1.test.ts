@@ -11,6 +11,7 @@ import {
   cabecalhosDeDepreciacao,
   semPrefixoDeVersao,
 } from "../src/versao-v1.js";
+import { espelhoEncerrado } from "../src/versao-do-aplicativo.js";
 import { rotasRegistradas } from "./superficie-registrada.js";
 
 /**
@@ -617,5 +618,360 @@ describe("O limitador vale nos dois prefixos", () => {
     } finally {
       await s.close();
     }
+  });
+});
+
+/**
+ * Encerramento do espelho e contador de uso (V2-F02-E08).
+ *
+ * `ESPELHO_LEGADO_ENCERRADO` nasce `nao`. Só com `sim` E depois do fim do dia
+ * de `ESPELHO_LEGADO_ATE` o legado responde 426 `versao_do_aplicativo_antiga`
+ * com `Link` para `/v1`, ANTES de autenticar e igual para todo município. Data
+ * futura ou chave `nao` mantêm o atendimento com os cabeçalhos. As rotas de
+ * infraestrutura sem prefixo ficam fora da regra.
+ */
+
+describe("Encerramento do espelho legado", () => {
+  const PASSADO = "2020-01-01";
+  let encerrado: FastifyInstance;
+  let dataFutura: FastifyInstance;
+  let chaveDesligada: FastifyInstance;
+
+  const servidorCom = (extra: Record<string, string>) =>
+    construirServidor({
+      banco: mem.banco,
+      config: configDe(extra),
+      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
+    });
+
+  beforeAll(async () => {
+    encerrado = await servidorCom({ ESPELHO_LEGADO_ATE: PASSADO, ESPELHO_LEGADO_ENCERRADO: "sim" });
+    dataFutura = await servidorCom({
+      ESPELHO_LEGADO_ATE: "2099-12-31",
+      ESPELHO_LEGADO_ENCERRADO: "sim",
+    });
+    chaveDesligada = await servidorCom({ ESPELHO_LEGADO_ATE: PASSADO });
+    await Promise.all([encerrado.ready(), dataFutura.ready(), chaveDesligada.ready()]);
+  }, 180_000);
+
+  afterAll(async () => {
+    await Promise.all([encerrado?.close(), dataFutura?.close(), chaveDesligada?.close()]);
+  });
+
+  it("com a data no passado e a chave ligada o legado responde 426 versao_do_aplicativo_antiga, com Link para /v1", async () => {
+    const r = await encerrado.inject({
+      method: "GET",
+      url: "/ocorrencias",
+      headers: com(tokenHelena),
+    });
+    expect(r.statusCode, r.body).toBe(426);
+    expect(r.json().erro).toBe("versao_do_aplicativo_antiga");
+    expect(typeof r.json().mensagem).toBe("string");
+    expect(r.headers["link"]).toBe('</v1/ocorrencias>; rel="successor-version"');
+    expect(r.headers["deprecation"]).toBe("true");
+    expect(r.headers["sunset"]).toBe("Wed, 01 Jan 2020 23:59:59 GMT");
+    expect(r.json().mensagem).not.toContain(String.fromCharCode(0x2014));
+  });
+
+  it("o 426 do espelho vem ANTES da autenticação e da validação: sem token, com token adulterado e com corpo vazio", async () => {
+    const semToken = await encerrado.inject({ method: "GET", url: "/ocorrencias" });
+    const adulterado = await encerrado.inject({
+      method: "GET",
+      url: "/ocorrencias",
+      headers: com(`${tokenHelena}x`),
+    });
+    const login = await encerrado.inject({ method: "POST", url: "/auth/entrar", payload: {} });
+    for (const r of [semToken, adulterado, login]) {
+      expect(r.statusCode, r.body).toBe(426);
+      expect(r.json().erro).toBe("versao_do_aplicativo_antiga");
+    }
+  });
+
+  it("é igual para todo município: o mesmo corpo para o token de A, o de B e nenhum, e para id real ou falso", async () => {
+    const pedidos = [
+      { url: `/ocorrencias/${idOcorrenciaA}`, headers: com(tokenHelena) },
+      { url: `/ocorrencias/${idOcorrenciaA}`, headers: com(tokenB) },
+      { url: `/ocorrencias/${ID_FALSO}`, headers: com(tokenB) },
+      { url: `/ocorrencias/${ID_FALSO}`, headers: {} },
+    ];
+    const corpos = await Promise.all(
+      pedidos.map(async (p) => (await encerrado.inject({ method: "GET", ...p })).body),
+    );
+    expect(new Set(corpos).size).toBe(1);
+    expect(corpos[0]).not.toContain(idOcorrenciaA);
+  });
+
+  it("cobre toda rota do espelho, de escrita inclusive, e o Link nunca devolve a query string", async () => {
+    const escrita = await encerrado.inject({
+      method: "POST",
+      url: "/sincronizacao/vistoria",
+      headers: com(tokenHelena),
+      payload: {},
+    });
+    expect(escrita.statusCode).toBe(426);
+    const comQuery = await encerrado.inject({
+      method: "GET",
+      url: "/ocorrencias?endereco=Rua%20das%20Ac%C3%A1cias%2C%20245",
+      headers: com(tokenHelena),
+    });
+    expect(comQuery.statusCode).toBe(426);
+    expect(comQuery.headers["link"]).toBe('</v1/ocorrencias>; rel="successor-version"');
+  });
+
+  it("o /v1 segue atendendo normalmente, e a mesma rota que o legado recusou responde 200 lá", async () => {
+    const r = await encerrado.inject({
+      method: "GET",
+      url: "/v1/ocorrencias",
+      headers: com(tokenHelena),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.headers["deprecation"]).toBeUndefined();
+  });
+
+  it("token do município B contra recurso de A em /v1 segue 404, mesmo com o espelho encerrado", async () => {
+    const r = await encerrado.inject({
+      method: "GET",
+      url: `/v1/ocorrencias/${idOcorrenciaA}`,
+      headers: com(tokenB),
+    });
+    expect(r.statusCode).toBe(404);
+  });
+
+  it("as rotas de infraestrutura sem prefixo ficam fora da regra", async () => {
+    const saude = await encerrado.inject({ method: "GET", url: "/saude" });
+    expect(saude.statusCode).toBe(200);
+    const oficio = await encerrado.inject({
+      method: "GET",
+      url: "/publico/oficio/token-que-nao-existe",
+    });
+    expect(oficio.statusCode).not.toBe(426);
+    expect(oficio.headers["content-type"]).toContain("text/html");
+    const objeto = await encerrado.inject({ method: "GET", url: "/armazenamento/objeto" });
+    expect(objeto.statusCode).not.toBe(426);
+  });
+
+  it("data no futuro com a chave ligada atende normal, com Deprecation, Sunset e Link", async () => {
+    const r = await dataFutura.inject({
+      method: "GET",
+      url: "/ocorrencias",
+      headers: com(tokenHelena),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.headers["deprecation"]).toBe("true");
+    expect(r.headers["sunset"]).toBe("Thu, 31 Dec 2099 23:59:59 GMT");
+    expect(r.headers["link"]).toBe('</v1/ocorrencias>; rel="successor-version"');
+  });
+
+  it("data no passado com a chave em nao (o padrão) também atende, com os cabeçalhos", async () => {
+    const r = await chaveDesligada.inject({
+      method: "GET",
+      url: "/ocorrencias",
+      headers: com(tokenHelena),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.headers["deprecation"]).toBe("true");
+    expect(r.headers["sunset"]).toBe("Wed, 01 Jan 2020 23:59:59 GMT");
+  });
+
+  it("o dia de ESPELHO_LEGADO_ATE vale inteiro: só passa a encerrar depois das 23:59:59 UTC", () => {
+    const c = { ESPELHO_LEGADO_ENCERRADO: "sim", ESPELHO_LEGADO_ATE: "2027-06-30" } as const;
+    expect(espelhoEncerrado(c, Date.parse("2027-06-30T00:00:00Z"))).toBe(false);
+    expect(espelhoEncerrado(c, Date.parse("2027-06-30T23:59:59Z"))).toBe(false);
+    expect(espelhoEncerrado(c, Date.parse("2027-07-01T00:00:00Z"))).toBe(true);
+    expect(
+      espelhoEncerrado(
+        { ...c, ESPELHO_LEGADO_ENCERRADO: "nao" },
+        Date.parse("2030-01-01T00:00:00Z"),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("ESPELHO_LEGADO_ENCERRADO na configuração", () => {
+  it("nasce em nao", () => {
+    expect(configDe().ESPELHO_LEGADO_ENCERRADO).toBe("nao");
+  });
+
+  it("só aceita sim ou nao", () => {
+    for (const ruim of ["talvez", "true", "1", "SIM"]) {
+      expect(() => configDe({ ESPELHO_LEGADO_ENCERRADO: ruim }), ruim).toThrow(
+        /ESPELHO_LEGADO_ENCERRADO/,
+      );
+    }
+  });
+
+  it("sim sem ESPELHO_LEGADO_ATE no ambiente derruba a partida: a data padrão é provisória", () => {
+    const semData = {
+      NODE_ENV: "test",
+      JWT_SEGREDO: SEGREDO,
+      ESPELHO_LEGADO_ENCERRADO: "sim",
+    } as NodeJS.ProcessEnv;
+    expect(() => carregarConfig(semData)).toThrow(
+      /ESPELHO_LEGADO_ENCERRADO=sim sem ESPELHO_LEGADO_ATE/,
+    );
+    expect(
+      carregarConfig({ ...semData, ESPELHO_LEGADO_ATE: "2027-12-31" }).ESPELHO_LEGADO_ENCERRADO,
+    ).toBe("sim");
+  });
+
+  /** Uma produção válida e completa, como a de `recuperacao-em-producao.test.ts`. */
+  function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
+    return {
+      NODE_ENV: "production",
+      DATABASE_URL:
+        "postgres://dc360.refprodxxxxxxxx:senha@banco.interno:5432/dc360?sslmode=verify-full",
+      JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
+      ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
+      S3_ENDPOINT: "https://balde.exemplo.com",
+      S3_BALDE: "dc360-evidencias",
+      S3_CHAVE_ID: "chave-de-acesso",
+      S3_CHAVE_SECRETA: "segredo-de-acesso",
+      URL_PUBLICA: "https://api.dc360.exemplo.br",
+      URL_PAINEL: "https://painel.serraalta.mg.gov.br",
+      RECUPERACAO_ATIVA: "nao",
+      AMBIENTE_DC360: "prod",
+      IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
+      DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
+      ...sobrescrever,
+    } as NodeJS.ProcessEnv;
+  }
+
+  it("em produção: a base sobe; data inválida ou vazia impede a partida; encerrar sem data escrita também", () => {
+    expect(() => carregarConfig(producao())).not.toThrow();
+    for (const ruim of ["2027-02-31", "amanhã", ""]) {
+      expect(() => carregarConfig(producao({ ESPELHO_LEGADO_ATE: ruim })), ruim).toThrow(
+        /ESPELHO_LEGADO_ATE/,
+      );
+    }
+    expect(() => carregarConfig(producao({ ESPELHO_LEGADO_ENCERRADO: "sim" }))).toThrow(
+      /ESPELHO_LEGADO_ENCERRADO=sim sem ESPELHO_LEGADO_ATE/,
+    );
+    const ligado = carregarConfig(
+      producao({ ESPELHO_LEGADO_ENCERRADO: "sim", ESPELHO_LEGADO_ATE: "2027-12-31" }),
+    );
+    expect(ligado.ESPELHO_LEGADO_ENCERRADO).toBe("sim");
+  });
+});
+
+describe("Contador de uso do espelho", () => {
+  let contador: FastifyInstance;
+  let linhas: string[] = [];
+  const eventos = () =>
+    linhas
+      .map((l) => JSON.parse(l) as Record<string, unknown>)
+      .filter((l) => l["evento"] === "uso_do_espelho");
+
+  beforeAll(async () => {
+    contador = await construirServidor({
+      banco: mem.banco,
+      config: configDe(),
+      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
+      destinoDeLog: {
+        write: (linha: string) => {
+          linhas.push(linha);
+        },
+      },
+    });
+    await contador.ready();
+  }, 180_000);
+
+  afterAll(async () => {
+    await contador?.close();
+  });
+
+  it("conta cada uso por método, MODELO da rota e versão, em log info", async () => {
+    linhas = [];
+    const r = await contador.inject({
+      method: "GET",
+      url: `/ocorrencias/${idOcorrenciaA}`,
+      headers: { ...com(tokenHelena), "x-app-version": "campo/1.4.0" },
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    const lidos = eventos();
+    expect(lidos).toHaveLength(1);
+    expect(lidos[0]).toMatchObject({
+      level: 30,
+      evento: "uso_do_espelho",
+      metodo: "GET",
+      rota: "/ocorrencias/:id",
+      aplicativo: "campo",
+      versao: "1.4.0",
+    });
+  });
+
+  it("o log não leva usuário, município, token, IP, corpo, consulta nem o identificador real", async () => {
+    linhas = [];
+    await contador.inject({
+      method: "GET",
+      url: `/ocorrencias/${idOcorrenciaA}?endereco=Rua%20das%20Ac%C3%A1cias`,
+      headers: { ...com(tokenHelena), "x-app-version": "campo/1.4.0" },
+      remoteAddress: "203.0.113.55",
+    });
+    await contador.inject({
+      method: "POST",
+      url: "/auth/entrar",
+      payload: { email: EMAIL_HELENA, senha: "senha-que-nao-pode-vazar" },
+      remoteAddress: "203.0.113.56",
+    });
+    const contados = JSON.stringify(eventos());
+    for (const proibido of [
+      tokenHelena,
+      idOcorrenciaA,
+      "203.0.113.55",
+      "203.0.113.56",
+      EMAIL_HELENA,
+      "senha-que-nao-pode-vazar",
+      "Acácias",
+      "Ac%C3%A1cias",
+      ORG_A,
+    ]) {
+      expect(contados, proibido).not.toContain(proibido);
+    }
+    const campos = new Set(eventos().flatMap((e) => Object.keys(e)));
+    for (const proibido of [
+      "usuario",
+      "usuarioId",
+      "organizacaoId",
+      "ip",
+      "reqId",
+      "req",
+      "res",
+      "token",
+      "corpo",
+      "url",
+      "query",
+    ]) {
+      expect(campos.has(proibido), proibido).toBe(false);
+    }
+  });
+
+  it("sem cabeçalho conta como ausente, e malformado como ilegível, sem repetir o valor", async () => {
+    linhas = [];
+    await contador.inject({ method: "GET", url: "/ocorrencias", headers: com(tokenHelena) });
+    await contador.inject({
+      method: "GET",
+      url: "/ocorrencias",
+      headers: { ...com(tokenHelena), "x-app-version": "robo/9.9.9-valor-solto" },
+    });
+    const lidos = eventos();
+    expect(lidos.map((l) => l["aplicativo"])).toEqual(["ausente", "ilegivel"]);
+    expect(lidos.map((l) => l["versao"])).toEqual([null, null]);
+    expect(JSON.stringify(lidos)).not.toContain("valor-solto");
+  });
+
+  it("conta também o pedido sem token (que dá 401) e o recusado pela validação", async () => {
+    linhas = [];
+    await contador.inject({ method: "GET", url: "/ocorrencias" });
+    await contador.inject({ method: "POST", url: "/auth/entrar", payload: {} });
+    expect(eventos().map((l) => l["rota"])).toEqual(["/ocorrencias", "/auth/entrar"]);
+  });
+
+  it("não conta o que não é espelho: /v1 e as rotas de infraestrutura", async () => {
+    linhas = [];
+    await contador.inject({ method: "GET", url: "/v1/ocorrencias", headers: com(tokenHelena) });
+    await contador.inject({ method: "GET", url: "/saude" });
+    await contador.inject({ method: "GET", url: "/publico/oficio/token-que-nao-existe" });
+    await contador.inject({ method: "GET", url: "/armazenamento/objeto" });
+    expect(eventos()).toHaveLength(0);
   });
 });

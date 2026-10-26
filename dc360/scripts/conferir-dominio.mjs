@@ -26,8 +26,10 @@
  *      `X-Frame-Options`), que o `vercel.json` declara.
  * Só na API:
  *   5. O preflight CORS da origem do PRÓPRIO ambiente (o painel passado) volta
- *      com `access-control-allow-origin` igual a essa origem, exata, e com
- *      `access-control-allow-credentials: true`. Curinga reprova.
+ *      com `access-control-allow-origin` igual a essa origem, exata, com
+ *      `access-control-allow-credentials: true`, e autorizando o método
+ *      (`PATCH`) e os cabeçalhos (`authorization`, `content-type`) que o painel
+ *      manda, nos `access-control-allow-methods` e `-headers`. Curinga reprova.
  *   6. O preflight de uma origem que não é do ambiente volta SEM
  *      `access-control-allow-origin`. A origem inventada
  *      `https://origem-invalida.example` é sempre testada; cada `--negar` soma
@@ -58,6 +60,25 @@ export const HSTS_MINIMO_SEGUNDOS = 15552000;
 export const DIAS_MINIMOS_DO_CERTIFICADO = 14;
 /** Origem que nenhum ambiente pode aceitar. */
 export const ORIGEM_INVENTADA = "https://origem-invalida.example";
+
+/**
+ * O que o painel manda à API (`apps/web/src/dados/http.ts`): os métodos e os
+ * cabeçalhos. Um teste varre o painel e reprova se ele passar a usar um que
+ * não está aqui.
+ */
+export const METODOS_DO_PAINEL = ["GET", "POST", "PATCH"];
+export const CABECALHOS_DO_PAINEL = ["accept", "authorization", "content-type"];
+
+/*
+  O que o navegador PEDE no preflight: só o método e os cabeçalhos fora da
+  lista segura do CORS (GET, HEAD e POST passam sem preflight de método;
+  `accept` passa sem preflight de cabeçalho; `content-type: application/json`
+  não passa). É o que a API tem de autorizar.
+*/
+const METODOS_SEGUROS = new Set(["GET", "HEAD", "POST"]);
+const CABECALHOS_SEGUROS = new Set(["accept", "accept-language", "content-language"]);
+export const METODOS_QUE_O_PREFLIGHT_PEDE = METODOS_DO_PAINEL.filter((m) => !METODOS_SEGUROS.has(m));
+export const CABECALHOS_QUE_O_PREFLIGHT_PEDE = CABECALHOS_DO_PAINEL.filter((h) => !CABECALHOS_SEGUROS.has(h)).sort();
 
 const REDIRECIONAMENTOS = new Set([301, 302, 307, 308]);
 const DIA_EM_MS = 86_400_000;
@@ -176,8 +197,23 @@ export function avaliarCabecalhosDoPainel(h) {
   return falhas.length ? { ok: false, detalhe: falhas.join("; ") } : { ok: true, detalhe: "nosniff e frame-ancestors presentes" };
 }
 
-/** O preflight da origem do próprio ambiente tem de ser aceito, exato e com credenciais. */
-export function avaliarPreflightAceito(resposta, origem) {
+/** Uma lista de cabeçalho CORS (`a, b,c`) como conjunto. `*` fica como item, e quem confere o recusa. */
+function listaCors(valor, normalizar) {
+  return new Set(String(valor ?? "").split(",").map((p) => normalizar(p.trim())).filter(Boolean));
+}
+
+/**
+ * O preflight da origem do próprio ambiente tem de ser aceito, exato e com
+ * credenciais, E autorizar o método e os cabeçalhos que o painel manda
+ * (correção 1 da F01, achado 11 da revisão independente: sem isto, uma API que
+ * omitisse `Access-Control-Allow-Methods` e `Access-Control-Allow-Headers`
+ * passava aqui, e o navegador barraria toda chamada com `authorization`). Com
+ * credenciais, `*` é literal para o navegador e não autoriza nada.
+ */
+export function avaliarPreflightAceito(resposta, origem, {
+  metodos = METODOS_QUE_O_PREFLIGHT_PEDE,
+  cabecalhos = CABECALHOS_QUE_O_PREFLIGHT_PEDE,
+} = {}) {
   const acao = resposta.headers("access-control-allow-origin");
   if (resposta.status < 200 || resposta.status >= 300) {
     return { ok: false, detalhe: `preflight de ${origem} respondeu ${resposta.status}` };
@@ -187,7 +223,23 @@ export function avaliarPreflightAceito(resposta, origem) {
   if ((resposta.headers("access-control-allow-credentials") ?? "").toLowerCase() !== "true") {
     return { ok: false, detalhe: "falta access-control-allow-credentials: true" };
   }
-  return { ok: true, detalhe: `aceita exatamente ${origem}` };
+  const permitidos = listaCors(resposta.headers("access-control-allow-methods"), (m) => m.toUpperCase());
+  const faltamMetodos = metodos.filter((m) => !permitidos.has(m));
+  if (faltamMetodos.length > 0) {
+    return {
+      ok: false,
+      detalhe: `access-control-allow-methods (${resposta.headers("access-control-allow-methods") ?? "ausente"}) não autoriza ${faltamMetodos.join(", ")}, que o painel usa`,
+    };
+  }
+  const aceitos = listaCors(resposta.headers("access-control-allow-headers"), (h) => h.toLowerCase());
+  const faltamCabecalhos = cabecalhos.filter((h) => !aceitos.has(h));
+  if (faltamCabecalhos.length > 0) {
+    return {
+      ok: false,
+      detalhe: `access-control-allow-headers (${resposta.headers("access-control-allow-headers") ?? "ausente"}) não autoriza ${faltamCabecalhos.join(", ")}, que o painel manda`,
+    };
+  }
+  return { ok: true, detalhe: `aceita exatamente ${origem}, com ${metodos.join(", ")} e ${cabecalhos.join(", ")}` };
 }
 
 /** O preflight de uma origem que não é do ambiente não pode devolver `access-control-allow-origin`. */
@@ -285,8 +337,8 @@ export async function conferirAmbiente(
       method: "OPTIONS",
       headers: {
         origin: origem,
-        "access-control-request-method": "GET",
-        "access-control-request-headers": "authorization,content-type",
+        "access-control-request-method": METODOS_QUE_O_PREFLIGHT_PEDE[0] ?? "GET",
+        "access-control-request-headers": CABECALHOS_QUE_O_PREFLIGHT_PEDE.join(","),
       },
     });
   registrar(

@@ -1,0 +1,19 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aa134fb0d47c3393e/dc360/apps/api
+
+ ✓ test/openapi-regras.test.ts (21 tests) 104ms
+stdout | test/openapi.test.ts > pendências declaradas, por grupo > pendentes é IGUAL à lista congelada e ao teto exato (toda mudança aparece no diff)
+rotas pendentes (sem entrada): 0; por grupo: administracao=0 aplicativos=0 autenticacao=0 campo=0 conta=0 documentos=0 mapa-e-busca=0 ocorrencias=0 oficios-e-orgaos=0 prestacao-de-contas=0 publico=0
+
+stdout | test/openapi.test.ts > resposta das rotas > as existentes sem resposta saem num relatório e não reprovam
+entradas existentes sem resposta descrita: 0
+
+ ✓ test/openapi.test.ts (28 tests) 6956ms
+ ✓ test/contrato-3c2-respostas.test.ts (15 tests) 12688ms
+   ✓ ocorrências: o fluxo da coordenação > providência, resposta, correção de coordenada, interdição e encerramento  369ms
+
+ Test Files  3 passed (3)
+      Tests  64 passed (64)
+   Start at  05:27:52
+   Duration  24.05s (transform 7.35s, setup 3.94s, collect 25.75s, tests 19.75s, environment 4ms, prepare 1.34s)
+

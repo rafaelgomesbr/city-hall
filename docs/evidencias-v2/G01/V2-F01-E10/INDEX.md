@@ -11,3 +11,8 @@
 | saidas/06-regras-de-conteudo.txt | a3c2a0a930258c873fd2e0b2f6199b07848078d21c85ca1acab035bd80206f43 |
 | saidas/07-baseline-test.txt | 2f0392734d08834ca1e56afd5323a0f575c4cfcb7321c7edc001e7d93aa692e5 |
 | saidas/08-test-scripts.txt | 254d38db7cb0d3165e69e78ca45b5643a6653e05888984a87ec039e4c11d9bc1 |
+| correcao-1/RESUMO.md | 52ebdfbc5c83f9499019ae03ee13ed8dad465d145f5e0b0d61f3f399d481ce72 |
+| correcao-1/saidas/01-testes-antes-do-conserto.txt | 74c388c461199f4ff35cb90b73789759647385fffc4a7588750ec17ed9fed851 |
+| correcao-1/saidas/02-sonda-preflight-sem-metodos-antes.txt | 7ece2cbeb1b2388cfeddc2d2d68cac5bb275460aec9bc3108fe32d04860da0a6 |
+| correcao-1/saidas/03-testes-depois-do-conserto.txt | 78d8082bec4490ebc75fd8de2872e940dc0826c1cd99facbdcab183383a6019f |
+| correcao-1/saidas/04-sonda-preflight-sem-metodos-depois.txt | 08ec158f0008c872c8ef69b136c1a7e309566a56f311d5c1a57ee1ad1cfed0ad |

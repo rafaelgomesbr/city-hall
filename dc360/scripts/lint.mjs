@@ -32,12 +32,24 @@ export const ALVOS = {
   campo: { nome: "aplicativo de campo", cwd: join(DC360, "apps", "campo") },
 };
 
-function bin(nome) {
-  return join(DC360, "node_modules", ".bin", process.platform === "win32" ? `${nome}.cmd` : nome);
+/**
+ * Como chamar o ESLint sem passar por shell: o `node` que está rodando este
+ * script, com o script JS do ESLint como primeiro argumento. O atalho de
+ * `node_modules/.bin` no Windows é um arquivo de lote, que só roda por shell,
+ * e o shell corta o caminho absoluto no espaço (checkout em
+ * `C:\Projetos\Defesa Civil\...`). Direto no `node`, o caminho viaja como UM
+ * argumento e o espaço não importa, em qualquer sistema.
+ */
+export function comandoDoEslint(raiz = DC360) {
+  return {
+    comando: process.execPath,
+    args: [join(raiz, "node_modules", "eslint", "bin", "eslint.js")],
+  };
 }
 
-export function rodar(alvo, { podar = false } = {}) {
-  if (!existsSync(bin("eslint"))) {
+export function rodar(alvo, { podar = false, raiz = DC360, stdio = "inherit" } = {}) {
+  const { comando, args: base } = comandoDoEslint(raiz);
+  if (!existsSync(base[0])) {
     console.error("FALHA: o ESLint não está instalado. Rode `npm ci` em dc360/.");
     return 2;
   }
@@ -52,12 +64,11 @@ export function rodar(alvo, { podar = false } = {}) {
   }
   const args = ["."];
   if (podar) args.push("--prune-suppressions");
-  // `.cmd` no Windows exige shell; o argumento é fixo, sem entrada de usuário.
-  const r = spawnSync(bin("eslint"), args, {
-    cwd: alvo.cwd,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
+  const r = spawnSync(comando, [...base, ...args], { cwd: alvo.cwd, stdio });
+  if (r.error) {
+    console.error(`FALHA: não consegui executar o ESLint: ${r.error.message}`);
+    return 2;
+  }
   return r.status ?? 2;
 }
 

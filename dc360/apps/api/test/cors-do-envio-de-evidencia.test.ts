@@ -145,7 +145,8 @@ describe("Preflight do PUT de envio", () => {
     expect(cabecalhos).not.toContain("x-qualquer");
     expect(cabecalhos).not.toContain("*");
     expect(cabecalhos.sort()).toEqual(
-      ["accept", "authorization", "content-type", "if-none-match"].sort(),
+      // `x-app-version` entrou na V2-F02-E06: o aplicativo e o painel informam a versão.
+      ["accept", "authorization", "content-type", "if-none-match", "x-app-version"].sort(),
     );
   });
 });

@@ -1,0 +1,115 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a0a0a28da409ee8c4/dc360/apps/api
+
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > a árvore de rotas foi lida e traz o prefixo da saída 3ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > cada chamada de dados/http.ts casa com MÉTODO e caminho registrados 29ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > âncora: a extração alcança todas as chamadas contadas 12ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > o que o painel chama sem token está nas isenções de superficie.test.ts 11ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > toda exceção declarada é usada e tem motivo com etapa dona 12ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > os tipos de documento se expandem em rotas que existem 10ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > o caminho certo do pacote passa (controle) 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > POST /pacote.zip, o defeito da E11, reprova 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > método errado no caminho certo reprova 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > caminho com parâmetro faltando reprova 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > chamada que o extrator não lê aparece como não lida e fura a âncora 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > extrator que perde uma chamada reprova a âncora 14ms
+ ✓ test/contrato-cliente-rota.test.ts > As rotas que os clientes confrontam foram lidas > a árvore /v1 da API foi lida e traz o prefixo da saída 4ms
+ ✓ test/contrato-cliente-rota.test.ts > As rotas que os clientes confrontam foram lidas > o registro do contrato foi lido e cobre a maior parte das rotas 1ms
+ ✓ test/contrato-cliente-rota.test.ts > As rotas que os clientes confrontam foram lidas > as rotas do console foram lidas de servidor.ts 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > toda chamada foi lida pelo extrator 27ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > toda chamada foi lida pelo extrator 3ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > toda chamada foi lida pelo extrator 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > toda chamada foi lida pelo extrator 3ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > toda chamada foi lida pelo extrator 2ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > toda chamada foi lida pelo extrator 2ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > toda chamada foi lida pelo extrator 3ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > toda chamada foi lida pelo extrator 7ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o caminho existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o método bate com o da rota 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o corpo e a consulta casam com o esquema do registro 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o que sai sem token mira rota isenta de token 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Particularidades dos clientes > o painel tem as três chamadas que são o próprio mecanismo, e só elas 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Particularidades dos clientes > os tipos de documento do painel se expandem em rotas que existem 10ms
+ ✓ test/contrato-cliente-rota.test.ts > Particularidades dos clientes > a fila offline do campo declara a URL assinada e nada mais fora da base 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Particularidades dos clientes > o campo lê a versão mínima sem token e a rota está isenta 8ms
+ ✓ test/superficie.test.ts > Toda rota exige token > encontra a árvore de rotas do servidor montado 19ms
+stdout | test/contrato-cliente-rota.test.ts > Rotas /v1 sem cliente (relatório) > lista as rotas que nenhum cliente chama e grava o relatório
+contrato cliente x rota: 96 rotas /v1, 9 sem cliente; painel 75, campo 21, console 15 chamadas distintas
+
+ ✓ test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > nenhum arquivo de cliente usa rede sem estar na lista lida pelo contrato 93ms
+ ✓ test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > toda lista de exceção tem razão escrita e arquivo que existe 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > o contrato lê tudo o que o console tem de chamada de rede 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > toda assinada declarada é usada 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Exceções de forma > toda exceção é usada e tem motivo com etapa dona 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > o caminho certo do pacote passa (controle) 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > POST /pacote.zip, o defeito da E11, reprova contra o servidor montado 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > cliente GET contra rota POST reprova 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > chamada do campo sem rota reprova 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > chamada da fila offline sem rota, ou com método errado, reprova 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > caminho com parâmetro faltando reprova 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > a rota do console só existe no console, e a do console não existe na API 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > corpo com chave que o esquema não conhece reprova 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > corpo sem a chave obrigatória reprova 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > corpo que vem de variável fica declarado como não lido, e não como aprovado 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > consulta com chave obrigatória faltando reprova, e a dinâmica fica declarada 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > pedido sem token em rota protegida reprova 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > fetch solto, fora da base e das assinadas declaradas, é chamada não lida 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > uma URL assinada só passa quando a expressão está declarada 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > fetch em arquivo que nenhum perfil declara é achado pela varredura 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > comentário que cita a chamada não vira chamada 1ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > chamada que o extrator não lê aparece como não lida e fura a âncora 0ms
+ ✓ test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > extrator que perde uma chamada reprova a âncora 14ms
+ ✓ test/contrato-cliente-rota.test.ts > Rotas /v1 sem cliente (relatório) > lista as rotas que nenhum cliente chama e grava o relatório 10ms
+ ✓ test/superficie.test.ts > Toda rota exige token > nenhuma rota nova responde sem autenticação 473ms
+ ✓ test/superficie.test.ts > Toda rota exige token > a lista de isenções não tem entrada morta 11ms
+ ✓ test/superficie.test.ts > Toda rota exige token > toda isenção tem razão escrita 1ms
+ ✓ test/superficie.test.ts > Respostas não vazam estrutura interna > erro de rota inexistente não descreve o servidor 2ms
+ ✓ test/superficie.test.ts > Respostas não vazam estrutura interna > token adulterado devolve a mesma coisa que token ausente 9ms
+ ✓ test/superficie.test.ts > Respostas não vazam estrutura interna > cabeçalhos de segurança em toda resposta, inclusive nas de erro 16ms
+ ✓ test/superficie.test.ts > Respostas não vazam estrutura interna > no-store em toda resposta, para o cache não guardar dado de família 14ms
+ ✓ test/superficie.test.ts > Respostas não vazam estrutura interna > não anuncia qual servidor está rodando 8ms
+
+ Test Files  3 passed (3)
+      Tests  103 passed (103)
+   Start at  05:56:23
+   Duration  28.56s (transform 6.39s, setup 8.70s, collect 44.96s, tests 25.08s, environment 1ms, prepare 2.73s)
+

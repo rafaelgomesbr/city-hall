@@ -8,12 +8,12 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 555 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 585 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2010 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 572 testes do pacote compartilhado passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 621 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 824 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2285 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 283 testes de unidade do motor de campo e 17 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2023 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 379 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -124,8 +124,29 @@ lado nenhum; `apps/api/test/versao-v1.test.ts` confere a paridade pelas rotas
 que o Fastify de fato registrou. Toda resposta do espelho carrega `Deprecation`,
 `Sunset` (a data de `ESPELHO_LEGADO_ATE`, hoje provisória e só um aviso: nada
 deixa de responder nela) e `Link` com `rel="successor-version"` para o mesmo
-caminho sob `/v1`. A política de depreciação é da V2-F02-E08 e a retirada do
-espelho, da V2-F28-E11.
+caminho sob `/v1`. A política de depreciação (V2-F02-E08) é
+`docs/POLITICA-DE-VERSOES-DA-API.md` e a retirada do espelho é da V2-F28-E11.
+
+Dois controles de versão do aplicativo vivem na API, ambos DESLIGADOS por padrão
+e com rollback por configuração, sem novo deploy de código:
+
+- **Versão mínima por aplicativo (V2-F02-E06).** O aplicativo informa
+  `X-App-Version: campo/1.4.0`. Com `VERSAO_MINIMA_CAMPO` ou
+  `VERSAO_MINIMA_CIDADAO` preenchida (`maior.menor.correção`, vazia é sem
+  mínimo), `/v1` responde `426 { erro: "versao_do_aplicativo_antiga", mensagem,
+  versaoMinima }` ao aplicativo abaixo do mínimo, ANTES de autenticar, e o
+  contrato (`apps/api/openapi/v1.json`) declara o cabeçalho opcional
+  `x-app-version` e esse 426 em toda operação de `/v1`, menos a da versão
+  mínima, que nunca é recusada. Cabeçalho
+  ausente é aceito e contado em log `info`; malformado é ignorado, nunca 500.
+  `GET /v1/aplicativos/:aplicativo/versao-minima` informa o mínimo sem token e sem
+  dado de município (só existe em `/v1`, `ROTAS_SO_NO_V1`).
+- **Medição e encerramento do espelho (V2-F02-E08).** Cada pedido ao espelho vira
+  uma linha de log `info` (`evento: "uso_do_espelho"`, método, modelo da rota e
+  versão, sem usuário, município, IP, token, corpo nem consulta). Com
+  `ESPELHO_LEGADO_ENCERRADO=sim` (padrão `nao`, só a V2-F28-E11 liga) e depois do
+  fim do dia de `ESPELHO_LEGADO_ATE`, o espelho responde `426` com `Link` para
+  `/v1`; antes disso, ou com a chave em `nao`, atende com os cabeçalhos.
 
 Ficam sem prefixo, e a razão de cada uma está em `ROTAS_FORA_DO_PREFIXO`
 (`apps/api/src/versao-v1.ts`): `GET /saude` (sonda de infraestrutura),
@@ -145,10 +166,9 @@ documento OpenAPI 3.1 `apps/api/openapi/v1.json`, gerado dos esquemas Zod
 à mão, regera-se com `npm run openapi --workspace @dc360/api`, e
 `apps/api/test/openapi.test.ts` reprova a diferença entre ele e o gerado. O mesmo
 teste confere, pelas rotas que o Fastify de fato registrou, que toda rota sob
-`/v1` tem entrada e toda entrada tem rota. Ainda há rotas sem entrada: ficam em
-`pendentes` do grupo (lista declarada, com teto que só desce), porque o esquema
-delas mora dentro do arquivo da rota, e o lote seguinte da F02 as zera. Rota
-nova entra com `resposta`. O JSON Schema não expressa `refine` e `superRefine`
+`/v1` tem entrada e toda entrada tem rota. Toda rota sob `/v1` tem entrada e resposta descrita (96
+operações, nenhuma com `x-resposta-pendente`); a lista `pendentes` dos grupos
+está vazia e o teto é 0. Rota nova entra com `resposta`. O JSON Schema não expressa `refine` e `superRefine`
 (por exemplo, `tipo: "outro"` exige `tipoDescricao`), então o documento anota
 cada regra dessas em `x-regras-adicionais`, na operação e no esquema do corpo, e
 o teste reprova esquema refinado sem a anotação; corpo opcional sai com
@@ -165,6 +185,24 @@ mas só dentro do status, e o comportamento ficou o de antes: nenhum item é
 descartado, o 401 renova uma vez só, e o 409 `autor_divergente` continua
 bloqueando só o item. Ordem de implantação: a API com `/v1` primeiro, o
 aplicativo depois; o aplicativo já instalado segue no espelho.
+
+**A versão do cliente em todo pedido (V2-F02-E06, parte 3B).** O aplicativo de
+campo manda `X-App-Version: campo/<versão>` (a do `expoConfig.version`) em
+todo pedido à API, inclusive os da fila: o transporte de `packages/campo`
+recebe a versão por parâmetro e segue sem depender do Expo. O PUT na URL
+assinada não leva o cabeçalho. O painel manda `painel/desconhecido` só para
+observabilidade: nenhuma variável do Vite carrega hoje o número do build. Na
+fila, o 426 `versao_do_aplicativo_antiga` entra na classe de falha da conta
+desativada: a fila pausa, todo item fica guardado como `pendente`, nada vira
+bloqueado e, enquanto a última resposta da fila foi 426, o token é pedido SEM
+renovação antecipada (o 426 vem antes da autenticação; só o 401 renova, uma vez,
+e a primeira resposta que não seja 426 devolve a renovação ao normal; as
+chamadas do aplicativo fora da fila não têm essa suspensão e seguem o piso de um
+minuto entre tentativas); a pausa fala pelas frases que já existiam
+(faixa, aviso e cartão), sem tela nova (a tela "atualize o aplicativo" é da
+V2-F14-E08). No painel, o 426 chega como qualquer erro, com a frase do corpo.
+O cabeçalho é só aditivo e exige `x-app-version` nos cabeçalhos permitidos do
+CORS da API antes de o painel publicado mandá-lo.
 
 ### De onde vem o município, e de onde nunca vem
 
@@ -205,9 +243,9 @@ código mudou de nome (os 404 continuam mistos: `nao_encontrado` e
 `nao_encontrada`), e o status e o campo `erro` das respostas não mudam. O corpo
 tem a forma `erroDaApiSchema` (`{ erro, mensagem, campos?, requisicao?,
 categoria? }`), aberta a campos novos. `CODIGOS_RESERVADOS` guarda os códigos
-que etapas seguintes emitirão (`versao_do_aplicativo_antiga`,
-`versao_do_aplicativo_ausente`; `chave_ja_usada_em_outro_registro` passou à
-lista emitida na V2-F02-E07), fora da lista
+que etapas seguintes emitirão (`versao_do_aplicativo_ausente`;
+`chave_ja_usada_em_outro_registro` passou à lista emitida na V2-F02-E07 e
+`versao_do_aplicativo_antiga`, na V2-F02-E06), fora da lista
 emitida de propósito. `RegraDeNegocio` recebe o código TIPADO pelo catálogo (texto
 fora dele não compila), e em `NODE_ENV=test` o tratador de erros da API lança
 para código fora do catálogo em qualquer status (a guarda de acesso, abaixo,
@@ -1322,6 +1360,16 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
 | Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, consultar os ofícios de encaminhamento, acompanhar quem está em campo agora |
 | Agente de campo | registrar vistoria |
 | Administrador da organização | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Usuário de órgão externo |  |
+
+A última linha está vazia DE PROPÓSITO (V2-F03-E04, ADR 0009 decisão 5): o
+`usuario_orgao` é o papel genérico de quem representa outro órgão no município,
+com posto 1 e nenhuma ação de servidor. O que essa conta faz vem do vínculo com o
+órgão e das ações do encaminhamento (F04), nunca desta tabela. Ela nasce só por
+convite, nunca se converte de ou para papel de servidor (`PATCH /usuarios/:id`
+responde 409 `papel_nao_se_converte`, e um gatilho do banco recusa o mesmo por
+fora da API) e o login dela fica fechado até o G03 (responde credenciais
+inválidas).
 
 O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
 os dados do município, e o sistema de postos impede que qualquer pessoa
@@ -1530,7 +1578,8 @@ da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 **O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
 coluna do Windows acima é a máquina do autor, e a validação não a aceita como
 prova independente. Quem prova Windows no CI são dois jobs de
-`.github/workflows/verificar.yml`, que rodam em todo push: o `windows`, com o
+`.github/workflows/verificar.yml`, que rodam em push para `main`, `master` e
+`v2/**` e em pull request: o `windows`, com o
 `auditar`, `test:scripts` e `conferir:numeros` (ver "Portabilidade dos
 scripts"), e o `plataformas`, para os três casos acima, em matriz
 `windows-latest` e `ubuntu-24.04`, e publica o artefato
@@ -1568,9 +1617,28 @@ método e o caminho (interpolação vira parâmetro, query sai) e exige que
 âncora conta as chamadas por expressão regular e reprova se o extrator ler
 menos do que contou, e os casos sintéticos provam que `POST /pacote.zip` (o
 defeito da E11), método errado e parâmetro faltando reprovam. É a versão
-mínima: só o painel e só a existência da rota. A F02-E05 a generaliza para o
-aplicativo de campo e o console e a liga ao OpenAPI (F02-E04); corpo e resposta
-não são conferidos aqui.
+mínima: só o painel e só a existência da rota. A V2-F02-E05 a generalizou (ver o
+parágrafo seguinte); este arquivo segue valendo para o painel contra as rotas
+com e sem `/v1`.
+
+**Contrato cliente x rota (V2-F02-E05).** `apps/api/test/contrato-cliente-rota.test.ts`
+faz o mesmo para os três clientes: o painel (`apps/web/src/dados/http.ts`), o
+aplicativo de campo (`apps/campo/src/dados/api.ts`, `rota.ts`, `mapa.ts`,
+`historico-da-casa.ts` e a fila offline `packages/campo/src/transporte.ts`) e o
+console (o script que o próprio console serve, contra as rotas de
+`apps/console/src/servidor.ts`). Lê cada cliente como texto, tira o método e o
+caminho de cada chamada e confronta com as rotas `/v1` do servidor montado
+(`apps/api/test/apoio/rotas.ts`, a mesma leitura de `superficie.test.ts`). Exige
+que o caminho exista, que o método bata, que o corpo e a consulta casem com o
+esquema do registro do contrato (`apps/api/src/contrato/`) quando o texto os
+mostra, que pedido sem token mire só rota isenta, e que todo `fetch` passe por
+`chamar` ou pela base: `fetch` solto reprova, salvo as duas URLs assinadas
+declaradas. O que não dá para ler estaticamente (corpo que vem de variável,
+consulta montada em tempo de execução) fica declarado no relatório, e as rotas
+`/v1` sem cliente saem nele sem reprovar. Roda no job `produto` do CI por
+`npm run test:api`. Com `RELATORIO_CONTRATO_CLIENTE_ROTA=<arquivo>` o relatório
+é gravado (é assim que a evidência da etapa nasce). Limites em
+`apps/api/PENDENCIAS.md`.
 
 **O roteiro da linha de base.** Em 2026-09-30 a linha de base era vermelha de
 propósito (a medição original segue arquivada em `docs/auditoria-v2/`), e a
@@ -1786,11 +1854,11 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4641 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 585 testes do banco
-npm run test:api            # 2041 testes da API
-npm run test --workspace @dc360/campo   # 261 testes do motor de campo
-npm run test:campo          # tipos e os 2010 testes do aplicativo de campo
+npm test                    # 4964 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 621 testes do banco
+npm run test:api            # 2285 testes da API
+npm run test --workspace @dc360/campo   # 283 testes do motor de campo
+npm run test:campo          # tipos e os 2023 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
@@ -1798,7 +1866,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
 **A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
 Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
 de campo (`npm run auditar`, que também roda no Windows; no CI, o job
-`windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
+`windows` o chama a cada push para `main`, `master` e `v2/**` e em pull request,
+como `node scripts/auditar.mjs`). Na raiz,
 o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
 pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
 dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
@@ -2169,7 +2238,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração (`demonstracao.yml`) | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores. Só roda quando muda `mockup/**`, `scripts/**`, os três documentos que vão dentro do zip ou o `package-lock.json` (o Playwright vem dele); mudança só no produto não o dispara |
-| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção), agora com PostGIS 3.5 por digest, e o `npm run test:espacial` (`ST_Contains`, `ST_DWithin` e RLS forçada sobre `geography`) com `DC360_EXIGE_POSTGIS=1` |
+| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção), agora com PostGIS 3.6 por digest, e o `npm run test:espacial` (`ST_Contains`, `ST_DWithin` e RLS forçada sobre `geography`) com `DC360_EXIGE_POSTGIS=1` |
 | Imagens Docker (API e console) | `docker build` das duas imagens de produção com a base fixada por digest e `DC360_VERSAO` / `DC360_COMMIT` como argumentos de build; migração aplicada A PARTIR da imagem da API; a API e o console sobem da imagem, como `node`, e `/saude` responde 200 com `versao` e `commit` iguais aos do build; `chromium --version` dentro da imagem da API (sem ele o PDF do laudo é 503). As conferências são `scripts/smoke-das-imagens.mjs`, e o teste prova que root, falta de Chromium e versão trocada reprovam. Não recebe segredo e não publica imagem (E12); scan é a E20 e SBOM a E19 |
 | Aplicativo de campo | `npm run test:campo` (TypeScript, os testes do aplicativo e a conferência de que o jest executou os casos que a leitura do código conta; é o que substituiu o `typecheck` e o `npm test` avulsos do job), árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
@@ -2256,7 +2325,10 @@ login nem token: nenhum código sai do runner) a cada push em `main`, `master` o
 contrato com o ruleset do GitHub. Primeiro ele roda `semgrep --test` nas regras
 próprias; só então varre `dc360/` com elas; por fim `dc360/scripts/sast-baseline.mjs`
 compara o resultado com a baseline triada e **reprova só o achado novo de
-severidade ERROR** das regras próprias.
+severidade ERROR**, das regras próprias e das do registro (fixadas, abaixo).
+Análise que não examinou arquivo nenhum não passa: o JSON do Semgrep precisa
+trazer `paths.scanned` com pelo menos 30 arquivos (e 30 em `apps/api/src/`),
+senão o portão reprova com código 2 (uma exclusão excessiva não vira falso verde).
 
 O que roda, tudo versionado em `.semgrep/`:
 
@@ -2266,20 +2338,26 @@ O que roda, tudo versionado em `.semgrep/`:
   interpolação ou concatenação e entregue a `query(`; (3) o cabeçalho
   `Authorization` (ou todos os cabeçalhos) indo para log. Cada regra tem casos
   positivos (`ruleid`) e negativos (`ok`) em `test/`, rodados por `semgrep --test`.
-- Pacotes do registro (TypeScript, Node, React e JWT): o repositório é PÚBLICO, e
-  as regras do registro são da Semgrep Rules License v1.0 (uso interno, sem
-  redistribuição), então NENHUMA cópia delas mora aqui. Um passo à parte do job
-  baixa `p/typescript`, `p/nodejs`, `p/react` e `p/jwt` na hora (uso, não
-  redistribuição), roda como RELATÓRIO e nunca reprova: o registro muda sem aviso
-  e quebraria o CI por culpa dele, não do código. A saída vai no artefato
-  `sast-<sha>` (`04-registro-relatorio.json` e `.txt`) para a revisão humana.
-  O que bloqueia é só o que é autoria do projeto: as regras de `regras/`.
-- `baseline.json`: os achados que já existiam quando o SAST entrou, **lidos um a
-  um por uma pessoa**, cada um com classe (`falso-positivo`, `aceito` ou
-  `defeito`), motivo, dono e prazo. `defeito` real aponta para `V2-F25-E01`, não
-  some em silêncio. A impressão digital do achado é regra, arquivo, primeira
-  linha do trecho e ordem entre iguais, sem número de linha: inserir código acima
-  não reabre o achado, editar a primeira linha da consulta sim.
+- Regras do registro (TypeScript, Node, React e JWT), **FIXADAS e bloqueantes**
+  (correção 1 da F01): o repositório é PÚBLICO, e as regras do registro são da
+  Semgrep Rules License v1.0 (uso interno, sem redistribuição), então NENHUMA
+  cópia delas mora aqui. Em vez dos pacotes móveis `p/...` (que mudam sem aviso e
+  sem versão), o job baixa um commit EXATO de `semgrep/semgrep-rules`
+  (`SEMGREP_RULES_SHA` no `sast.yml`, conferido por `git rev-parse` depois do
+  download) e roda as pastas de TypeScript, Node, React e JWT dele (lista em
+  `SEMGREP_RULES_PASTAS`). É uso, não redistribuição. ERROR novo reprova pelo
+  mesmo mecanismo das regras próprias, contra `baseline-registro.json`. Subir o
+  commit das regras é um PR próprio, com essa baseline refeita. A saída vai no
+  artefato `sast-<sha>` (`04-registro.json`, `04-registro-scan.txt`,
+  `05-baseline-registro.txt`).
+- `baseline.json` e `baseline-registro.json`: os achados que já existiam quando o
+  SAST entrou, **lidos um a um por uma pessoa**, cada um com classe
+  (`falso-positivo`, `aceito` ou `defeito`), motivo, dono e prazo. `defeito` real
+  aponta para `V2-F25-E01`, não some em silêncio. A impressão do achado é regra,
+  arquivo, o TRECHO INTEIRO do achado (da linha em que começa à em que termina) e
+  ordem entre iguais, sem número de linha: inserir código acima não reabre o
+  achado, editar QUALQUER linha da consulta sim (antes só a primeira linha
+  entrava, e uma mudança posterior numa consulta multilinha conservava o id).
 
 **Política de exceção.** Achado novo se corrige no código. Se for falso positivo,
 há dois caminhos, e os dois exigem motivo, dono e prazo:
@@ -2302,8 +2380,10 @@ workflow (`pipx install semgrep==1.136.0`) e, na raiz do repositório:
 semgrep --test --metrics=off --config .semgrep/regras .semgrep/test
 semgrep scan --metrics=off --config .semgrep/regras --json --output semgrep.json dc360
 node dc360/scripts/sast-baseline.mjs conferir semgrep.json
-# opcional, só relatório (baixa o registro; nunca reprova):
-semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt dc360
+# regras do registro, no commit fixado do workflow (clone raso do semgrep-rules):
+semgrep scan --metrics=off --config <semgrep-rules>/typescript/lang --config <semgrep-rules>/javascript/node-crypto \
+  <...as demais pastas de SEMGREP_RULES_PASTAS...> --json --output registro.json dc360
+node dc360/scripts/sast-baseline.mjs conferir --baseline .semgrep/baseline-registro.json registro.json
 ```
 
 O SAST não substitui o teste dinâmico de isolamento (`npm run test:isolamento`,
@@ -2322,8 +2402,11 @@ New ruleset, Import a ruleset. Ela exige:
   `.github/pull_request_template.md`; vira 1 aprovação com a segunda pessoa
   revisora, E16 e CP-07);
 - os nove checks abaixo, pelo nome de exibição do job, com o branch atualizado;
-- só merge por squash, histórico linear, sem force-push, sem exclusão e sem
-  exceção para ninguém (`bypass_actors` vazio, administrador incluído).
+- só merge por COMMIT DE MERGE (nunca squash nem rebase, decisão do Rafael na
+  H09: os SHAs citados nos veredictos têm de continuar existindo na `master`),
+  sem exigir histórico linear (a regra `required_linear_history` só admite
+  squash ou rebase, por isso ela não existe aqui), sem force-push, sem exclusão
+  e sem exceção para ninguém (`bypass_actors` vazio, administrador incluído).
 
 Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
 (auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no
@@ -2418,7 +2501,7 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
   aparelho fica sem sinal (V2-F14-E12).
 
-  Essa última já tem 261 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 283 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
@@ -2465,7 +2548,7 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
   A infraestrutura de teste já existe (V2-F01-E21): o `compose.yaml` e o CI usam
-  `postgis/postgis:17-3.5` por digest, e `npm run test:espacial` prova a extensão
+  `postgis/postgis:17-3.6` por digest, e `npm run test:espacial` prova a extensão
   em Postgres real (`docs/AMBIENTES.md`, seção "PostGIS no CI e no ambiente local").
 - **Desligar o segundo fator de OUTRA pessoa.** Hoje cada um cuida do próprio:
   quem administra redefine senha de terceiro, mas não desliga a verificação em

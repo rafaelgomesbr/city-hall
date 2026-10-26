@@ -1,0 +1,49 @@
+FAIL src/dados/renovacao-com-versao-antiga.test.ts
+  426 com o token perto do vencimento: fila, transporte e obtentor reais
+    × dois drenos depois do 426 não tentam renovar, e o item sobe depois com a mesma chave (7 ms)
+    × a resposta que não é 426 devolve a renovação antecipada ao que sempre foi (1 ms)
+    √ token vencido durante a pausa: o 401 continua renovando uma vez e a coleta sobe (1 ms)
+
+  ● 426 com o token perto do vencimento: fila, transporte e obtentor reais › dois drenos depois do 426 não tentam renovar, e o item sobe depois com a mesma chave
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 2
+
+    [0m [90m 179 |[39m     expect(enviosDaVistoria(app[33m.[39mpedidos))[33m.[39mtoBe([35m3[39m)[33m;[39m
+     [90m 180 |[39m     [90m// ...mas sem gastar o token de renovação.[39m
+    [31m[1m>[22m[39m[90m 181 |[39m     expect(app[33m.[39mtentativasDeRenovacao)[33m.[39mtoBe([35m0[39m)[33m;[39m
+     [90m     |[39m                                       [31m[1m^[22m[39m
+     [90m 182 |[39m
+     [90m 183 |[39m     [36mconst[39m [item] [33m=[39m [36mawait[39m app[33m.[39mdeposito[33m.[39mlistar()[33m;[39m
+     [90m 184 |[39m     expect(item[33m?[39m[33m.[39mestado)[33m.[39mtoBe([32m"pendente"[39m)[33m;[39m[0m
+
+      at Object.toBe (src/dados/renovacao-com-versao-antiga.test.ts:181:39)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● 426 com o token perto do vencimento: fila, transporte e obtentor reais › a resposta que não é 426 devolve a renovação antecipada ao que sempre foi
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+    [0m [90m 206 |[39m     app[33m.[39mservidor[33m.[39mexigeVersaoNova [33m=[39m [36mfalse[39m[33m;[39m
+     [90m 207 |[39m     expect(([36mawait[39m app[33m.[39mfila[33m.[39mdrenar())[33m.[39menviados)[33m.[39mtoBe([35m1[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 208 |[39m     expect(app[33m.[39mtentativasDeRenovacao)[33m.[39mtoBe([35m0[39m)[33m;[39m
+     [90m     |[39m                                       [31m[1m^[22m[39m
+     [90m 209 |[39m
+     [90m 210 |[39m     [90m// Outra coleta, com o token ainda dentro da folga: agora renova antes de enviar.[39m
+     [90m 211 |[39m     [36mawait[39m app[33m.[39mfila[33m.[39menfileirar(envelope([33mCHAVES[39m[[35m1[39m][33m![39m)[33m,[39m { protocolo[33m:[39m [32m"000002/2026"[39m[33m,[39m fotos[33m:[39m [] })[33m;[39m[0m
+
+      at Object.toBe (src/dados/renovacao-com-versao-antiga.test.ts:208:39)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        1.185 s, estimated 2 s
+Ran all test suites matching /src\\dados\\renovacao-com-versao-antiga.test.ts/i.

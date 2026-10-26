@@ -1,0 +1,34 @@
+Captura do 426 do espelho encerrado da V2-F02-E08: saida de `app.inject` contra o servidor
+montado, sem rede. Mesmo roteiro da captura da E06 (ver o RESUMO).
+
+# E08: ESPELHO_LEGADO_ATE=2020-01-01 ESPELHO_LEGADO_ENCERRADO=sim
+
+### espelho encerrado, sem token
+> GET /ocorrencias?endereco=Rua%20das%20Acacias
+< HTTP 426
+< link: </v1/ocorrencias>; rel="successor-version"
+< deprecation: true
+< sunset: Wed, 01 Jan 2020 23:59:59 GMT
+< cache-control: no-store
+< {"erro":"versao_do_aplicativo_antiga","mensagem":"Este endereço da API foi encerrado. Atualize o aplicativo para continuar."}
+
+### espelho encerrado, login com corpo vazio
+> POST /auth/entrar
+< HTTP 426
+< link: </v1/auth/entrar>; rel="successor-version"
+< deprecation: true
+< sunset: Wed, 01 Jan 2020 23:59:59 GMT
+< cache-control: no-store
+< {"erro":"versao_do_aplicativo_antiga","mensagem":"Este endereço da API foi encerrado. Atualize o aplicativo para continuar."}
+
+### /v1 segue atendendo (401 por falta de token, nao 426)
+> GET /v1/ocorrencias
+< HTTP 401
+< cache-control: no-store
+< {"erro":"nao_autenticado","mensagem":"Informe o token de acesso."}
+
+### infraestrutura sem prefixo fora da regra
+> GET /saude
+< HTTP 200
+< cache-control: no-store
+< {"status":"ok","banco":"ok","ultimaMigracao":"052_chave_de_criacao_do_chamado.sql","eliminacoes":{"agendadas":0,"vencidas":0},"push":null,"versao":"desconhecida","commit":"desconhecido"}

@@ -61,6 +61,40 @@ describe("lerExpiracaoDoAcesso", () => {
 });
 
 describe("criarObtentorDeToken", () => {
+  it("semRenovar devolve o token que vale, perto de vencer ou não, sem tentar renovar (correção 1 da E06)", async () => {
+    const agora = 1_700_000_000_000;
+    const c = cofre({ acesso: tokenQueVenceEm(30_000, agora), renovacao: "r1" });
+    let renovacoes = 0;
+    const obterToken = criarObtentorDeToken({
+      lerCredenciais: c.lerCredenciais,
+      guardarCredenciais: c.guardarCredenciais,
+      agora: () => agora,
+      renovar: async () => {
+        renovacoes += 1;
+        return { acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r2" };
+      },
+    });
+
+    expect(await obterToken({ semRenovar: true })).toBe(c.valor?.acesso);
+    expect(await obterToken({ semRenovar: true })).toBe(c.valor?.acesso);
+    expect(renovacoes).toBe(0);
+
+    // O pedido comum, logo depois, renova como sempre: a suspensão é do pedido, não do obtentor.
+    await obterToken();
+    expect(renovacoes).toBe(1);
+  });
+
+  it("sem credenciais, semRenovar devolve nulo", async () => {
+    const obterToken = criarObtentorDeToken({
+      lerCredenciais: () => null,
+      guardarCredenciais: async () => {},
+      renovar: async () => {
+        throw new Error("não deveria renovar");
+      },
+    });
+    expect(await obterToken({ semRenovar: true })).toBeNull();
+  });
+
   it("cinco chamadas ao mesmo tempo emitem UMA renovação", async () => {
     const agora = 1_700_000_000_000;
     // Token vencendo em trinta segundos: dentro da folga, então renovar é o

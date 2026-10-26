@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **6651 testes somando o aplicativo** (contagem estática de `npm run
+- **6987 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -253,6 +253,17 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
 
   Tudo em `https://`, e a config recusa `http` e `localhost` em produção.
 
+- Variáveis **opcionais** da versão da API (V2-F02-E06 e E08; a regra completa
+  está em `docs/POLITICA-DE-VERSOES-DA-API.md`). Nenhuma é necessária para
+  subir, e os padrões não recusam nenhum aplicativo:
+
+  | Variável | O que é |
+  | --- | --- |
+  | `VERSAO_MINIMA_CAMPO` | `maior.menor.correção` (`1.3.0`). Vazia (o padrão) não há mínimo. Com valor, o aplicativo de campo abaixo dele recebe `426` em `/v1`, antes de autenticar. Valor fora do formato **impede a partida**. Esvaziar desliga a recusa, sem novo deploy de código |
+  | `VERSAO_MINIMA_CIDADAO` | o mesmo, para o aplicativo do cidadão |
+  | `ESPELHO_LEGADO_ATE` | `AAAA-MM-DD`, vai no cabeçalho `Sunset` do caminho sem prefixo. O padrão (`2027-12-31`) é **provisório**. Data inválida ou vazia impede a partida |
+  | `ESPELHO_LEGADO_ENCERRADO` | `nao` (o padrão). `sim` só pela V2-F28-E11, depois da data decidida e do aviso: o caminho sem prefixo passa a responder `426` depois do fim do dia de `ESPELHO_LEGADO_ATE`. Com `sim`, `ESPELHO_LEGADO_ATE` precisa estar escrita no ambiente, ou a partida é recusada |
+
 ### 4. Armazenamento de fotos e assinaturas
 
 Sem isto, a foto da vistoria não sobe.
@@ -351,7 +362,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, lint, formatação, 6651 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 6987 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -815,8 +826,8 @@ Cinco versões diferentes de Postgres e de Node aparecem neste projeto, e confun
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc` e `dc360/.node-version`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` pede `>=22 <23` (V2-F01-E09); o npm só avisa quando a versão não bate |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5` fixado por digest, V2-F01-E21) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações, roda a API contra banco real e roda o `test:espacial` (PostGIS em Postgres real); o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
-| Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.5`, V2-F01-E09) | O ambiente local com PostGIS, igual em major ao de produção. A subida do compose com a imagem nova não tem registro de execução |
+| Postgres do CI | 17 com PostGIS 3.6 (`postgis/postgis:17-3.6` fixado por digest, V2-F01-E21) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações, roda a API contra banco real e roda o `test:espacial` (PostGIS em Postgres real); o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
+| Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.6`, V2-F01-E09) | O ambiente local com PostGIS, igual em major ao de produção. A subida do compose com a imagem nova não tem registro de execução |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 
 Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

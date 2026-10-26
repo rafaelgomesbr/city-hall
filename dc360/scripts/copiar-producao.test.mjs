@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, parse, resolve } from "node:path";
 
 import {
   CA_DO_PROVEDOR, COMO_INSTALAR, JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, RAIZ_DO_REPO,
-  argumentosDoPgDump, candidatosDePgDump, clienteServe, comandoDeAcl, comoInstalar, copiaRecente,
+  argumentosDoPgDump, candidatosDePgDump, clienteServe, comandoDeAcl, comandoParaApagar, comoInstalar, copiaRecente,
+  entradasAlheias, lerDaclDoIcacls, tirarCopia,
   localizarPgDump, montarUrlParaPgDump, nomeDaCopia, pastaDeCopias, razaoParaRecusarAPasta,
   restringirAoDono, usuarioDoWindows, versaoDoPgDump,
 } from "./copiar-producao.mjs";
@@ -22,6 +23,18 @@ import { decidirSobreACopia, fraseDaCopia, mensagemDeRecusaSemCopia } from "./mi
  */
 
 const MINUTO = 60_000;
+
+/**
+ * A saída de `icacls <caminho>` como o Windows a imprime: o caminho e a
+ * primeira entrada na mesma linha, as outras alinhadas embaixo, uma linha em
+ * branco e o resumo. Copiada do formato de uma sonda real (2026-10-26), com
+ * nomes de mentira.
+ */
+function icaclsDe(caminho, entradas) {
+  const recuo = " ".repeat(caminho.length + 1);
+  const linhas = entradas.map((e, i) => (i === 0 ? `${caminho} ${e}` : `${recuo}${e}`));
+  return `${linhas.join("\r\n")}\r\n\r\nSuccessfully processed 1 files; Failed processing 0 files\r\n`;
+}
 
 /** Uma pasta de cópias de mentira, com arquivos datados à mão. */
 function pastaComCopias(arquivos) {
@@ -267,14 +280,22 @@ test("no Windows a pasta e o arquivo ficam so do usuario por icacls, sem heranca
   assert.equal(usuarioDoWindows({ env: { USERDOMAIN: "PC", USERNAME: "rafa" } }), "PC\\rafa");
   assert.equal(usuarioDoWindows({ env: {}, executar: () => "PC\\ana\r\n" }), "PC\\ana");
 
+  // Correção 1 da F01 (parte B): depois de restringir, o roteiro LÊ a DACL que
+  // o icacls devolve e a confere. A saída aqui é a de um icacls de verdade.
   const chamadas = [];
   restringirAoDono("C:\\x\\c.dump", {
     plataforma: "win32",
     env: { USERDOMAIN: "PC", USERNAME: "rafa" },
-    executar: (cmd, args) => { chamadas.push([cmd, args]); return ""; },
+    executar: (cmd, args) => {
+      chamadas.push([cmd, args]);
+      return args.length === 1 ? icaclsDe("C:\\x\\c.dump", ["PC\\rafa:(F)"]) : "processed file: C:\\x\\c.dump\r\n";
+    },
     chmod: () => assert.fail("no Windows nao se usa chmod"),
   });
-  assert.deepEqual(chamadas, [["icacls", ["C:\\x\\c.dump", "/inheritance:r", "/grant:r", "PC\\rafa:F"]]]);
+  assert.deepEqual(chamadas, [
+    ["icacls", ["C:\\x\\c.dump", "/inheritance:r", "/grant:r", "PC\\rafa:F"]],
+    ["icacls", ["C:\\x\\c.dump"]],
+  ]);
 });
 
 test("no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao leva segredo", () => {
@@ -292,8 +313,10 @@ test("no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao l
 test("no macOS e no Linux a pasta e 0700 e o arquivo 0600", () => {
   for (const plataforma of ["darwin", "linux"]) {
     const modos = [];
-    restringirAoDono("/x/pasta", { plataforma, pasta: true, chmod: (_c, m) => modos.push(m) });
-    restringirAoDono("/x/a.dump", { plataforma, chmod: (_c, m) => modos.push(m) });
+    // O modo conferido depois é o que o "disco" devolve: aqui, o que o chmod acabou de pôr.
+    const disco = { chmod: (_c, m) => modos.push(m), stat: () => ({ mode: modos.at(-1), uid: 501 }), uid: 501 };
+    restringirAoDono("/x/pasta", { plataforma, pasta: true, ...disco });
+    restringirAoDono("/x/a.dump", { plataforma, ...disco });
     assert.deepEqual(modos, [0o700, 0o600]);
   }
 });
@@ -348,4 +371,234 @@ test("a decisao usa a pasta e a janela de verdade quando ninguem as passa", () =
   } finally {
     rmSync(pasta, { recursive: true, force: true });
   }
+});
+
+/* =====================================================================
+ * Correção 1 da F01, parte B (revisão independente, achados 1, 10 e 12).
+ * ===================================================================== */
+
+/*
+  Achado 1 (E15): `icacls /inheritance:r` preserva concessão EXPLÍCITA. Se a
+  pasta da cópia já tinha uma concessão herdável a outro grupo, o arquivo do
+  dump nascia legível por esse grupo enquanto o `pg_dump` escrevia (sonda real
+  no Windows, arquivada na evidência). Agora o arquivo nasce vazio, é
+  restringido, a DACL que o `icacls` devolve é LIDA e conferida, e só então o
+  `pg_dump` escreve nele. Qualquer entrada além do operador (e do SYSTEM)
+  reprova.
+*/
+
+const PASTA_WIN = "C:\\Users\\rafa\\dc360-copias\\prod";
+const ARQ_WIN = `${PASTA_WIN}\\2026-10-26T10-00-00.dump`;
+const ENV_WIN = { USERDOMAIN: "PC", USERNAME: "rafa" };
+
+/** Um icacls de mentira: concede sem erro e, na leitura, devolve a DACL do mapa. */
+function icaclsFalso(dacls, chamadas = []) {
+  return (cmd, args) => {
+    chamadas.push([cmd, ...args]);
+    if (cmd !== "icacls") throw new Error(`comando inesperado: ${cmd}`);
+    if (args.length === 1) {
+      const entradas = dacls[args[0]];
+      if (!entradas) throw new Error(`sem DACL de mentira para ${args[0]}`);
+      return icaclsDe(args[0], entradas);
+    }
+    return `processed file: ${args[0]}\r\nSuccessfully processed 1 files; Failed processing 0 files\r\n`;
+  };
+}
+
+test("a DACL e lida da saida real do icacls: caminho com espaco, nome com espaco, SID cru e heranca", () => {
+  const caminho = "C:\\Users\\Ana Maria\\dc360-copias\\prod";
+  const saida = icaclsDe(caminho, [
+    "BUILTIN\\Usuários:(OI)(CI)(R)",
+    "S-1-5-21-1-2-3-1001:(I)(OI)(CI)(M)",
+    "NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)",
+    "PC\\ana:(OI)(CI)(F)",
+  ]);
+  assert.deepEqual(lerDaclDoIcacls(saida, caminho), [
+    { principal: "BUILTIN\\Usuários", permissoes: "(OI)(CI)(R)" },
+    { principal: "S-1-5-21-1-2-3-1001", permissoes: "(I)(OI)(CI)(M)" },
+    { principal: "NT AUTHORITY\\SYSTEM", permissoes: "(I)(OI)(CI)(F)" },
+    { principal: "PC\\ana", permissoes: "(OI)(CI)(F)" },
+  ]);
+  assert.deepEqual(lerDaclDoIcacls(icaclsDe(caminho, ["PC\\ana:(F)"]), caminho), [{ principal: "PC\\ana", permissoes: "(F)" }]);
+});
+
+test("saida do icacls que nao e uma DACL legivel reprova (fechado na falha), sem achar que esta tudo certo", () => {
+  assert.throws(() => lerDaclDoIcacls("", ARQ_WIN), ErroDeUso);
+  assert.throws(() => lerDaclDoIcacls(icaclsDe("C:\\outro\\arquivo", ["PC\\rafa:(F)"]), ARQ_WIN), ErroDeUso, "caminho que nao e o pedido");
+  assert.throws(() => lerDaclDoIcacls(`${ARQ_WIN} lixo sem permissao\r\n`, ARQ_WIN), ErroDeUso);
+  assert.throws(() => lerDaclDoIcacls(`${ARQ_WIN}\r\n\r\nSuccessfully processed 1 files\r\n`, ARQ_WIN), ErroDeUso, "DACL vazia: nem o operador consta");
+});
+
+test("so o operador (sem diferenca de caixa) e o SYSTEM, em ingles ou em portugues, podem constar da DACL", () => {
+  const ok = [
+    { principal: "pc\\RAFA", permissoes: "(F)" },
+    { principal: "NT AUTHORITY\\SYSTEM", permissoes: "(F)" },
+    { principal: "AUTORIDADE NT\\SISTEMA", permissoes: "(F)" },
+  ];
+  assert.deepEqual(entradasAlheias(ok, "PC\\rafa"), []);
+  const alheias = entradasAlheias([...ok, { principal: "BUILTIN\\Usuários", permissoes: "(I)(R)" }, { principal: "PC\\bob", permissoes: "(DENY)(W)" }], "PC\\rafa");
+  assert.deepEqual(alheias.map((e) => e.principal), ["BUILTIN\\Usuários", "PC\\bob"]);
+});
+
+test("no Windows, a concessao explicita herdavel que o /inheritance:r preserva faz o roteiro RECUSAR, nomeando quem sobrou", () => {
+  const executar = icaclsFalso({ [PASTA_WIN]: ["BUILTIN\\Usuários:(OI)(CI)(R)", "PC\\rafa:(OI)(CI)(F)"] });
+  assert.throws(
+    () => restringirAoDono(PASTA_WIN, { plataforma: "win32", pasta: true, env: ENV_WIN, executar }),
+    (erro) => erro instanceof ErroDeUso
+      && /BUILTIN\\Usuários:\(OI\)\(CI\)\(R\)/.test(erro.message)
+      && /icacls ".*" \/remove:g "BUILTIN\\Usuários"/.test(erro.message)
+      && /Recuso gravar a cópia/.test(erro.message),
+  );
+  // E a DACL sem o operador também reprova: ninguém conferiu que a cópia é dele.
+  assert.throws(
+    () => restringirAoDono(ARQ_WIN, { plataforma: "win32", env: ENV_WIN, executar: icaclsFalso({ [ARQ_WIN]: ["NT AUTHORITY\\SYSTEM:(F)"] }) }),
+    /não consta/,
+  );
+});
+
+test("no macOS e no Linux, o modo que o disco devolve e conferido: grupo ou outros com acesso reprova", () => {
+  const stat = (modo) => () => ({ mode: modo, uid: 501 });
+  assert.doesNotThrow(() => restringirAoDono("/x/a.dump", { plataforma: "linux", chmod: () => {}, stat: stat(0o100600), uid: 501 }));
+  assert.doesNotThrow(() => restringirAoDono("/x/pasta", { plataforma: "darwin", pasta: true, chmod: () => {}, stat: stat(0o40700), uid: 501 }));
+  assert.throws(() => restringirAoDono("/x/a.dump", { plataforma: "linux", chmod: () => {}, stat: stat(0o100640), uid: 501 }), /0640/);
+  assert.throws(() => restringirAoDono("/x/a.dump", { plataforma: "linux", chmod: () => {}, stat: stat(0o100600), uid: 0 }), /dono/);
+});
+
+test("o arquivo da copia nasce VAZIO, restrito e conferido ANTES do pg_dump escrever o primeiro byte", () => {
+  const raiz = mkdtempSync(join(tmpdir(), "dc360-copias-de-teste-"));
+  try {
+    const pasta = join(raiz, "prod");
+    const destino = join(pasta, "2026-10-26T10-00-00.dump");
+    const chamadas = [];
+    const executar = icaclsFalso({ [pasta]: ["PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)"] }, chamadas);
+    let vistoPeloPgDump = null;
+    const r = tirarCopia({
+      pasta,
+      destino,
+      plataforma: "win32",
+      env: ENV_WIN,
+      executar,
+      rodarPgDump: (alvo) => {
+        vistoPeloPgDump = { existe: existsSync(alvo), bytes: statSync(alvo).size, chamadasAntes: chamadas.length };
+        writeFileSync(alvo, Buffer.alloc(64, 7));
+        return 0;
+      },
+    });
+    assert.deepEqual(r, { status: 0, bytes: 64 });
+    assert.deepEqual(vistoPeloPgDump, { existe: true, bytes: 0, chamadasAntes: 4 }, "pasta e arquivo restringidos e lidos antes do pg_dump");
+    assert.deepEqual(chamadas.slice(0, 4).map((c) => c.slice(1, 3)), [[pasta, "/inheritance:r"], [pasta], [destino, "/inheritance:r"], [destino]]);
+    assert.deepEqual(chamadas.at(-1), ["icacls", destino], "e conferido de novo depois que o pg_dump escreveu");
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+test("pasta com entrada alheia: o roteiro recusa e o pg_dump nem roda, e nenhum arquivo de copia nasce", () => {
+  const raiz = mkdtempSync(join(tmpdir(), "dc360-copias-de-teste-"));
+  try {
+    const pasta = join(raiz, "prod");
+    const destino = join(pasta, "2026-10-26T10-00-00.dump");
+    const executar = icaclsFalso({ [pasta]: ["BUILTIN\\Usuários:(OI)(CI)(R)", "PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)"] });
+    assert.throws(
+      () => tirarCopia({ pasta, destino, plataforma: "win32", env: ENV_WIN, executar, rodarPgDump: () => assert.fail("o pg_dump nao pode rodar") }),
+      /Usuários/,
+    );
+    assert.equal(existsSync(destino), false);
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+test("arquivo com entrada alheia antes ou depois do pg_dump: o roteiro apaga o arquivo e recusa", () => {
+  const raiz = mkdtempSync(join(tmpdir(), "dc360-copias-de-teste-"));
+  try {
+    const pasta = join(raiz, "prod");
+    const destino = join(pasta, "2026-10-26T10-00-00.dump");
+    const antes = icaclsFalso({ [pasta]: ["PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)", "Todos:(R)"] });
+    assert.throws(() => tirarCopia({ pasta, destino, plataforma: "win32", env: ENV_WIN, executar: antes, rodarPgDump: () => assert.fail("nao roda") }), /Todos/);
+    assert.equal(existsSync(destino), false, "o arquivo vazio foi apagado");
+
+    // Depois do pg_dump: a DACL muda (como se o arquivo tivesse sido recriado e herdado de novo).
+    const dacls = { [pasta]: ["PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)"] };
+    const depois = icaclsFalso(dacls);
+    assert.throws(
+      () => tirarCopia({
+        pasta, destino, plataforma: "win32", env: ENV_WIN, executar: depois,
+        rodarPgDump: (alvo) => { writeFileSync(alvo, "dado"); dacls[destino] = ["PC\\rafa:(F)", "BUILTIN\\Usuários:(I)(R)"]; return 0; },
+      }),
+      /Usuários/,
+    );
+    assert.equal(existsSync(destino), false, "o dump com a ACL errada foi apagado");
+
+    // pg_dump que falha: apaga o que tiver gravado e devolve o código.
+    const falha = tirarCopia({ pasta, destino, plataforma: "win32", env: ENV_WIN, executar: icaclsFalso({ [pasta]: ["PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)"] }), rodarPgDump: () => 3 });
+    assert.deepEqual(falha, { status: 3, bytes: 0 });
+    assert.equal(existsSync(destino), false);
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+test("a copia nunca sobrescreve um arquivo que ja existe (nasce com wx)", () => {
+  const raiz = mkdtempSync(join(tmpdir(), "dc360-copias-de-teste-"));
+  try {
+    const pasta = join(raiz, "prod");
+    mkdirSync(pasta);
+    const destino = join(pasta, "2026-10-26T10-00-00.dump");
+    writeFileSync(destino, "copia anterior");
+    const executar = icaclsFalso({ [pasta]: ["PC\\rafa:(OI)(CI)(F)"], [destino]: ["PC\\rafa:(F)"] });
+    assert.throws(() => tirarCopia({ pasta, destino, plataforma: "win32", env: ENV_WIN, executar, rodarPgDump: () => assert.fail("nao roda") }), /EEXIST|já existe/);
+    assert.equal(readFileSync(destino, "utf8"), "copia anterior");
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+/*
+  Achado 10 (E15): a busca devolvia o PRIMEIRO pg_dump com versão legível. Um
+  16 no PATH escondia o 17 instalado em Program Files, e o roteiro recusava
+  mesmo havendo cliente que serve.
+*/
+test("um pg_dump 16 no PATH nao esconde o 17 instalado: vence o primeiro COMPATIVEL entre todos os candidatos", () => {
+  const versoes = {
+    pg_dump: "pg_dump (PostgreSQL) 16.4",
+    "C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe": null,
+    "C:\\Program Files\\PostgreSQL\\17\\bin\\pg_dump.exe": "pg_dump (PostgreSQL) 17.6",
+  };
+  const executar = (c) => {
+    if (versoes[c]) return versoes[c];
+    throw new Error("ENOENT");
+  };
+  const achado = localizarPgDump({ plataforma: "win32", env: { ProgramFiles: "C:\\Program Files" }, executar });
+  assert.deepEqual(achado, { caminho: "C:\\Program Files\\PostgreSQL\\17\\bin\\pg_dump.exe", versao: "17.6" });
+
+  // Servidor 18: o 17 deixa de servir e o 18 vence, se existir.
+  versoes["C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe"] = "pg_dump (PostgreSQL) 18.1";
+  assert.equal(localizarPgDump({ plataforma: "win32", env: { ProgramFiles: "C:\\Program Files" }, executar, versaoMinima: 18 }).versao, "18.1");
+});
+
+test("sem nenhum pg_dump compativel, a busca devolve o primeiro legivel, para a recusa dizer qual achou", () => {
+  const achado = localizarPgDump({
+    plataforma: "linux",
+    env: {},
+    executar: (c) => {
+      if (c === "pg_dump") return "pg_dump (PostgreSQL) 16.4";
+      if (c === "/usr/lib/postgresql/17/bin/pg_dump") return "pg_dump (PostgreSQL) 15.2";
+      throw new Error("ENOENT");
+    },
+  });
+  assert.deepEqual(achado, { caminho: "pg_dump", versao: "16.4" });
+  assert.equal(clienteServe(achado.versao), false);
+});
+
+/*
+  Achado 12 (E16): o runbook mandava apagar `~/dc360-copias/<data>.dump`, mas a
+  cópia mora em `~/dc360-copias/prod/`. O roteiro passa a imprimir o comando
+  EXATO de remoção, com o caminho que acabou de gravar.
+*/
+test("o comando de apagar a copia que o roteiro imprime e o caminho exato, entre aspas, nos dois sistemas", () => {
+  assert.equal(comandoParaApagar("/home/ana/dc360-copias/prod/2026-10-26T10-00-00.dump", "linux"), "rm -- '/home/ana/dc360-copias/prod/2026-10-26T10-00-00.dump'");
+  assert.equal(comandoParaApagar("/Users/o'neil/dc360-copias/prod/a.dump", "darwin"), "rm -- '/Users/o'\\''neil/dc360-copias/prod/a.dump'");
+  assert.equal(comandoParaApagar("C:\\Users\\ana\\dc360-copias\\prod\\a.dump", "win32"), "Remove-Item -LiteralPath 'C:\\Users\\ana\\dc360-copias\\prod\\a.dump'");
+  assert.equal(comandoParaApagar("C:\\Users\\o'neil\\a.dump", "win32"), "Remove-Item -LiteralPath 'C:\\Users\\o''neil\\a.dump'");
 });

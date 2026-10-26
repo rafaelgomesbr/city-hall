@@ -1,0 +1,119 @@
+TAP version 13
+# Subtest: a pasta tem os runbooks da etapa e a etapa NÃO cria o rollback.md
+ok 1 - a pasta tem os runbooks da etapa e a etapa NÃO cria o rollback.md
+  ---
+  duration_ms: 2.4236
+  type: 'test'
+  ...
+# Subtest: cada runbook tem as seções que a etapa exige
+ok 2 - cada runbook tem as seções que a etapa exige
+  ---
+  duration_ms: 790.4874
+  type: 'test'
+  ...
+# Subtest: todo comando citado existe: scripts, opções, npm run, fly, eas e gh
+ok 3 - todo comando citado existe: scripts, opções, npm run, fly, eas e gh
+  ---
+  duration_ms: 103.5945
+  type: 'test'
+  ...
+# Subtest: todo arquivo citado existe, salvo os que a lista nomeia
+ok 4 - todo arquivo citado existe, salvo os que a lista nomeia
+  ---
+  duration_ms: 8.9117
+  type: 'test'
+  ...
+# Subtest: toda etapa citada como dependência existe no roadmap da F01
+ok 5 - toda etapa citada como dependência existe no roadmap da F01
+  ---
+  duration_ms: 14.4469
+  type: 'test'
+  ...
+# Subtest: os pontos que dependem de etapa futura estão marcados como tal
+ok 6 - os pontos que dependem de etapa futura estão marcados como tal
+  ---
+  duration_ms: 1.4526
+  type: 'test'
+  ...
+# Subtest: os runbooks apontam para o rollback.md sem copiá-lo
+ok 7 - os runbooks apontam para o rollback.md sem copiá-lo
+  ---
+  duration_ms: 0.9799
+  type: 'test'
+  ...
+# Subtest: nenhum runbook traz valor de segredo
+ok 8 - nenhum runbook traz valor de segredo
+  ---
+  duration_ms: 2.2957
+  type: 'test'
+  ...
+# Subtest: nenhum runbook usa travessão
+ok 9 - nenhum runbook usa travessão
+  ---
+  duration_ms: 1.441
+  type: 'test'
+  ...
+# Subtest: o procedimento de rotação nomeia os dois passos e o que não gira
+ok 10 - o procedimento de rotação nomeia os dois passos e o que não gira
+  ---
+  duration_ms: 1.012
+  type: 'test'
+  ...
+# Subtest: a matriz de acesso cobre as contas da etapa e diz quem revoga
+ok 11 - a matriz de acesso cobre as contas da etapa e diz quem revoga
+  ---
+  duration_ms: 0.9372
+  type: 'test'
+  ...
+# Subtest: morde: script, opção e subcomando inexistentes reprovam
+ok 12 - morde: script, opção e subcomando inexistentes reprovam
+  ---
+  duration_ms: 7.5625
+  type: 'test'
+  ...
+# Subtest: morde: subcomando de fly, eas e gh fora da lista reprova
+ok 13 - morde: subcomando de fly, eas e gh fora da lista reprova
+  ---
+  duration_ms: 1.0143
+  type: 'test'
+  ...
+# Subtest: morde: arquivo inexistente e etapa inventada reprovam
+ok 14 - morde: arquivo inexistente e etapa inventada reprovam
+  ---
+  duration_ms: 0.84
+  type: 'test'
+  ...
+# Subtest: o passo de apagar a cópia aponta para a pasta de PROD em que o roteiro grava, no macOS, no Linux e no Windows
+not ok 15 - o passo de apagar a cópia aponta para a pasta de PROD em que o roteiro grava, no macOS, no Linux e no Windows
+  ---
+  duration_ms: 46.6897
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\runbooks.test.mjs:350:1'
+  failureType: 'testCodeFailure'
+  error: 'o runbook precisa dizer como apagar nos dois sistemas; achei 1'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/runbooks.test.mjs:354:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: morde: valor de segredo no texto reprova
+ok 16 - morde: valor de segredo no texto reprova
+  ---
+  duration_ms: 1.3237
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 15
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2223.4543
+codigo de saida: 1

@@ -21,9 +21,25 @@
  *   4. `dc360_app` tem o mínimo para consultar: USAGE no schema, SELECT em
  *      `spatial_ref_sys` e EXECUTE em todas as funções. Sem isso o smoke
  *      espacial da E21 falharia no HML.
+ *   5. com a extensão disponível e AINDA NÃO instalada (o caso de PROD antes da
+ *      F32), o papel de setup tem como criá-la: é superusuário ou tem CREATE no
+ *      banco (o dono do banco tem). Disponível não é criável: o plano pode
+ *      oferecer a extensão e o papel de setup não poder `CREATE EXTENSION`.
  *
- * Em PROD (`--ambiente=prod`) só a disponibilidade é exigida: a extensão nasce
- * na migration da F32. Se já estiver instalada, o resto é conferido igual.
+ * "Tem privilégio" no item 3 é o EFETIVO (`has_*_privilege`), que conta a
+ * herança por associação de papéis: um papel intermediário com EXECUTE, de que
+ * `anon` é membro, abre a mesma porta que a concessão direta, e uma consulta só
+ * à ACL não o veria.
+ *
+ * Em PROD (`--ambiente=prod`) só a disponibilidade e a capacidade de criar são
+ * exigidas: a extensão nasce na migration da F32. Se já estiver instalada, o
+ * resto é conferido igual.
+ *
+ * Limite assumido do item 5: no Postgres comum, PostGIS não é extensão
+ * confiável, e só superusuário a cria. Provedores como o Supabase liberam o
+ * papel `postgres` por fora do Postgres (extensão `supautils`), e isso só se
+ * confirma TENTANDO em HML (CP-44). Por isso, sem ser superusuário e com a
+ * extensão não confiável, a conferência AVISA em vez de aprovar em silêncio.
  *
  * ## O que ela NUNCA faz
  *
@@ -62,9 +78,31 @@ const DA_EXTENSAO = `
   JOIN pg_depend d ON d.refclassid = 'pg_extension'::regclass AND d.deptype = 'e'
   JOIN pg_extension e ON e.oid = d.refobjid AND e.extname = 'postgis'`;
 
+/** Privilégios de tabela e de sequência que contam como "tocar" a extensão. */
+export const PRIVILEGIOS_DE_TABELA = "SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER";
+export const PRIVILEGIOS_DE_SEQUENCIA = "USAGE,SELECT,UPDATE";
+/** O privilégio de banco que `CREATE SCHEMA` e `CREATE EXTENSION` pedem. */
+export const PRIVILEGIO_DE_CRIACAO = "CREATE";
+
+/**
+ * Todo objeto da extensão, com o oid, o tipo (`r` relação, `s` sequência, `f`
+ * função) e a ACL efetiva (a padrão do tipo quando ainda não há ACL explícita).
+ */
+const OBJETOS_DA_EXTENSAO = `
+  SELECT c.oid AS oid, c.relname::text AS nome,
+         (CASE c.relkind WHEN 'S' THEN 's' ELSE 'r' END)::text AS tipo,
+         coalesce(c.relacl, acldefault((CASE c.relkind WHEN 'S' THEN 's' ELSE 'r' END)::"char", c.relowner)) AS acl
+  FROM pg_class c
+  ${DA_EXTENSAO} AND d.classid = 'pg_class'::regclass AND d.objid = c.oid
+  WHERE c.relkind IN ('r', 'v', 'm', 'p', 'f', 'S')
+  UNION ALL
+  SELECT p.oid, p.proname::text, 'f'::text, coalesce(p.proacl, acldefault('f'::"char", p.proowner))
+  FROM pg_proc p
+  ${DA_EXTENSAO} AND d.classid = 'pg_proc'::regclass AND d.objid = p.oid`;
+
 /**
  * As consultas. Só leitura, e sem parâmetro interpolado em texto: o que varia
- * (schema esperado) entra como parâmetro `$1`.
+ * (schema esperado, papéis, lista de privilégios) entra como parâmetro.
  */
 export const CONSULTAS = {
   disponivel: `SELECT default_version, installed_version
@@ -74,26 +112,53 @@ FROM pg_available_extensions WHERE name = 'postgis'`,
 FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace
 WHERE e.extname = 'postgis'`,
 
-  // PUBLIC é o grantee 0. Objeto sem ACL explícita usa o padrão do tipo, e o
-  // padrão de função é EXECUTE para PUBLIC: por isso `acldefault`.
-  exposicao: `SELECT CASE a.grantee WHEN 0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END AS papel,
-       count(*)::int AS objetos,
-       (array_agg(o.nome ORDER BY o.nome))[1:3] AS exemplos
+  // O papel de setup consegue criar a extensão? Só faz sentido antes de ela
+  // existir. `$1` é o privilégio de criação em banco (PRIVILEGIO_DE_CRIACAO).
+  // `trusted` vem da versão padrão da extensão (Postgres 13 ou mais).
+  criacao: `SELECT r.rolsuper AS superusuario,
+       pg_has_role(r.oid, d.datdba, 'USAGE') AS dono_do_banco,
+       has_database_privilege(r.oid, d.oid, $1::text) AS cria_no_banco,
+       coalesce(v.trusted, false) AS confiavel
+FROM pg_roles r
+CROSS JOIN pg_database d
+LEFT JOIN pg_available_extensions a ON a.name = 'postgis'
+LEFT JOIN pg_available_extension_versions v ON v.name = a.name AND v.version = a.default_version
+WHERE r.rolname = current_user AND d.datname = current_database()`,
+
+  // PUBLIC é o grantee 0, lido da ACL (não existe papel para perguntar). Os
+  // papéis do provedor são perguntados pelo privilégio EFETIVO
+  // (`has_*_privilege`), que conta a herança por associação de papéis, e NÃO
+  // pela ACL, que só mostraria a concessão feita direto a eles. Um papel do
+  // provedor só aparece quando o privilégio dele não é o de PUBLIC (que já tem
+  // a sua linha) ou quando a ACL o cita direto. Objeto sem ACL explícita usa o
+  // padrão do tipo, e o padrão de função é EXECUTE para PUBLIC: `acldefault`.
+  // $1 papéis do provedor; $2 privilégios de tabela; $3 privilégios de sequência.
+  exposicao: `WITH obj AS (${OBJETOS_DA_EXTENSAO}
+)
+SELECT papel,
+       count(DISTINCT oid)::int AS objetos,
+       (array_agg(nome ORDER BY nome))[1:3] AS exemplos
 FROM (
-  SELECT c.relname::text AS nome,
-         coalesce(c.relacl, acldefault((CASE c.relkind WHEN 'S' THEN 's' ELSE 'r' END)::"char", c.relowner)) AS acl
-  FROM pg_class c
-  ${DA_EXTENSAO} AND d.classid = 'pg_class'::regclass AND d.objid = c.oid
-  WHERE c.relkind IN ('r', 'v', 'm', 'p', 'f', 'S')
+  SELECT 'PUBLIC'::text AS papel, o.oid, o.nome
+  FROM obj o, LATERAL aclexplode(o.acl) a
+  WHERE a.grantee = 0
   UNION ALL
-  SELECT p.proname::text, coalesce(p.proacl, acldefault('f'::"char", p.proowner))
-  FROM pg_proc p
-  ${DA_EXTENSAO} AND d.classid = 'pg_proc'::regclass AND d.objid = p.oid
-) o,
-LATERAL aclexplode(o.acl) a
-WHERE a.grantee = 0 OR pg_get_userbyid(a.grantee) = ANY ($1::text[])
-GROUP BY 1
-ORDER BY 1`,
+  SELECT r.rolname::text, o.oid, o.nome
+  FROM pg_roles r
+  CROSS JOIN obj o
+  WHERE r.rolname = ANY ($1::text[])
+    AND CASE o.tipo
+          WHEN 'f' THEN has_function_privilege(r.oid, o.oid, 'EXECUTE')
+          WHEN 's' THEN has_sequence_privilege(r.oid, o.oid, $3::text)
+          ELSE has_table_privilege(r.oid, o.oid, $2::text)
+        END
+    AND (
+      NOT EXISTS (SELECT 1 FROM aclexplode(o.acl) a WHERE a.grantee = 0)
+      OR EXISTS (SELECT 1 FROM aclexplode(o.acl) a WHERE a.grantee = r.oid)
+    )
+) x
+GROUP BY papel
+ORDER BY papel`,
 
   aplicacao: `SELECT
   EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2::text) AS existe,
@@ -127,11 +192,30 @@ export async function coletarFatos(consultar) {
       ? { versaoPadrao: disp.default_version ?? null, versaoInstalada: disp.installed_version }
       : null,
     instalada: inst ? { esquema: inst.esquema, versao: inst.versao } : null,
+    criacao: null,
     exposicao: [],
     aplicacao: null,
   };
-  if (!inst) return fatos;
-  const expostos = await consultar(CONSULTAS.exposicao, [PAPEIS_DO_PROVEDOR]);
+  if (!inst) {
+    // Disponível e ainda não instalada: quem vai criá-la precisa poder.
+    if (disp) {
+      const [c] = await consultar(CONSULTAS.criacao, [PRIVILEGIO_DE_CRIACAO]);
+      fatos.criacao = c
+        ? {
+            superusuario: c.superusuario === true,
+            donoDoBanco: c.dono_do_banco === true,
+            criaNoBanco: c.cria_no_banco === true,
+            confiavel: c.confiavel === true,
+          }
+        : null;
+    }
+    return fatos;
+  }
+  const expostos = await consultar(CONSULTAS.exposicao, [
+    PAPEIS_DO_PROVEDOR,
+    PRIVILEGIOS_DE_TABELA,
+    PRIVILEGIOS_DE_SEQUENCIA,
+  ]);
   fatos.exposicao = expostos.map((l) => ({
     papel: l.papel,
     objetos: l.objetos,
@@ -167,6 +251,24 @@ export function avaliarExtensoes(fatos, { ambiente = "hml", esquema = ESQUEMA_PA
   linhas.push(`postgis disponível (versão ${fatos.disponivel.versaoPadrao ?? "desconhecida"})`);
 
   if (!fatos.instalada) {
+    // Disponível não é criável: o papel de setup precisa poder criar. Vale em
+    // HML e em PROD, porque é o que o CP-44 pergunta ao provedor.
+    const c = fatos.criacao;
+    if (!c) {
+      p(
+        "não consegui conferir se o papel de setup pode criar a extensão (fatos sem `criacao`): disponível no provedor não prova que dá para criar",
+      );
+    } else if (c.superusuario !== true && c.criaNoBanco !== true && c.donoDoBanco !== true) {
+      p(
+        "o papel de setup não pode criar a extensão: não é superusuário, não é dono do banco e não tem CREATE nele. Disponível no provedor não é criável por este papel (CP-44)",
+      );
+    } else if (c.superusuario !== true && c.confiavel !== true) {
+      avisos.push(
+        "o papel de setup não é superusuário e postgis não é extensão confiável: no Postgres comum só superusuário a cria. Em provedores que liberam isso por fora (Supabase) só se confirma tentando em HML (CP-44)",
+      );
+    } else {
+      linhas.push("o papel de setup pode criar a extensão");
+    }
     if (exigeInstalada) {
       p(
         `postgis não está instalado: rode db/provedores/postgis.sql com o papel de setup (esquema ${esquema})`,
@@ -243,6 +345,33 @@ export function lerArgumentosDeExtensoes(argv) {
   return { extensoes: true, ambiente, esquema, fatos: saida.fatos };
 }
 
+/**
+ * Carrega a MESMA função que o migrador usa (`db/src/conexao.ts`, compilada em
+ * `db/dist`). Reaproveitar e não copiar: a âncora de confiança é segurança, e
+ * duas cópias divergem.
+ */
+async function carregarAncoraDoMigrador() {
+  try {
+    return await import("../db/dist/conexao.js");
+  } catch {
+    throw new Error(
+      "a âncora de confiança do migrador não está compilada: rode `npm run build:shared` em dc360",
+    );
+  }
+}
+
+/**
+ * A URL que a conferência usa para conectar: a do papel de setup, com a raiz do
+ * provedor apontada quando ela pede `sslmode` que verifica a cadeia e não traz
+ * `sslrootcert` (o mesmo tratamento do migrador). Sem isso, `verify-full` contra
+ * o Supabase morre com `SELF_SIGNED_CERT_IN_CHAIN` e a pessoa acaba tirando o
+ * `sslmode`, que deixa a conexão cifrada e NÃO autenticada.
+ */
+export async function urlParaConferencia(url, carregar = carregarAncoraDoMigrador) {
+  const { urlComAncoraDeConfianca } = await carregar();
+  return urlComAncoraDeConfianca(url);
+}
+
 /** Consulta o banco de `DATABASE_URL_SETUP`, em transação READ ONLY. */
 async function consultarNoBanco(url) {
   let pg;
@@ -251,7 +380,7 @@ async function consultarNoBanco(url) {
   } catch {
     throw new Error("o pacote pg não está instalado: rode npm ci em dc360");
   }
-  const cliente = new pg.Client({ connectionString: url });
+  const cliente = new pg.Client({ connectionString: await urlParaConferencia(url) });
   try {
     await cliente.connect();
   } catch (erro) {

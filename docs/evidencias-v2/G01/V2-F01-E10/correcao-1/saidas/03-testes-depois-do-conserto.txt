@@ -1,0 +1,155 @@
+TAP version 13
+# Subtest: normalizarHost aceita host puro e https://host, em minúsculas
+ok 1 - normalizarHost aceita host puro e https://host, em minúsculas
+  ---
+  duration_ms: 1.5364
+  type: 'test'
+  ...
+# Subtest: normalizarHost recusa http, curinga, porta, caminho, usuário, vazio e nome sem ponto
+ok 2 - normalizarHost recusa http, curinga, porta, caminho, usuário, vazio e nome sem ponto
+  ---
+  duration_ms: 0.571
+  type: 'test'
+  ...
+# Subtest: normalizarOrigem exige esquema://host e recusa caminho e curinga
+ok 3 - normalizarOrigem exige esquema://host e recusa caminho e curinga
+  ---
+  duration_ms: 0.2979
+  type: 'test'
+  ...
+# Subtest: lerArgumentos exige painel e api, aceita vários --negar e recusa o resto
+ok 4 - lerArgumentos exige painel e api, aceita vários --negar e recusa o resto
+  ---
+  duration_ms: 1.2108
+  type: 'test'
+  ...
+# Subtest: certificado: válido passa; vencido, quase vencendo, não confiável e ilegível reprovam
+ok 5 - certificado: válido passa; vencido, quase vencendo, não confiável e ilegível reprovam
+  ---
+  duration_ms: 0.3466
+  type: 'test'
+  ...
+# Subtest: redirecionamento: 301, 302, 307 e 308 para https do mesmo host passam; o resto reprova
+ok 6 - redirecionamento: 301, 302, 307 e 308 para https do mesmo host passam; o resto reprova
+  ---
+  duration_ms: 0.2665
+  type: 'test'
+  ...
+# Subtest: HSTS: 180 dias ou mais passa; ausente, sem max-age e curto reprovam
+ok 7 - HSTS: 180 dias ou mais passa; ausente, sem max-age e curto reprovam
+  ---
+  duration_ms: 0.3948
+  type: 'test'
+  ...
+# Subtest: cabeçalhos do painel: nosniff e frame-ancestors (CSP ou X-Frame-Options) passam; faltando um, reprova
+ok 8 - cabeçalhos do painel: nosniff e frame-ancestors (CSP ou X-Frame-Options) passam; faltando um, reprova
+  ---
+  duration_ms: 0.382
+  type: 'test'
+  ...
+# Subtest: preflight aceito: só a origem exata, com credenciais; curinga, outra origem, sem credencial e status de erro reprovam
+ok 9 - preflight aceito: só a origem exata, com credenciais; curinga, outra origem, sem credencial e status de erro reprovam
+  ---
+  duration_ms: 0.7071
+  type: 'test'
+  ...
+# Subtest: preflight negado: qualquer access-control-allow-origin reprova, inclusive curinga e eco da origem
+ok 10 - preflight negado: qualquer access-control-allow-origin reprova, inclusive curinga e eco da origem
+  ---
+  duration_ms: 0.5213
+  type: 'test'
+  ...
+# Subtest: ambiente bem configurado: tudo passa e a origem de PROD e a inventada são negadas
+ok 11 - ambiente bem configurado: tudo passa e a origem de PROD e a inventada são negadas
+  ---
+  duration_ms: 1.1965
+  type: 'test'
+  ...
+# Subtest: CORS que ecoa qualquer origem (o defeito que liga PROD a HML) reprova a negação cruzada
+ok 12 - CORS que ecoa qualquer origem (o defeito que liga PROD a HML) reprova a negação cruzada
+  ---
+  duration_ms: 0.5146
+  type: 'test'
+  ...
+# Subtest: CORS com curinga reprova a aceitação exata e as duas negações
+ok 13 - CORS com curinga reprova a aceitação exata e as duas negações
+  ---
+  duration_ms: 0.2944
+  type: 'test'
+  ...
+# Subtest: CORS fechado demais (nega o próprio painel) reprova só a aceitação
+ok 14 - CORS fechado demais (nega o próprio painel) reprova só a aceitação
+  ---
+  duration_ms: 0.4727
+  type: 'test'
+  ...
+# Subtest: certificado vencido, http sem redirecionamento e HSTS ausente reprovam nomeando o host
+ok 15 - certificado vencido, http sem redirecionamento e HSTS ausente reprovam nomeando o host
+  ---
+  duration_ms: 0.3625
+  type: 'test'
+  ...
+# Subtest: painel sem os cabeçalhos do vercel.json reprova só os cabeçalhos de segurança
+ok 16 - painel sem os cabeçalhos do vercel.json reprova só os cabeçalhos de segurança
+  ---
+  duration_ms: 0.3932
+  type: 'test'
+  ...
+# Subtest: queda de rede num host vira reprovação nomeada, sem esconder as outras conferências
+ok 17 - queda de rede num host vira reprovação nomeada, sem esconder as outras conferências
+  ---
+  duration_ms: 0.5183
+  type: 'test'
+  ...
+# Subtest: --negar com a origem do próprio painel é erro de uso e reprova
+ok 18 - --negar com a origem do próprio painel é erro de uso e reprova
+  ---
+  duration_ms: 0.3009
+  type: 'test'
+  ...
+# Subtest: pedir manda Origin num OPTIONS, não segue redirecionamento e devolve os cabeçalhos
+ok 19 - pedir manda Origin num OPTIONS, não segue redirecionamento e devolve os cabeçalhos
+  ---
+  duration_ms: 59.4011
+  type: 'test'
+  ...
+# Subtest: preflight aceito sem autorizar PATCH, authorization ou content-type reprova, nomeando o que falta
+ok 20 - preflight aceito sem autorizar PATCH, authorization ou content-type reprova, nomeando o que falta
+  ---
+  duration_ms: 1.6751
+  type: 'test'
+  ...
+# Subtest: a API que omite métodos e cabeçalhos no preflight reprova a aceitação (a orquestração que o revisor rodou com dez verdes)
+ok 21 - a API que omite métodos e cabeçalhos no preflight reprova a aceitação (a orquestração que o revisor rodou com dez verdes)
+  ---
+  duration_ms: 2.464
+  type: 'test'
+  ...
+# Subtest: o preflight pede o método e os cabeçalhos que o painel manda, como o navegador pediria
+ok 22 - o preflight pede o método e os cabeçalhos que o painel manda, como o navegador pediria
+  ---
+  duration_ms: 1.0762
+  type: 'test'
+  ...
+# Subtest: a lista de métodos e cabeçalhos do conferidor cobre o que o painel manda de verdade
+ok 23 - a lista de métodos e cabeçalhos do conferidor cobre o que o painel manda de verdade
+  ---
+  duration_ms: 3219.0061
+  type: 'test'
+  ...
+# Subtest: como comando: argumentos faltando ou inválidos saem com código 2 e mostram o uso
+ok 24 - como comando: argumentos faltando ou inválidos saem com código 2 e mostram o uso
+  ---
+  duration_ms: 1024.6901
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4608.5587
+codigo de saida: 0

@@ -211,8 +211,8 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `scripts/sast-baseline.test.mjs` é novo, com 10 (a comparação com a baseline
     triada e a linha de comando).
   */
-  "V2-F01-E05": 48, // a DV-15 acrescentou 3 (dependências do Semgrep por hash) e a DV-22 mais 1 (o script recusa exceção que não é YAML; os 7 testes do .trivyignore viraram 7 do .trivyignore.yaml); antes: // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
-  "V2-F01-E05-baseline": 14, // 10 na E05; a DV-16 acrescentou 4 (erro de análise em warn também reprova em dc360/apps/api/src)
+  "V2-F01-E05": 51, // a correção 1 da F01 (revisão independente) acrescentou 3: o caso do relatório do registro virou três (as regras do registro fixadas por commit e bloqueantes, o negativo que estraga o workflow de vários jeitos, e a baseline do registro, +2) e a imagem PostGIS passa pelo Trivy no PR e na agenda (+1); antes: // a DV-15 acrescentou 3 (dependências do Semgrep por hash) e a DV-22 mais 1 (o script recusa exceção que não é YAML; os 7 testes do .trivyignore viraram 7 do .trivyignore.yaml); antes: // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
+  "V2-F01-E05-baseline": 20, // a correção 1 da F01 acrescentou 6 (impressão do trecho inteiro, trecho sem posição final, cobertura mínima de arquivos examinados nas regras puras e na linha de comando, e `--baseline` com outro arquivo); antes: // 10 na E05; a DV-16 acrescentou 4 (erro de análise em warn também reprova em dc360/apps/api/src)
   /*
     V2-F01-E06: `scripts/dependabot.test.mjs` e novo, com 12 casos. Prende a
     configuracao de atualizacao de dependencias (`.github/dependabot.yml`: os
@@ -233,7 +233,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   /*
     V2-F01-E01: `scripts/ruleset-master.test.mjs` é novo, com 10 casos. Prende o
     ruleset da master (`.github/rulesets/master.json`: PR com 0 aprovações, só
-    squash, sem force-push, exclusão nem exceção, branch atualizado) a nomes de
+    commit de merge (nunca squash, decisão H09), sem force-push, exclusão nem exceção, branch atualizado) a nomes de
     check que existem de verdade nos workflows e rodam em todo pull request, e
     confere o CODEOWNERS e o modelo de PR. Dois casos são a prova de que o
     teste morde: rulesets sintéticos estragados reprovam.
@@ -272,8 +272,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     no passo, conferidor e artefato), o job `windows` roda `lint`, `lint:teto` e
     `formato:conferir`, e o `plataformas` deixa o git escrever o CRLF e fixa a
     contagem do painel.
+    A correção 1 da F01, parte B (revisão independente, achados 3, 4 e 5 da E12)
+    acrescenta 6 casos ao MESMO arquivo (57 no total): toda cópia de imagem com
+    `--prefer-index=false` e o digest lido de volta, o run de HML achado pelo
+    título com o SHA implantado, e o painel que espera a Vercel antes do selo,
+    cada regra com o seu negativo.
   */
-  "V2-F01-E02": 51,
+  "V2-F01-E02": 59, // 51 até as dívidas DV-26 e DV-39; a correção 1 da F01 acrescentou 2 na parte A (comando só impresso por `echo` ou entre aspas não conta como executado, e as formas reais de `run:` continuam aceitas) e 6 na parte B
   /*
     DV-39: `scripts/conferir-empacotamento-do-campo.test.mjs` é novo, com 3 casos
     (o pacote do Metro com o zod 4 e o código do shared passa; sem um deles,
@@ -289,8 +294,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     de API além da exceção declarada, os cabeçalhos de segurança, e os casos
     sintéticos que provam que a regra morde). V2-F01-E12 acrescenta 2 casos ao
     `vercel-json.test.mjs` (11 no total): a `master` deixa de ser publicada.
+    A correção 1 da F01, parte B (achado 11) acrescenta 4 casos ao
+    `conferir-dominio.test.mjs` (24 no total): o preflight que não autoriza
+    PATCH, authorization ou content-type reprova, a orquestração com a API que
+    omite os dois cabeçalhos, o preflight pedindo o que o painel manda, e a
+    varredura do painel contra a lista do conferidor.
   */
-  "V2-F01-E10": 20,
+  "V2-F01-E10": 24,
   "V2-F01-E10-vercel-json": 11,
   /*
     V2-F01-E12: `scripts/conferir-saude-remota.test.mjs` é novo, com 7 casos. É a
@@ -309,8 +319,11 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     etapa do roadmap, e nenhum valor de segredo nem travessão. Quatro casos são
     a prova de que o conferidor morde: texto estragado reprova. O `rollback.md`
     é da E08 e não é varrido.
+    A correção 1 da F01, parte B (achado 12) acrescenta 1 caso (16 no total): o
+    comando de apagar a cópia do `migracao.md` aponta para a pasta de PROD em
+    que o roteiro grava (`pastaDeCopias("prod")`), nos dois sistemas.
   */
-  "V2-F01-E16": 15,
+  "V2-F01-E16": 16,
   /*
     V2-F01-E08: `scripts/smoke-das-imagens.test.mjs` é novo, com 15 casos. Prova a
     régua do smoke das imagens Docker com um `docker` de mentira (a imagem boa
@@ -351,7 +364,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     hook com dependência faltando em `apps/web/src`, `eval`, `Function`, `any`
     explícito, `setTimeout` com texto, e as mesmas duas no aplicativo de campo).
   */
-  "V2-F01-E17": 20,
+  "V2-F01-E17": 26, // 20 na E17; a correção 1 acrescentou 6 (o teto vale por arquivo e regra, não só no total: a supressão corrigida num arquivo que financia outra noutro, o par que sobe, o aplicativo de campo, igual e descer, base ausente e as baselines do ramo-base lidas do repositório)
+  /*
+    V2-F01-E17, correção 1: `scripts/lint.test.mjs` é novo, com 5 casos (o lint
+    chama o `node` no script do ESLint, sem shell, e roda de verdade num
+    caminho com espaço, repassa `--prune-suppressions` e o código de saída,
+    ESLint ausente sai 2 e o fonte não usa mais shell nem o atalho de lote).
+  */
+  "V2-F01-E17-lint": 5,
   "V2-F01-E17-formato": 8,
   "V2-F01-E17-regras": 10,
   /*
@@ -381,8 +401,8 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     script que anexa ao Release com um `gh` de mentira e as travas do
     `sbom.yml`: escrita só no job `publicar`, só em tag).
   */
-  "V2-F01-E19": 15,
-  "V2-F01-E19-sbom": 14, // 11 na E19; a DV-27 acrescentou 3 (o gerador de SBOM instalado por lockfile próprio)
+  "V2-F01-E19": 17, // 15 na E19; a correção 1 acrescentou 2 (o grafo de runtime decide o que é produção: a marca `dev: true` inconsistente não esconde o componente, nem o transitivo)
+  "V2-F01-E19-sbom": 16, // 11 na E19; a DV-27 acrescentou 3 (o gerador de SBOM instalado por lockfile próprio); a correção 1 acrescentou 2 (o SBOM da imagem lê a imagem publicada por digest, sem reconstruir, com as mesmas provas da promoção)
   /*
     V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 20 casos (o
     `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e
@@ -407,7 +427,22 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     PGlite, com `pg_trgm` no lugar do PostGIS; e a coleta feita por um papel sem
     USAGE no schema, que o CI 2 mostrou falhar com 42501).
   */
-  "V2-F01-E22": 24,
+  "V2-F01-E22": 36, // 24 na E22; a correção 1 acrescentou 12 (disponível não é criável: o papel de setup sem CREATE reprova em PROD; o privilégio herdado por papel intermediário; a âncora TLS do migrador na conexão)
+  /*
+    Correção 1 da F01, parte B (revisão independente). `scripts/esperar-painel.test.mjs`
+    é novo, com 10 casos (o painel de HML espera a Vercel antes do selo, achado
+    5: os argumentos, o domínio da matriz de ambientes, o deployment de
+    produção do projeto, o estado, a resposta do endereço, o caminho feliz, a
+    falha de build que reprova logo, o limite esgotado, o endereço que não
+    responde e o comando). E `copiar-producao.test.mjs`, que já existia (por
+    isso fora da tabela de arquivos), ganha 12 (achados 1, 10 e 12: a DACL lida
+    da saída do icacls, a recusa de entrada alheia na pasta e no arquivo, o
+    arquivo vazio e conferido antes do pg_dump, o modo conferido no macOS e no
+    Linux, o pg_dump compatível entre todos os candidatos e o comando exato de
+    apagar a cópia).
+  */
+  "V2-F01-correcao-1-B": 10,
+  "V2-F01-correcao-1-B-acrescimos": 12,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -432,6 +467,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
   "V2-F01-E09": "conferir-ambiente.test.mjs",
   "V2-F01-E17": "lint-teto.test.mjs",
+  "V2-F01-E17-lint": "lint.test.mjs",
   "V2-F01-E17-formato": "formato-conferir.test.mjs",
   "V2-F01-E17-regras": "lint-regras.test.mjs",
   "V2-F01-E15": "producao.test.mjs",
@@ -439,6 +475,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E19-sbom": "sbom.test.mjs",
   "V2-F01-E13": "perfis-do-eas.test.mjs",
   "V2-F01-E22": "conferir-extensoes.test.mjs",
+  "V2-F01-correcao-1-B": "esperar-painel.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -862,6 +899,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-2D": { total: 24, falhas: 0, puladas: 0 },
   // V2-F02-E04, correção 1: `apps/api/test/openapi.test.ts` ganhou 4 casos (a fusão das formas com e sem barra final provada pelo handler, a lista congelada de pendentes por igualdade) e `apps/api/test/openapi-regras.test.ts` é novo, com 10 casos (as regras `refine` anotadas em `x-regras-adicionais`, o guarda que reprova esquema refinado sem anotação, o corpo opcional com `required: false`).
   "V2-F02-E04-correcao-1": { total: 14, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 3C2: `apps/api/test/contrato-3c2-respostas.test.ts` e novo, com 15 casos (as 34 rotas de ocorrências, campo e mapa e busca chamadas por `inject` e o corpo real lido pelo esquema de resposta do registro, sem campo cortado; o reenvio idempotente que responde 200, as duas formas da autorização de evidência e da tela do agente, e a cobertura das 34). `openapi.test.ts` só trocou o teto (40 para 30) e tirou 10 chaves da lista congelada, sem caso novo.
+  "V2-F02-E04-parte-3C2": { total: 15, falhas: 0, puladas: 0 },
   // V2-F02-E07: `apps/api/test/chave-de-criacao.test.ts` e novo, com 16 casos (a mesma chave devolve o mesmo id e protocolo e a sequencia avanca uma vez, o corpo diferente nao altera o chamado, sem chave sao dois chamados, chave nao uuid e 422, sem credencial e 401, a mesma chave em A e em B cria um chamado em cada, a corrida que cai no 23505 com a transacao voltando inteira, e a chave de foto: mesma ocorrencia devolve a mesma evidencia, outra ocorrencia e 409 chave_ja_usada_em_outro_registro, o indice do banco tambem recusa, A e B gravam uma cada e a ocorrencia de outro municipio segue 404).
   "V2-F02-E07": { total: 16, falhas: 0, puladas: 0 },
   // V2-F02-E07, correcao 1: `apps/api/test/chave-de-criacao.test.ts` ganha 3 casos liquidos (o caso do municipio B virou dois, chave usada em B e depois a mesma em A sem 409 e sem ver nada de B, e o 404 do agente de A na ocorrencia de B; mais dois da corrida da foto, em que o segundo INSERT cai no indice: outra ocorrencia vira 409 e a mesma ocorrencia devolve a evidencia existente).
@@ -870,6 +909,26 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 2C, correção 1: `catalogo-de-erros.test.ts` ganhou 10 casos (a conferência que lança só existe em `NODE_ENV=test` mesmo com a opção ligada; a varredura de `.code(N).send(...)`: árvore real, erro por variável, corpo em texto, `message` no lugar de `mensagem`, código fora do catálogo, corpo por constante, status calculado, controles e a exceção nomeada). Content-Disposition e Accept-Ranges entraram nos casos que já existiam das guardas.
   "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
+  // V2-F02-E03, parte 2C, correção 2 (junção do lote 3): `apps/api/test/cors-dos-erros-do-fastify.test.ts` é novo, com 8 casos (as respostas do `frameworkErrors`, 400 `url_invalida` e 414 `parametro_longo_demais`, levam o CORS da lista `ORIGENS_PERMITIDAS` em `/v1` e no espelho; origem fora da lista e pedido sem origem ficam sem o cabeçalho; corpo e demais cabeçalhos iguais).
+  "V2-F02-E03-parte-2C-correcao-2": { total: 8, falhas: 0, puladas: 0 },
+  // V2-F02-E06, parte 3A (API): `apps/api/test/versao-do-aplicativo.test.ts` e novo, com 41 casos (versao igual ou acima do minimo, pre-lancamento, o painel que nunca e recusado, o minimo de cada aplicativo, minimo vazio, a rota publica com e sem minimo, o CORS; 426 em varias rotas, antes do 401 e da validacao; 12 formas de cabecalho malformado mais o repetido, sem 500; o cabecalho ausente contado em log sem usuario, municipio, token nem IP; o mesmo corpo para qualquer municipio e id; token de B contra recurso de A segue 404; a rota so existe em /v1; a configuracao).
+  "V2-F02-E06-parte-3A": { total: 41, falhas: 0, puladas: 0 },
+  // V2-F02-E08: `apps/api/test/versao-v1.test.ts` ganhou 19 casos (o espelho encerrado responde 426 com Link, antes do 401 e igual para todo municipio, data futura e chave desligada atendem com os cabecalhos, o fim do dia vale inteiro, a infraestrutura fica fora; a chave e a data na configuracao e na partida em producao; o contador de uso sem usuario, municipio, token, IP, corpo nem consulta).
+  "V2-F02-E08": { total: 19, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 3C1: `apps/api/test/contrato-auth-respostas.test.ts` (7 casos) e `contrato-conta-administracao-respostas.test.ts` (8 casos) sao novos: cada resposta descrita no contrato dos grupos autenticacao, conta e administracao confere com a que a API devolve por `inject`, e os tres grupos nao tem rota pendente nem sem resposta.
+  "V2-F02-E04-parte-3C1": { total: 15, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 3C3 (contrato de documentos, ofícios e órgãos, prestação de contas e público): `apps/api/test/contrato-respostas-3c3.test.ts` é novo, com 14 casos (cada rota dos quatro grupos chamada de verdade por `/v1` e a resposta conferida contra a `resposta` que o registro do contrato declara: status, esquema sem chave de sobra ou o tipo de mídia dos arquivos HTML, PDF, CSV e ZIP; mais o guarda de que nenhuma entrada dos quatro grupos fica sem resposta).
+  "V2-F02-E04-parte-3C3": { total: 14, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 4B (limites do gerador do contrato): `apps/api/test/openapi-regras.test.ts` ganhou 11 casos (a regra repetida sai uma vez por caminho, sem duplicar o mesmo caminho e sem laço em esquema recursivo; a coordenada 0,0 de `POST /v1/rota` anotada na origem e no destino; o status de sucesso adicional `tambemResponde` com o esquema da principal ou o próprio, a recusa de status repetido, de colisão com erro e de entrada sem resposta principal, o 200 do reenvio nas quatro rotas idempotentes e a trava de que só elas o declaram). `contrato-3c2-respostas.test.ts` passou a ler o status do reenvio de `tambemResponde`, sem caso novo.
+  "V2-F02-E04-parte-4B": { total: 11, falhas: 0, puladas: 0 },
+  // V2-F02-E05, parte 4A (contrato cliente x rota): `apps/api/test/contrato-cliente-rota.test.ts` e novo, com 82 casos (o painel, o campo com a fila offline e o console lidos como texto e confrontados com as rotas /v1 do servidor montado: caminho, metodo, corpo e consulta contra o esquema do registro, pedido sem token, ancora de chamadas por arquivo; a varredura que reprova fetch solto fora da base e das duas URLs assinadas declaradas; 18 casos sinteticos, entre eles POST /pacote.zip, GET contra rota POST e chamada do campo sem rota; o relatorio das rotas /v1 sem cliente). `contrato-do-painel.test.ts` e `superficie.test.ts` passaram a usar `apoio/rotas.ts` e `apoio/extrair-chamadas.ts`, sem caso novo nem removido.
+  "V2-F02-E05": { total: 82, falhas: 0, puladas: 0 },
+  // V2-F02-E04, correção 1 (revisão independente dos lotes 3 e 4): `openapi-versao-do-aplicativo.test.ts` é novo, com 5 casos (toda operação de /v1, menos a da versão mínima, declara o cabeçalho opcional x-app-version e o 426 com o corpo { erro, mensagem, versaoMinima }; a entrada que declara o 426 por conta própria faz o gerador falhar; e o documento conferido contra o servidor real com mínimo configurado, operação por operação, por inject). `openapi-regras.test.ts` ganhou a chave 426 no caso das respostas por status, sem caso novo.
+  "V2-F02-E04-parte-4B-correcao-1": { total: 5, falhas: 0, puladas: 0 },
+  // V2-F02-E05, correção 1 (revisão independente dos lotes 3 e 4): 8 casos novos em `contrato-cliente-rota.test.ts` (`globalThis.fetch`, `window.fetch` e `self.fetch` contam, são extraídos e conferidos, 3 casos; o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova; `globalThis['fetch'](...)` conta e reprova como não lido; `cliente.fetch` não é o fetch global; a varredura `usosDeRedeDoGlobal`; e a varredura dos arquivos cobertos cujo perfil não declara fetch). O arquivo vai de 82 para 90 casos.
+  "V2-F02-E05-correcao-1": { total: 8, falhas: 0, puladas: 0 },
+  // V2-F03-E04: `apps/api/test/papeis-batem-com-o-banco.test.ts` e novo, com 26 casos (o shared e o banco falam a mesma lista de papeis e de origens; `usuario_orgao` tem posto 1 e nenhuma acao; PATCH recusa converter nos dois sentidos com 409; POST nao cria a conta; o login dela responde igual a email inexistente, sem contar falha; a conta de A nao aparece para B).
+  "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -934,6 +993,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F04-0E": { total: 76, falhas: 0 },
   // V2-F04-E15 parte 0F (competência no shared, primeira versão pelo Codex e revisada pelo orquestrador): `competencia.test.ts` novo com 14 casos.
   "V2-F04-E15-parte-0F": { total: 14, falhas: 0 },
+  // V2-F02-E06, parte 3A: `packages/shared/test/versao.test.ts` e novo, com 16 casos (`lerVersao`, `compararVersoes` com pre-lancamento ignorado, `lerCabecalhoDeVersao` com formas malformadas, `estaAbaixoDoMinimo` e os aplicativos com minimo), e `catalogo-de-erros.test.ts` ganha 1 (`versao_do_aplicativo_antiga` saiu da reserva para o catalogo emitido).
+  "V2-F02-E06-parte-3A": { total: 17, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -987,6 +1048,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F02-E07": { total: 6, falhas: 0 },
   // V2-F02-E02, parte 2A (painel em `/v1` e renovação pela categoria do erro): `apps/web/test/http-v1-e-categorias.test.ts` é novo, com 23 casos (a base `/v1` com e sem barra final e com origem vazia, todas as formas de chamada, URLs assinadas sem prefixo, o 401 de cada categoria que não renova, a categoria aditiva do servidor, o 401 sem código que segue renovando, o 403 `assinatura` que não gasta a renovação, uma renovação só e o padrão por status). Os demais arquivos tocados mudaram por dentro, sem caso novo.
   "V2-F02-E02-parte-2A": { total: 23, falhas: 0 },
+  // V2-F02-E06, parte 3B: `apps/web/test/versao-do-aplicativo.test.ts` é novo, com 4 casos (`x-app-version: painel/desconhecido` nas dez formas de pedido e no download sem token; o 426 com a frase do corpo, sem renovar e sem derrubar a sessão, numa chamada comum e num download).
+  "V2-F02-E06-parte-3B": { total: 4, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -1119,6 +1182,16 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     demais `*.espacial.test.ts`. Total 75, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0D": { total: 75, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E04 (dominio de papel e usuario_orgao): `db/test/dominio-de-papel.test.ts`
+    e novo, com 36 casos (a 053 sobre dado antigo, os tres dominios, positivos e
+    negativos nas quatro colunas e na origem `portal`, o gatilho que impede a
+    conversao nos dois sentidos, o isolamento intacto e a volta, que recusa quando
+    ja existe dado que os CHECKs antigos nao aceitam). `migracoes-regras.test.ts`
+    e `chave-de-criacao-migracao.test.ts` trocaram numeros e uma fatia no lugar
+    (a 053 de mentira virou 900; a prova da 052 para na 052), sem caso novo.
+  */
+  "V2-F03-E04": { total: 36, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
@@ -1176,6 +1249,10 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
   // V2-F02-E02 e E03, parte 2B: `categorias-do-transporte.test.ts` é novo, com 23 casos (4 da base com /v1 e da URL assinada intacta, 19 da categoria do catálogo lida dentro do status, sem item perdido, sem laço de renovação e com a mesma chave na repetição).
   "V2-F02-E02-parte-2B": { total: 23, falhas: 0 },
+  // V2-F02-E06, parte 3B: `versao-do-aplicativo.test.ts` é novo, com 19 casos (o cabeçalho `campo/<versão>` em todo pedido à API e nunca na URL assinada; o 426 pausa a fila com o item pendente, sem renovar, em qualquer rota e com qualquer corpo; a mesma coleta sobe depois; 401, 409, 5xx e 429 como na tabela da 2B).
+  "V2-F02-E06-parte-3B": { total: 19, falhas: 0 },
+  // V2-F02-E06, parte 3B, correção 1 (revisão independente dos lotes 3 e 4): 3 casos novos em `versao-do-aplicativo.test.ts` (depois de um 426 o transporte pede o token com `semRenovar` e a primeira resposta que não é 426 desfaz; falha de rede não desfaz; o PUT da URL assinada não mexe).
+  "V2-F02-E06-parte-3B-correcao-1": { total: 3, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -1229,6 +1306,10 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
   // V2-F02-E02 e E03, parte 2B: `dados/api-v1-e-categorias.test.ts` é novo, com 12 casos (origem exibida e base com /v1, barra final sem //v1, URL assinada intacta, `ErroDaApi.categoria` pelo catálogo e a atualização ainda pelo 401), e 1 em `obter-fila-uma-so.test.ts` (a base do aplicativo chega à fila com /v1). Quatro testes existentes só trocaram o caminho esperado para /v1.
   "V2-F02-E02-parte-2B": { total: 13, falhas: 0 },
+  // V2-F02-E06, parte 3B: `dados/versao-do-aplicativo.test.ts` é novo, com 8 casos (a versão do `expoConfig`, o cabeçalho em `api.ts`, `rota.ts`, `mapa.ts` e `historico-da-casa.ts`, a varredura de todo `fetch(` do aplicativo, o 426 fora da fila com a frase do servidor e as frases da pausa pelo 426). `faixa-de-sincronizacao.test.tsx` ganhou o estado novo no mapa de estados, sem caso novo.
+  "V2-F02-E06-parte-3B": { total: 8, falhas: 0 },
+  // V2-F02-E06, parte 3B, correção 1: `dados/renovacao-com-versao-antiga.test.ts` é novo, com 3 casos (fila, transporte e obtentor de token REAIS, só a rede dublada: dois drenos depois do 426 com o token perto do vencimento fazem zero tentativas de renovação e o item sobe depois com a mesma chave; a primeira resposta que não é 426 devolve a renovação antecipada ao normal; token vencido durante a pausa ainda renova uma vez pelo 401) e 2 em `dados/token.test.ts` (`semRenovar` devolve o token sem tentar renovar, e nulo sem credenciais).
+  "V2-F02-E06-parte-3B-correcao-1": { total: 5, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

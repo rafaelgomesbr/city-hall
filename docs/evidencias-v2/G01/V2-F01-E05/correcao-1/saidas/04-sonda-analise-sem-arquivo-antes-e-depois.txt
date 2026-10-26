@@ -1,0 +1,42 @@
+# ANTES (script do commit e483a220): analise que nao examinou arquivo nenhum
+Semgrep: 0 achado(s); 0 na baseline triada; 0 novo(s).
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/push/varredor.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/push/varredor.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/avisos.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/avisos.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/avisos.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/busca.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/evidencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/evidencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/ocorrencias.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/prestacao-de-contas.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/rotas/saida-a-campo.ts
+  baseline obsoleta (pode sair): dc360-sql-por-interpolacao em dc360/apps/api/src/saida/pacote.ts
+Aprovado: nenhum achado ERROR novo.
+exit=0
+
+# DEPOIS (script corrigido)
+O Semgrep não provou que examinou o código; o portão reprova.
+  - a análise não examinou nenhum arquivo (`paths.scanned` vazio): ausência de achado aqui não prova nada
+exit=2

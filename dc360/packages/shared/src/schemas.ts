@@ -6,6 +6,7 @@ import {
   CHECKLIST_VISTORIA,
   ORIGENS,
   PAPEIS,
+  PAPEIS_DE_SERVIDOR,
   SEVERIDADES,
   STATUS_OCORRENCIA,
   TIPOS_COBRADE,
@@ -79,7 +80,7 @@ export const usuarioSchema = z.object({
   nome: z.string().min(1).max(200),
   matricula: z.string().min(1).max(40),
   email: z.string().email(),
-  papel: z.enum(PAPEIS),
+  papel: z.enum(PAPEIS_DE_SERVIDOR),
   equipeId: uuidSchema.nullable(),
   ativo: z.boolean(),
 });
@@ -1050,7 +1051,11 @@ export const cadastroUsuarioSchema = z.object({
     .min(1, "Informe o email")
     .email("Informe um email válido")
     .max(320, "Email longo demais"),
-  papel: z.enum(PAPEIS),
+  /*
+    Só papel de SERVIDOR: a conta de `usuario_orgao` nasce por convite (E10), não
+    por este cadastro. Papel de outro tipo cai em 422 de validação.
+  */
+  papel: z.enum(PAPEIS_DE_SERVIDOR),
   equipeId: uuidSchema.nullish(),
   senha: senhaSchema,
 });
@@ -1061,7 +1066,14 @@ export type CadastroUsuario = z.infer<typeof cadastroUsuarioSchema>;
  * outras consequências (derruba sessões), e misturar os dois num formulário só
  * faz alguém trocar senha sem querer.
  */
-export const edicaoUsuarioSchema = cadastroUsuarioSchema.omit({ senha: true });
+export const edicaoUsuarioSchema = cadastroUsuarioSchema
+  .omit({ senha: true })
+  /*
+    A edição aceita TODOS os papéis de conta, de propósito: pedir a troca de ou
+    para `usuario_orgao` precisa chegar à regra e voltar 409 `papel_nao_se_converte`
+    (com a explicação), e não morrer antes numa validação 422 genérica.
+  */
+  .extend({ papel: z.enum(PAPEIS) });
 export type EdicaoUsuario = z.infer<typeof edicaoUsuarioSchema>;
 
 export const cadastroEquipeSchema = z.object({

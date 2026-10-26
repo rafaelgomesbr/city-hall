@@ -151,9 +151,23 @@ export function criarObtentorDeToken(
     return expiraEmMs - agora() <= folgaMs;
   }
 
-  async function obterOuRenovar(pedido?: { renovarJa?: boolean }): Promise<string | null> {
+  async function obterOuRenovar(pedido?: {
+    renovarJa?: boolean;
+    semRenovar?: boolean;
+  }): Promise<string | null> {
     const atuais = ferramentas.lerCredenciais();
     if (!atuais) return null;
+
+    /*
+      `semRenovar` e o pedido do transporte enquanto a ultima resposta foi 426
+      (V2-F02-E06, correcao 1): o servidor recusa o aplicativo antes de
+      autenticar, e renovar por antecipacao so gastaria uma tentativa contra a
+      mesma recusa a cada dreno. Devolve o token que vale agora, sem tocar a
+      trava nem o piso. O 401 que esse token vencido provocar ainda leva ao
+      pedido `renovarJa`, que renova uma vez como sempre (e que vem antes deste
+      teste, porque o transporte nao manda os dois juntos).
+    */
+    if (pedido?.semRenovar === true && pedido.renovarJa !== true) return atuais.acesso;
 
     /*
       `renovarJa` e o pedido do transporte depois de um 401 `nao_autenticado`:
@@ -213,7 +227,10 @@ export function criarObtentorDeToken(
     return renovacaoEmVoo;
   }
 
-  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
+  return async function obterToken(pedido?: {
+    renovarJa?: boolean;
+    semRenovar?: boolean;
+  }): Promise<string | null> {
     const token = await obterOuRenovar(pedido);
     /*
       Só o pedido FORÇADO lê a recusa por conta desativada, e lança. É o do

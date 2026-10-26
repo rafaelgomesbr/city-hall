@@ -1,0 +1,80 @@
+
+Relatório do contrato /v1 (V2-F02-E04)
+
+Rotas com entrada: 73
+Rotas ainda sem entrada (pendentes): 22
+Total sob /v1: 95
+Entradas existentes sem resposta descrita: 35
+
+Por grupo (entradas / com resposta / sem resposta / pendentes):
+  administracao: 12 / 12 / 0 / 0
+  autenticacao: 15 / 15 / 0 / 0
+  campo: 12 / 0 / 12 / 3
+  conta: 10 / 10 / 0 / 0
+  documentos: 5 / 0 / 5 / 1
+  mapa-e-busca: 0 / 0 / 0 / 3
+  ocorrencias: 12 / 0 / 12 / 4
+  oficios-e-orgaos: 3 / 0 / 3 / 7
+  prestacao-de-contas: 3 / 0 / 3 / 4
+  publico: 1 / 1 / 0 / 0
+
+Entradas existentes sem resposta:
+  [campo] POST /v1/sincronizacao/vistoria
+  [campo] POST /v1/sincronizacao/devolucao
+  [campo] GET /v1/sincronizacao/pendencias
+  [campo] GET /v1/campo/meu-trabalho
+  [campo] POST /v1/saida-a-campo
+  [campo] POST /v1/saida-a-campo/prorrogar
+  [campo] POST /v1/saida-a-campo/retorno
+  [campo] POST /v1/saida-a-campo/encerrar
+  [campo] GET /v1/saida-a-campo
+  [campo] GET /v1/saida-a-campo/minha
+  [campo] GET /v1/evidencias/:id/url
+  [campo] GET /v1/evidencias/ocorrencia/:id
+  [documentos] GET /v1/documentos/:id/laudo
+  [documentos] GET /v1/documentos/:id/laudo.pdf
+  [documentos] GET /v1/documentos/:id/termo-de-interdicao
+  [documentos] GET /v1/documentos/:id/termo-de-interdicao.pdf
+  [documentos] GET /v1/documentos/:id/termo-de-desinterdicao
+  [ocorrencias] POST /v1/ocorrencias
+  [ocorrencias] GET /v1/ocorrencias/:id
+  [ocorrencias] POST /v1/ocorrencias/:id/triagem
+  [ocorrencias] POST /v1/ocorrencias/:id/despacho
+  [ocorrencias] POST /v1/ocorrencias/:id/providencia/:providenciaId/resposta
+  [ocorrencias] POST /v1/ocorrencias/:id/encerramento
+  [ocorrencias] POST /v1/ocorrencias/:id/desinterdicao
+  [ocorrencias] POST /v1/ocorrencias/:id/coordenada
+  [ocorrencias] GET /v1/ocorrencias/devolvidas
+  [ocorrencias] GET /v1/ocorrencias/interditados
+  [ocorrencias] GET /v1/ocorrencias/providencias/pendentes
+  [ocorrencias] GET /v1/ocorrencias/indicadores/painel
+  [oficios-e-orgaos] GET /v1/oficios/:id
+  [oficios-e-orgaos] GET /v1/oficios/:id/documento
+  [oficios-e-orgaos] POST /v1/orgaos/:id/reativacao
+  [prestacao-de-contas] GET /v1/trilha/tipos
+  [prestacao-de-contas] GET /v1/relatorios/exportacoes
+  [prestacao-de-contas] POST /v1/saida/pacote.zip
+
+Rotas pendentes (sem entrada):
+  [campo] POST /v1/sincronizacao/pendencias/reconciliar
+  [campo] POST /v1/evidencias/autorizar-envio
+  [campo] POST /v1/evidencias/confirmar-envio
+  [documentos] GET /v1/documentos/validar/:codigo
+  [mapa-e-busca] POST /v1/mapa/resolver-link
+  [mapa-e-busca] POST /v1/rota
+  [mapa-e-busca] GET /v1/busca
+  [ocorrencias] GET /v1/ocorrencias
+  [ocorrencias] GET /v1/ocorrencias/mapa
+  [ocorrencias] GET /v1/ocorrencias/duplicidades/consulta
+  [ocorrencias] POST /v1/ocorrencias/:id/providencia
+  [oficios-e-orgaos] GET /v1/oficios
+  [oficios-e-orgaos] POST /v1/oficios
+  [oficios-e-orgaos] POST /v1/oficios/:id/envio
+  [oficios-e-orgaos] GET /v1/orgaos
+  [oficios-e-orgaos] POST /v1/orgaos
+  [oficios-e-orgaos] PATCH /v1/orgaos/:id
+  [oficios-e-orgaos] POST /v1/orgaos/:id/desativacao
+  [prestacao-de-contas] GET /v1/trilha
+  [prestacao-de-contas] GET /v1/relatorios/ocorrencias.csv
+  [prestacao-de-contas] GET /v1/relatorios/resumo
+  [prestacao-de-contas] GET /v1/relatorios/consultas

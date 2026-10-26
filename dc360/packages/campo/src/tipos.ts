@@ -403,13 +403,22 @@ export class FalhaPermanente extends Error {
  * as coletas do agente viravam `bloqueado`, com "Descartar" ao lado, sobre
  * coleta que o servidor nunca recebeu.
  *
- * Os três nomes são os códigos do catálogo de `@dc360/shared`
- * (`codigos-de-erro.ts`), de propósito: o texto do servidor muda, o código não.
+ * `versao_do_aplicativo_antiga`: o servidor respondeu 426, porque a versão
+ * deste aplicativo está abaixo da mínima que ele aceita (V2-F02-E06). Entrar
+ * de novo NÃO resolve; resolve atualizar o aplicativo. Entrou na mesma classe
+ * de `conta_desativada` porque o servidor recusou O APLICATIVO, e não a
+ * coleta: a coleta feita com a versão antiga é um ato que aconteceu, e sobe
+ * depois da atualização com a mesma chave de idempotência.
+ *
+ * Os nomes são os códigos do catálogo de `@dc360/shared` (`codigos-de-erro.ts`
+ * para os três primeiros, `erros.ts` para o 426), de propósito: o texto do
+ * servidor muda, o código não.
  */
 export type MotivoDeSessao =
   | "sessao_encerrada"
   | "conta_desativada"
-  | "troca_de_senha_obrigatoria";
+  | "troca_de_senha_obrigatoria"
+  | "versao_do_aplicativo_antiga";
 
 /**
  * A falha que não é nem de rede nem do dado: é da sessão.
@@ -447,8 +456,20 @@ export class FalhaDeSessao extends Error {
  * UM token novo. Quem implementa continua dono da trava de renovação e do piso
  * entre tentativas, e devolve o MESMO token quando não renovou: é assim que o
  * transporte sabe que repetir seria inútil.
+ *
+ * Com `semRenovar`, é o pedido do transporte enquanto a última resposta da API
+ * foi 426 (`versao_do_aplicativo_antiga`, V2-F02-E06): o servidor recusa o
+ * APLICATIVO antes de autenticar, então renovar o token por antecipação só
+ * gastaria uma tentativa contra a mesma recusa a cada dreno da fila. Quem
+ * implementa devolve o token que vale agora, perto de vencer ou não, e não toca
+ * a trava nem o piso entre tentativas. Dura até a primeira resposta que não
+ * seja 426; um 401 `nao_autenticado` nessa volta ainda leva ao pedido
+ * `renovarJa`, que renova uma vez como sempre.
  */
-export type ObterToken = (pedido?: { renovarJa?: boolean }) => Promise<string | null>;
+export type ObterToken = (pedido?: {
+  renovarJa?: boolean;
+  semRenovar?: boolean;
+}) => Promise<string | null>;
 
 /**
  * A coleta como ela SAI da fila para virar rascunho de novo.

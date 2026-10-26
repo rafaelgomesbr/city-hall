@@ -23,6 +23,23 @@ export type RespostaDoContrato = {
   readonly tipo?: string;
 };
 
+/**
+ * Um status de sucesso a mais, para a rota que responde de dois jeitos. O caso
+ * típico é a criação idempotente: 201 na primeira vez e 200, com o mesmo corpo,
+ * no reenvio com a mesma chave.
+ */
+export type RespostaAdicionalDoContrato = {
+  /** O status HTTP. Não pode repetir o principal, outro adicional nem um status de erro da entrada. */
+  readonly status: number;
+  /** Uma frase sobre quando a rota responde assim. */
+  readonly descricao: string;
+  /**
+   * O esquema do corpo JSON desta resposta. Ausente: vale o esquema (ou o tipo
+   * de mídia) da resposta principal, que é o caso do reenvio idempotente.
+   */
+  readonly resposta?: ZodType;
+};
+
 export type RotaDoContrato = {
   readonly metodo: MetodoHttp;
   /**
@@ -41,6 +58,11 @@ export type RotaDoContrato = {
   readonly parametros?: ZodType;
   /** Ausente em rota existente é DÍVIDA listada. Em rota `nova`, reprova. */
   readonly resposta?: RespostaDoContrato;
+  /**
+   * Os outros status de sucesso da rota (o 200 do reenvio idempotente de uma
+   * rota que cria com 201). Só vale com `resposta` descrita.
+   */
+  readonly tambemResponde?: readonly RespostaAdicionalDoContrato[];
   /** Os códigos do catálogo (`CODIGOS_DE_ERRO`) com que esta rota pode responder. */
   readonly erros?: readonly CodigoDeErro[];
   /** Rota criada depois do contrato existir: `resposta` é obrigatória. */

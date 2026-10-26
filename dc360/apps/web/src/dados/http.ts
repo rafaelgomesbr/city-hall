@@ -35,6 +35,18 @@ const ORIGEM = String(import.meta.env["VITE_API_URL"] ?? "").replace(/\/+$/, "")
 const BASE = `${ORIGEM}/v1`;
 const CHAVE_TOKENS = "dc360:tokens";
 
+/**
+ * A versão do painel no cabeçalho `x-app-version` (V2-F02-E06), em todo pedido
+ * à API. Serve SÓ para observabilidade: a API conta quem a chama, e não existe
+ * versão mínima do painel (ele é publicado junto da API e não fica preso numa
+ * loja). Nenhuma variável do Vite carrega hoje o número do build, então o
+ * valor é `painel/desconhecido`; quando o build passar a ter número, ele entra
+ * aqui. O 426 que viesse para o painel não tem tratamento próprio: chega como
+ * `ErroDaApi` com a frase do servidor, como qualquer recusa, e não renova a
+ * sessão (só o 401 renova).
+ */
+const VERSAO_DO_PAINEL = { "x-app-version": "painel/desconhecido" } as const;
+
 type Tokens = { acesso: string; renovacao: string };
 
 function lerTokens(): Tokens | null {
@@ -137,7 +149,7 @@ async function renovar(): Promise<boolean | "conta_desativada"> {
     try {
       const r = await fetch(`${BASE}/auth/renovar`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...VERSAO_DO_PAINEL },
         body: JSON.stringify({ renovacao: tokens.renovacao }),
       });
       if (!r.ok) {
@@ -305,6 +317,7 @@ async function chamar<T>(
   const metodo = opcoes.metodo ?? "GET";
   const cabecalhos: Record<string, string> = {
     accept: opcoes.arquivo ? "application/zip, application/json" : "application/json",
+    ...VERSAO_DO_PAINEL,
   };
   if (opcoes.corpo !== undefined) cabecalhos["content-type"] = "application/json";
   if (tokens) cabecalhos["authorization"] = `Bearer ${tokens.acesso}`;
@@ -526,7 +539,7 @@ export async function encerrarSessao(): Promise<void> {
   if (!tokens) return;
   await fetch(`${BASE}/auth/sair`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...VERSAO_DO_PAINEL },
     body: JSON.stringify({ renovacao: tokens.renovacao }),
   }).catch(() => undefined);
 }
@@ -937,7 +950,7 @@ export async function abrirDocumento(
   const tokens = lerTokens();
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {
-      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}`, ...VERSAO_DO_PAINEL } : { ...VERSAO_DO_PAINEL },
     }), true);
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}));
@@ -1105,7 +1118,7 @@ export async function baixarCsvDeOcorrencias(
   const tokens = lerTokens();
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/relatorios/ocorrencias.csv?${p.toString()}`, {
-      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}`, ...VERSAO_DO_PAINEL } : { ...VERSAO_DO_PAINEL },
     }), true);
   if (!resposta.ok) {
     throw new ErroDaApi(
@@ -1338,7 +1351,7 @@ export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
   const tokens = lerTokens();
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/oficios/${id}/documento`, {
-      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}`, ...VERSAO_DO_PAINEL } : { ...VERSAO_DO_PAINEL },
     }), true);
   if (!resposta.ok) {
     throw new ErroDaApi(

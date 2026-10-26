@@ -1,7 +1,7 @@
 # Plano da F04 em lotes (planejador Opus, 2026-10-26, base `v2/f03` em 8e29684)
 
 Revisado em 2026-10-26 pelas correções 1 (`3f036ef`) e 2 (`372384d`) da ADR 0010; terceira rodada de segurança sem impedimento.
-O ramo `v2/f04` foi aberto de `v2/f03` em `52b5e3b` (marco F3-L0, com a parte 0D da F03 juntada) e já traz a parte 0A (ADR 0010 proposta, ponta `372384dd`). As migrações 067 a 078 e os números H117 a H129 abaixo são os vigentes neste ramo.
+O ramo `v2/f04` foi aberto de `v2/f03` em `52b5e3b` (marco F3-L0, com a parte 0D da F03 juntada) e já traz a parte 0A (ADR 0010 proposta, ponta `372384dd`). As migrações 067 a 078 e os números H119 a H129, H133 e H134 abaixo são os vigentes neste ramo.
 
 Fonte: `docs/roadmap-v2/05-api-identidade-autorizacao.md` (V2-F04-E01 a E17 e G04). Decisões: D-08 (pessoa global; órgão é contexto dentro do município; vínculo vigente é o da conta no município do token); D-18 (competência e escalonamento, E15, E16, CP-53); D-23 (devolução só antes do aceite, E17); D-24 (só a coordenação classifica e despacha: ações novas da E08 e manifesto); D-05 (documento emitido é imutável: E12); D-21 (reabertura: regra da E13); D-30 a D-32. Nenhuma DV com dono na F04 em `dividas.md`; em `apps/api/PENDENCIAS.md`: "`GET /avisos` escreve" (F07-E03 ou F04-E11) e "`GET /orgaos` responde a qualquer papel" (F03-E12 ou F04-E09).
 
@@ -18,7 +18,7 @@ Fonte: `docs/roadmap-v2/05-api-identidade-autorizacao.md` (V2-F04-E01 a E17 e G0
 
 ## 1. Checkpoints, decisões e premissas
 Nenhuma etapa para por CP. O G04 exige CP-09 e CP-53 decididos ou adiados.
-- E01: código segue a ADR 0010 PROPOSTA, já com as correções 1 e 2 e três rodadas de revisão de segurança (a terceira sem impedimento); aceite (H117) depende do H97.
+- E01: código segue a ADR 0010 PROPOSTA, já com as correções 1 e 2 e três rodadas de revisão de segurança (a terceira sem impedimento); aceite (H133) depende do H97.
 - E02: CP-20 parcial, premissa alternativa A (sete estados, destino explícito, `destinatario_id` nulo permitido, atribuição nominal opcional depois do aceite); acréscimo P-08 (`chave_de_criacao`). Também nascem na E02, escritos só pelo banco, `fato_seq` e `dossie_versao_vigente` em `providencias`, e a função `travar_municipio_para_escrita()` (primeiro comando de todo caminho de escrita).
 - E03: tabela de transições com o ator; P-12; D-24 (transições da Defesa Civil só com coordenação e administrador). O evento da transição é gerado pelo banco (decisão 17): gerador SECURITY DEFINER de gatilho `AFTER INSERT OR UPDATE` em `providencias`, um fato por comando, `fato_seq` por encaminhamento, espelho `portal` e aviso nascendo do evento; `EVENTOS_DO_ENCAMINHAMENTO` no shared descreve cada tipo.
 - E04: CP-09 premissa alternativa C (mínimo fixo: protocolo, tipo, endereço, mais o que a Defesa Civil marca com justificativa); CP-10: retenção de `campos_sensiveis` na F05-E09, coluna anulável. `pedido` (obrigatório) e `observacoes_da_coordenacao` (opcional) são o canal do texto livre dirigido ao órgão, em `campos_sensiveis`, com retenção; os textos livres de `providencias` e `oficios` nunca saem direto da coluna, em rota nenhuma. A versão `migracao` dos legados não copia texto livre (legado aberto fica "pedido em revisão" até a Defesa Civil recompor, H128).
@@ -104,9 +104,9 @@ Ramos `trab/f04-<lote><parte>-<nome>`; commits `V2-F04-Enn: candidato, ...`. Nin
 ## 5. Custo (unidade do orcamento.py)
 Lote 0: 30 a 50 mais 10 a 20. Lote 1: 90 a 140 mais 35 a 65. Lote 2: 50 a 85 mais 25 a 45. Lote 3: 120 a 180 mais 45 a 85. Lote 4: 80 a 125 mais 35 a 65. Lote 5: 45 a 75 mais 20 a 40. Lote 6: 30 a 50 mais 15 a 30. Total 445 a 705 mais 185 a 350, fora a validação. As correções 1 e 2 da ADR 0010 sobem a 1A, a 2B, a 2C (risco crítico) e a 3A: o orquestrador reestima esses lotes antes de despachar.
 
-## Pendências humanas novas (H117 em diante; H116 já é do `v2/f02`)
-- H117 aceite da ADR 0010 (depois de três rodadas de revisão de segurança, a terceira sem impedimento; depende do H97).
-- H118 CP-09 decidido ou adiado antes do G04 (recomendação: alternativa C, padrão conservador; bloqueia o primeiro encaminhamento real e a F19).
+## Pendências humanas novas (H119 em diante, mais H133 e H134; H116 já é do `v2/f02`; H117 e H118 são do `v2/f03`, e os antigos H117 e H118 desta lista foram renumerados para H133 e H134 na cascata pós-G00)
+- H133 aceite da ADR 0010 (depois de três rodadas de revisão de segurança, a terceira sem impedimento; depende do H97).
+- H134 CP-09 decidido ou adiado antes do G04 (recomendação: alternativa C, padrão conservador; bloqueia o primeiro encaminhamento real e a F19).
 - H119 CP-53 decidido ou adiado antes do G04 (recomendação: A para competência, C para escalonamento, automático desligado).
 - H120 P-12 e D-24 (operador registra resposta em nome do órgão até o CP-22; `gerir_encaminhamento` só coordenação e administrador).
 - H121 emenda de redação da E09 e E11 (busca do órgão na família do órgão; 403 viram 401 da plateia). Recomendação: aceitar.

@@ -55,6 +55,12 @@
 # dois arquivos concordem), com o hash de `flyctl_<versão>_checksums.txt`.
 
 name: Implantar HML
+# O SHA IMPLANTADO fica no título do run. Num `workflow_run`, o `head_sha` do run
+# é a ponta do ramo padrão, e não o commit que este deploy implanta (o do
+# Verificar que o disparou): se o CI de A termina depois de B entrar na master,
+# o run que implanta A tem `head_sha` de B. A promoção para PROD procura o run
+# por este título (correção 1 da F01, achado 4 da revisão independente).
+run-name: Implantar HML ${{ github.event.workflow_run.head_sha }}
 
 on:
   workflow_run:
@@ -81,6 +87,11 @@ env:
   # (o teste confere) e NUNCA os de PROD.
   APP_API: defesa-civil-hml
   APP_CONSOLE: defesa-civil-console-hml
+  # O projeto da Vercel que publica o painel de HML do ramo `homologacao`. O job
+  # `painel` espera o deployment do commit neste projeto ficar `Ready` antes do
+  # selo. Criado pelo dono (docs/runbooks/deploy.md); se o nome for outro, troca
+  # aqui.
+  PAINEL_HML_PROJETO_VERCEL: dc360-painel-hml
 
 jobs:
   construir:
@@ -279,9 +290,12 @@ jobs:
         run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       # A MESMA imagem, copiada por digest para o registro do app de HML. O
-      # `imagetools create` copia o manifesto sem reconstruir nada, então o digest
-      # no Fly é idêntico ao do GHCR. Depois do `fly deploy`, o `/saude` com o
-      # commit esperado prova que foi essa imagem que subiu.
+      # `imagetools create --prefer-index=false` faz cópia CARBONO do manifesto,
+      # sem reconstruir nada. Sem a opção, uma fonte só com manifesto simples vira
+      # um índice novo, com OUTRO digest, e o `--image ...@digest` abaixo não
+      # existiria no Fly (correção 1 da F01, achado 3). O digest do destino é
+      # lido de volta e comparado. Depois do `fly deploy`, o `/saude` com o commit
+      # esperado prova que foi essa imagem que subiu.
       - name: Implantar a API
         working-directory: dc360
         env:
@@ -289,7 +303,9 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
-          docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+          docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" --prefer-index=false "${IMAGEM_API}@${DIGEST_API}"
+          copiado="$(docker buildx imagetools inspect "registry.fly.io/${APP_API}:sha-${COMMIT}" --format '{{.Manifest.Digest}}')"
+          [ "$copiado" = "$DIGEST_API" ] || { echo "::error::a cópia da API no Fly tem o digest ${copiado}, e não o construído ${DIGEST_API}"; exit 1; }
           flyctl deploy -c fly.hml.toml -a "$APP_API" --image "registry.fly.io/${APP_API}@${DIGEST_API}"
           node scripts/conferir-saude-remota.mjs --tipo=api --url="https://${APP_API}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
 
@@ -300,7 +316,9 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
-          docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+          docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" --prefer-index=false "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+          copiado="$(docker buildx imagetools inspect "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" --format '{{.Manifest.Digest}}')"
+          [ "$copiado" = "$DIGEST_CONSOLE" ] || { echo "::error::a cópia do console no Fly tem o digest ${copiado}, e não o construído ${DIGEST_CONSOLE}"; exit 1; }
           flyctl deploy -c fly.console.hml.toml -a "$APP_CONSOLE" --ha=false --image "registry.fly.io/${APP_CONSOLE}@${DIGEST_CONSOLE}"
           node scripts/conferir-saude-remota.mjs --tipo=console --url="https://${APP_CONSOLE}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
 
@@ -312,15 +330,34 @@ jobs:
 
   # O painel de HML é publicado pela Vercel a partir do ramo `homologacao`, e
   # só DEPOIS da API e do console: o painel novo não pode chegar antes da API
-  # nova. O token deste job só escreve o ramo; a Vercel não tem token aqui.
+  # nova. O token deste job escreve o ramo e LÊ os deployments; a Vercel não tem
+  # token aqui.
+  #
+  # O job só termina verde depois de a Vercel publicar (correção 1 da F01,
+  # achado 5 da revisão independente): antes, ele terminava quando o ramo se
+  # movia, e uma falha de build na Vercel deixava o selo nascer assim mesmo.
+  # `esperar-painel.mjs` lê, pela API do GitHub, o deployment que a integração
+  # da Vercel registra para o commit no projeto de HML, espera o estado `Ready`
+  # (`success`) e confere que o endereço de HML (`scripts/ambientes.json`)
+  # responde. Falha, erro ou tempo esgotado reprovam com a razão escrita.
   painel:
     name: Publicar o painel de HML (ramo homologacao)
     needs: [construir, implantar]
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: write
+      deployments: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
       - name: Mover o ramo homologacao para o commit implantado
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -332,9 +369,23 @@ jobs:
           gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/homologacao" -f sha="$COMMIT" -F force=true \
             || gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/heads/homologacao" -f sha="$COMMIT"
 
+      - name: Esperar a Vercel publicar o painel de HML
+        working-directory: dc360
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ needs.construir.outputs.commit }}
+        run: |
+          set -euo pipefail
+          node scripts/esperar-painel.mjs --ambiente=hml --projeto="$PAINEL_HML_PROJETO_VERCEL" --commit="$COMMIT" --limite-min=15
+
   # O selo de "passou por HML". A promoção para PROD só aceita um commit cujas
   # duas imagens tenham este selo, e o selo só nasce depois do /saude verde da
-  # API e do console e do ramo do painel atualizado.
+  # API e do console e do painel publicado e respondendo.
+  #
+  # Cópia CARBONO (`--prefer-index=false`), e o digest do selo lido de volta e
+  # comparado com o construído: sem isso, uma imagem de manifesto simples virava
+  # um índice novo, o selo tinha outro digest e a promoção recusava a versão que
+  # acabou de passar por HML (correção 1 da F01, achado 3).
   aprovar:
     name: Marcar a versão como aprovada em HML
     needs: [construir, implantar, painel]
@@ -355,8 +406,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          docker buildx imagetools create --tag "${IMAGEM_API}:hml-ok-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
-          docker buildx imagetools create --tag "${IMAGEM_CONSOLE}:hml-ok-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+          for alvo in API CONSOLE; do
+            variavel_imagem="IMAGEM_${alvo}"
+            variavel_digest="DIGEST_${alvo}"
+            imagem="${!variavel_imagem}"
+            digest="${!variavel_digest}"
+            docker buildx imagetools create --tag "$imagem:hml-ok-$COMMIT" --prefer-index=false "$imagem@$digest"
+            selado="$(docker buildx imagetools inspect "$imagem:hml-ok-$COMMIT" --format '{{.Manifest.Digest}}')"
+            [ "$selado" = "$digest" ] || { echo "::error::o selo hml-ok de ${imagem} tem o digest ${selado}, e não o construído ${digest}"; exit 1; }
+          done
           echo "aprovado em HML: ${COMMIT}"
           echo "  api     ${DIGEST_API}"
           echo "  console ${DIGEST_CONSOLE}"

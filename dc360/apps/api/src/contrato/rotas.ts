@@ -1,4 +1,5 @@
 import { grupo as administracao } from "./grupos/administracao.js";
+import { grupo as aplicativos } from "./grupos/aplicativos.js";
 import { grupo as autenticacao } from "./grupos/autenticacao.js";
 import { grupo as campo } from "./grupos/campo.js";
 import { grupo as conta } from "./grupos/conta.js";
@@ -30,6 +31,7 @@ import { chaveDaRota, type GrupoDoContrato, type RotaDoContrato } from "./tipos.
  */
 export const GRUPOS: readonly GrupoDoContrato[] = [
   administracao,
+  aplicativos,
   autenticacao,
   campo,
   conta,

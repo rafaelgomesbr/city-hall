@@ -13,3 +13,6 @@
 | saidas/07-regras-de-conteudo.txt | 23d62f216fb4a37bed81e4fdd123853bba777c9c4879ffd0f1eb909a2b02af7b |
 | saidas/08-test-scripts-com-index.txt | 7a1c7692613072e0f14604339ad01e545525787b93fe583f57c1f2588649c0bc |
 | saidas/09-diff-do-verificar-yml.patch | 1857c20813add9e651347973def524034a8e8cf7a737a2762d0b73f72f80ae72 |
+| correcao-1/RESUMO.md | 1f33a1c9feee5d63f49dc1d2a245f230e9c1ffdeba770ef346b040b6097ee3ee |
+| correcao-1/saidas/01-antes-conferir-workflows-test.txt | 6681a5fe71b7b807e23ca8211912edc1faccf322cef1f44b505958bf0b5a8b00 |
+| correcao-1/saidas/02-depois-conferir-workflows-test.txt | fe22a743d9a1d61e28b543027d90e8b625cb322d49abd560066cab59762a031c |

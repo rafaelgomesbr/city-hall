@@ -133,6 +133,54 @@ test("componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; ma
   assert.throws(() => componentesDeProducao({ lockfileVersion: 1, dependencies: {} }), /packages/);
 });
 
+// Correção 1 da F01 (E19): confiar só em `dev: true` deixava sumir da conferência
+// um componente que o grafo de runtime alcança (lockfile editado ou corrompido).
+test("componentesDeProducao: o grafo de runtime decide, e a marca `dev: true` inconsistente não esconde o componente", () => {
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      "": {
+        name: "dc360",
+        dependencies: { "fast-uri": "^4.2.3" },
+        devDependencies: { vitest: "1" },
+      },
+      // Alcançado pela raiz em runtime, mas marcado como só de desenvolvimento à mão.
+      "node_modules/fast-uri": { version: "4.2.3", dev: true, license: "AGPL-3.0" },
+      // Só de desenvolvimento de verdade: alcançado apenas por devDependencies.
+      "node_modules/vitest": { version: "1.0.0", dev: true, license: "MIT" },
+    },
+  };
+  const nomes = componentesDeProducao(lock).map((c) => `${c.pacote}@${c.versao}:${c.licenca}`);
+  assert.deepEqual(
+    nomes,
+    ["fast-uri@4.2.3:AGPL-3.0"],
+    "só o de runtime; o de verdade-dev segue de fora",
+  );
+  // Com a política decidida, o AGPL escondido pela marca agora reprova.
+  const resultado = conferir(
+    [{ nome: "plataforma", componentes: componentesDeProducao(lock) }],
+    politica(),
+    HOJE,
+  );
+  assert.equal(resultado.contagem.plataforma.proibida, 1);
+  assert.equal(resultado.reprova, true);
+});
+
+test("componentesDeProducao: dependência transitiva de runtime também é alcançada pelo grafo, mesmo marcada dev", () => {
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      "": { name: "dc360", dependencies: { a: "1" } },
+      "node_modules/a": { version: "1.0.0", license: "MIT", dependencies: { b: "1" } },
+      "node_modules/b": { version: "1.0.0", dev: true, license: "GPL-3.0-only" },
+    },
+  };
+  assert.deepEqual(
+    componentesDeProducao(lock).map((c) => c.pacote),
+    ["a", "b"],
+  );
+});
+
 test("normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência", () => {
   assert.equal(normalizarLicenca(" MIT "), "MIT");
   assert.equal(normalizarLicenca({ type: "MIT", url: "x" }), "MIT");

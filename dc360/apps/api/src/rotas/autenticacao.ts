@@ -4,7 +4,7 @@ import type { Config } from "../config.js";
 import type { ServicoAutenticacao } from "../auth/servico.js";
 import { enderecoDoCliente } from "../rede.js";
 
-const entradaSchema = z.object({
+export const entradaSchema = z.object({
   email: z.string().email("Informe um email válido").max(320),
   senha: z.string().min(1, "Informe a senha").max(200),
 });
@@ -19,12 +19,12 @@ const entradaSchema = z.object({
  * de recuperação, no mesmo lugar, porque quem perdeu o telefone está com pressa
  * e não vai procurar um segundo formulário.
  */
-const segundoFatorSchema = z.object({
+export const segundoFatorSchema = z.object({
   desafio: z.string().min(1).max(4096),
   codigo: z.string().min(1, "Informe o código").max(64),
 });
 
-const renovacaoSchema = z.object({
+export const renovacaoSchema = z.object({
   renovacao: z.string().min(1).max(200),
 });
 
@@ -35,7 +35,7 @@ const renovacaoSchema = z.object({
  * aplicativo, ainda instalada em algum telefone, continua saindo sem mandar
  * nada. Obrigar quebraria as duas na mesma linha.
  */
-const saidaSchema = renovacaoSchema.extend({
+export const saidaSchema = renovacaoSchema.extend({
   ficha: z.string().min(1).max(4096).optional(),
 });
 
@@ -49,16 +49,16 @@ const senhaSchema = z.string()
   .min(12, "A senha precisa de pelo menos 12 caracteres")
   .max(200);
 
-const recuperacaoSchema = z.object({
+export const recuperacaoSchema = z.object({
   email: z.string().email("Informe um email valido").max(320),
 });
 
-const redefinicaoSchema = z.object({
+export const redefinicaoSchema = z.object({
   token: z.string().min(1).max(200),
   senha: senhaSchema,
 });
 
-const trocaSchema = z.object({
+export const trocaSchema = z.object({
   senhaAtual: z.string().min(1).max(200),
   senha: senhaSchema,
 });

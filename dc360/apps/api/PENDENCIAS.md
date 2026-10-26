@@ -520,31 +520,40 @@ fica em aberto:
    a data na E08.
 2. **`Deprecation` sai com o valor `true`**, a forma do rascunho que o RFC 9745
    substituiu por uma data. A data de início da depreciação é decisão da E08.
-3. **O painel, o campo e o console ainda falam o caminho sem prefixo.** Migrá-los
-   para `/v1` é a V2-F02-E02; até lá o espelho é o caminho vivo dos três, e o
-   cabeçalho de depreciação já aparece nas respostas que eles recebem.
-4. **Nada mede o uso do espelho ainda.** Sem essa medição, a data de retirada não
-   tem como ser decidida com dado. É escopo da E08.
+3. **O painel, o campo e o console já falam `/v1` (V2-F02-E02).** O espelho sem
+   prefixo ficou só para o aplicativo de campo já instalado nos aparelhos, e a
+   V2-F02-E05 trava isso: `apps/api/test/contrato-cliente-rota.test.ts` lê os três
+   clientes como texto e reprova chamada que não case com uma rota `/v1` do
+   servidor montado (caminho, método, corpo e consulta contra o esquema do
+   registro) ou `fetch` solto fora da base e das duas URLs assinadas.
+4. **A medição do uso do espelho existe (V2-F02-E08), mas ninguém a lê ainda.**
+   Cada pedido ao espelho gera uma linha de log `info` (`evento: "uso_do_espelho"`,
+   método, modelo da rota e versão). O que falta é a OPERAÇÃO reter esse log e
+   agregá-lo por rota e versão no período, para o Rafael decidir a data com dado
+   (`docs/POLITICA-DE-VERSOES-DA-API.md`, seção 5). Enquanto o aplicativo de campo
+   instalado não enviar `X-App-Version`, as linhas saem como `ausente`, e isso
+   mede o uso sem dizer a versão.
+5. **`ESPELHO_LEGADO_ENCERRADO` existe e nasce `nao`.** Só a V2-F28-E11 liga
+   `sim`, depois de o Rafael decidir a data (H86). A recusa 426 do espelho
+   encerrado está provada em teste, mas não foi exercida em ambiente real.
 
 ## O contrato OpenAPI do `/v1` (V2-F02-E04)
 
 O registro de rotas (`src/contrato/rotas.ts`) e o documento gerado
-(`openapi/v1.json`) existem, mas descrevem a API pela metade. O que fica em
-aberto, com o número de cada coisa no relatório
+(`openapi/v1.json`) existem e, desde a parte 3C da F02, descrevem toda rota do `/v1`. O que
+fica em aberto, com o número de cada coisa no relatório
 (`docs/evidencias-v2/G02/V2-F02-E04/relatorio-de-rotas.txt`):
 
-1. **A dívida das respostas.** A maioria das entradas existentes ainda não tem
-   `resposta`: o documento as marca com `x-resposta-pendente` e o status
-   `default`, sem inventar um 200. Descrever a resposta de cada rota é a dívida,
-   e o relatório conta quantas faltam. Não reprova (as existentes sem resposta
-   saem num relatório); rota `nova` sem resposta reprova.
-2. **As rotas sem entrada (`pendentes`).** Quarenta rotas registradas ainda não
-   têm entrada, porque o corpo ou a query delas é validado por um esquema que
-   mora dentro de `src/rotas/*.ts` (`entradaSchema`, `consultaSchema`,
-   `emissaoSchema`...). Copiar esse esquema para o contrato criaria a segunda
-   fonte da verdade que a etapa quer evitar, então cada grupo declara a lista
-   (`pendentes`) e o teste conta e limita: o teto só desce. O lote 3 da F02
-   (partes 3C1 a 3C3) exporta cada esquema, descreve a rota e zera a lista.
+1. **A dívida das respostas, paga na F02.** As 96 entradas do `/v1` têm
+   `resposta` descrita e conferida por `inject` contra o que a API devolve; o
+   documento tem zero operações com `x-resposta-pendente`. Rota `nova` sem
+   resposta, ou existente que volte a ficar sem, reprova no teste.
+2. **As rotas sem entrada (`pendentes`) chegaram a zero.** Eram quarenta quando a
+   etapa começou; as partes 3C1 (18), 3C2 (10) e 3C3 (12) exportaram cada esquema
+   de `src/rotas/*.ts`, descreveram a rota e esvaziaram a lista.
+   `PENDENTES_CONGELADAS` está vazia e `TETO_DE_PENDENTES` é 0 em
+   `apps/api/test/openapi.test.ts`. Rota nova sob `/v1` entra com entrada e
+   resposta, nunca na lista.
 3. **Sem validador de OpenAPI.** A conferência é estrutural, escrita no teste
    (versão 3.1.0, caminhos, parâmetros de caminho, referências). Um validador de
    verdade seria dependência nova, e a escolha exige `npm audit` em zero.
@@ -557,6 +566,28 @@ aberto, com o número de cada coisa no relatório
    valida sozinho. Traduzir as mais comuns (campo obrigatório quando outro tem
    certo valor) para `if/then` é possível e fica para quando houver cliente
    gerado (F08-E04).
+
+6. **Um só status de sucesso por entrada (limite do gerador). RESOLVIDO na
+   parte 4B (5f74611a).** A entrada ganhou `tambemResponde?: readonly { status;
+   descricao; resposta? }[]` (`src/contrato/tipos.ts`), e o gerador a lista como
+   resposta adicional (com o esquema da principal quando não declara outro).
+   `POST /v1/ocorrencias`, `POST /v1/sincronizacao/vistoria`, `/devolucao` e
+   `POST /v1/saida-a-campo` declaram o 200 do reenvio idempotente ao lado do 201,
+   e `test/contrato-3c2-respostas.test.ts` confere por `inject` que o corpo do 200
+   casa com o esquema. O gerador falha se o status adicional repete outro, colide
+   com um status de erro da entrada ou aparece numa entrada sem `resposta`.
+7. **A anotação de regras adicionais visita cada esquema uma vez (limite do
+   gerador). RESOLVIDO na parte 4B (5f74611a).** `refinamentosDe`
+   (`src/contrato/openapi.ts`) agora visita por CAMINHO: o mesmo esquema em dois
+   campos gera uma anotação por caminho (`POST /v1/rota` anota a coordenada 0,0
+   em `origem` e em `destino`), o mesmo par (esquema, caminho) não repete, e o
+   esquema que já está na cadeia de quem o contém é pulado, então um esquema
+   recursivo termina. O `resumo` da rota voltou a ser só descritivo.
+8. **Respostas que são a linha do banco entregam colunas internas (decisão da
+   F03).** `GET /v1/ocorrencias` devolve `organizacao_id` e `chave_de_criacao`, e
+   o dossiê devolve também `busca` (a chave de busca normalizada). O contrato
+   descreve o que sai hoje, sem mudar comportamento; se tudo isso deve continuar
+   saindo é decisão da F03 (privacidade e autorização por campo).
 
 ## Idempotência da criação: o padrão para os próximos criadores (V2-F02-E07)
 
@@ -661,3 +692,47 @@ aceita e passam a ter dono:
   fora dele. A regra final é do CP-50 (pendências humanas H94 e H96). Isto
   refina o item 3 de "O que estava fora daqui" e a linha "A senha temporária é
   conhecida por quem a sorteia".
+
+## O contrato cliente x rota é estático, e o que ele não vê (V2-F02-E05)
+
+`apps/api/test/contrato-cliente-rota.test.ts` lê o painel, o aplicativo de campo
+(com a fila offline de `packages/campo`) e o console como TEXTO e confronta cada
+chamada com as rotas `/v1` do servidor montado. É estático, e por isso tem
+limites que ficam escritos aqui em vez de na memória de quem passa.
+
+1. **O corpo e a consulta só são conferidos quando o texto os mostra.** Corpo
+   escrito como literal (`corpo: { email, senha }`) é confrontado com o esquema do
+   registro (nenhuma chave que o esquema não conheça, todas as obrigatórias);
+   corpo que vem de variável (`corpo: dados`) ou de expressão, e consulta montada
+   em tempo de execução (`?${p.toString()}`), ficam como `nao-lido` no relatório
+   da evidência. Nesses casos quem garante as chaves é o tipo do parâmetro (o
+   `typecheck` do painel e do campo, com os tipos do pacote compartilhado), e não
+   este teste. Fechar de verdade é o pacote `cliente-api` gerado do contrato
+   (V2-F08-E04).
+2. **Os esquemas que não são objeto simples não são lidos.** União e união
+   discriminada devolvem `esquema-ilegivel`. Hoje nenhuma rota chamada por
+   cliente cai nesse caso (a evidência mostra a contagem).
+3. **O console é lido de dois textos, não do servidor montado.** O script do
+   console (`JS_DO_CONSOLE`) é confrontado com as rotas lidas do texto de
+   `apps/console/src/servidor.ts` (`rotas.<verbo>(`), porque montar o console aqui
+   exigiria o banco e a semente do dono, que moram no apoio de teste do console.
+   A leitura reprova se o número de `rotas.<verbo>` do arquivo não bater com o
+   de rotas lidas. O console também não tem registro de contrato: lá só se
+   confere caminho e método, nunca o corpo.
+4. **Um cliente novo precisa ser declarado.** A varredura reprova `fetch(`,
+   `XMLHttpRequest`, `sendBeacon` ou `axios` em qualquer arquivo de código de
+   `apps/web/src`, `apps/campo/src`, `packages/campo/src` e `apps/console/src` que
+   não esteja na lista de `CLIENTES` do teste. Os apps novos do portal e do
+   cidadão (V2-F11, V2-F17) entram nessa lista com o ajudante
+   `apoio/extrair-chamadas.ts`. As duas URLs assinadas (a foto de perfil em
+   `foto-do-agente.ts` e a evidência em `transporte.ts`) estão declaradas, cada
+   uma com a razão.
+5. **A resposta não é conferida aqui.** O formato da resposta é dos
+   `contrato-*-respostas.test.ts`; este teste não olha o que a API devolve.
+6. **O relatório de rotas sem cliente espera revisão humana.** São rotas `/v1`
+   que nem o painel nem o campo chamam. Na medição desta etapa são nove: a
+   versão mínima do aplicativo, `GET /auth/eu`, a validação pública de documento,
+   a URL assinada de uma evidência, `GET /saida-a-campo/minha`, a revogação de
+   aparelho e as três escritas da saída a campo (declarar, prorrogar e retorno).
+   O teste não reprova por elas; o Rafael marca as que deveriam ter cliente
+   (lista na evidência da V2-F02-E05).

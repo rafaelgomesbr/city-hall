@@ -26,7 +26,7 @@ const RAIZ = new URL("../../", import.meta.url);
 const ler = (relativo) => readFileSync(new URL(relativo, RAIZ), "utf8");
 const IMAGEM = "dc360-api:ci";
 const IMAGEM_POSTGIS =
-  "postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6";
+  "postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64";
 const POSTGIS_17_POR_DIGEST = IMAGEM_POSTGIS.replace(/[./]/g, "\\$&");
 const VERSAO = "0.1.0";
 const COMMIT = "f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c";
@@ -217,8 +217,19 @@ test("o job `imagens` constrói as duas imagens com os dois argumentos de build 
   assert.ok(job.texto.includes("DATABASE_URL=postgres://dc360_api:api@localhost:5432/dc360"), "a API usa o papel restrito");
 });
 
-test("o commit do build é o da ponta do PR, e não o do merge sintético", () => {
-  assert.match(job.texto, /commit="\$\{PR_HEAD_SHA:-\$GITHUB_SHA\}"/);
+test("a imagem leva o commit que o checkout REALMENTE construiu (merge sintético em PR), e o candidato fica à parte (correção 1 da F01, E08)", () => {
+  // O checkout do job não passa `ref:`: em pull_request ele testa o merge sintético. Carimbar a
+  // ponta do ramo (`pull_request.head.sha`) faria o smoke comparar `/saude` com o valor que ele
+  // mesmo recebeu, sem nunca detectar que a imagem saiu de outro código.
+  assert.match(job.texto, /^ {10}commit="\$GITHUB_SHA"$/m, "DC360_COMMIT = o SHA realmente construído");
+  assert.doesNotMatch(job.texto, /commit="\$\{PR_HEAD_SHA/, "a ponta do ramo não é o carimbo da imagem");
+  assert.match(job.texto, /^ {10}candidato="\$\{PR_HEAD_SHA:-\$GITHUB_SHA\}"$/m, "o candidato (ponta do ramo) é registrado à parte");
+  assert.match(job.texto, /echo "DC360_COMMIT=\$commit" >> "\$GITHUB_ENV"/);
+  assert.doesNotMatch(job.texto, /DC360_COMMIT=\$candidato/, "o candidato nunca vira o carimbo");
+  assert.match(job.texto, /commit_construido=\$commit candidato=\$candidato/, "os dois SHAs saem no 01-versao.txt do artefato");
+  assert.doesNotMatch(job.texto, /^ {6}- uses: actions\/checkout[^\n]*\n(?: {8}[^\n]*\n)*? {8}ref:/m, "o checkout do job continua sem `ref:`: é o que justifica carimbar o GITHUB_SHA");
+  // O smoke compara /saude com o carimbo, que agora é o SHA construído.
+  assert.equal([...job.texto.matchAll(/smoke-das-imagens\.mjs saude-(?:api|console)[^\n]*"\$DC360_VERSAO" "\$DC360_COMMIT"/g)].length, 2);
 });
 
 test("o nome do job `imagens` é check obrigatório da master", () => {

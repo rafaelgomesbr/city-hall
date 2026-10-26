@@ -33,3 +33,13 @@
 | divida-DV-16/saidas/02-antes-aprova-com-arquivo-sem-analise.txt | d0caa80208b6aff1b9318ee44d7b961e204b93fc37f8cb56be5a91f88d7a8439 |
 | divida-DV-16/saidas/03-depois-reprova-e-o-repositorio-real-continua-aprovado.txt | 2c3bfa6232aa809285fcbcf1501217c422b6cef27067851374cf7dbf348ec791 |
 | divida-DV-16/saidas/04-sast-baseline-test.txt | 45d82c0a0d5ef1eba1bc573e566dee311c611217d8b4eb1817d9608ef4df338e |
+| correcao-1/RESUMO.md | 199108fba2ad1b8b3737e1f211ae2db5c244cdec688f04debd4f525e4d31d0ed |
+| correcao-1/saidas/01-antes-sast-baseline-test.txt | 78d86183492b84b0dc46aeb74633059586d127eb374c827c48c2ad78aabc1f70 |
+| correcao-1/saidas/02-antes-excecoes-e-smoke-test.txt | ed061e778a970c65c2d619f8137c695b588f45111b84bf8eaf0634655b6d4fdf |
+| correcao-1/saidas/03-sonda-consulta-multilinha-antes-e-depois.txt | e362cdd8085cb4c5ee8d522414f3acb737a363dbde87b62c412c040bdd8550c1 |
+| correcao-1/saidas/04-sonda-analise-sem-arquivo-antes-e-depois.txt | cd5fcc3c2ebeb8c3ca6ec03cf33ae7f19861ab4a16a738706e3e1cae95826014 |
+| correcao-1/saidas/05-migracao-dos-ids-da-baseline.txt | ecf1372f33bc1beb28d117a77503a9ffeb178e85d685da4ac7369386014dafb8 |
+| correcao-1/saidas/06-depois-sast-baseline-test.txt | 5e23ba2d8f77d54671385abfef6f3dbfd90e063b87ef9c8634f5796406018905 |
+| correcao-1/saidas/07-depois-excecoes-e-smoke-test.txt | 1d73d57eddaaaae0b47e82f105e4f7884af0976f189e59d5a4d1413a5be618df |
+| correcao-1/saidas/08-baseline-registro.json | d2f5125b47cc2931d74788d1e80ba0b3b1542784d89c24cbfbe1937c4a2977af |
+| correcao-1/saidas/09-portoes-da-rodada.txt | 6a4cccdae0b36e22000fe6ec9bb7609f098364378713c0737ddd242859bfaf99 |

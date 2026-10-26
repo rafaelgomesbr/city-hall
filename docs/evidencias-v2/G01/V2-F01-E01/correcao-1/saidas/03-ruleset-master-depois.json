@@ -1,0 +1,47 @@
+{
+  "name": "master protegida (PR, checks e commit de merge)",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "rafaelgomesbr/city-hall",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/master"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "Testes, tipos e scripts", "integration_id": 15368 },
+          { "context": "Dependências com vulnerabilidade conhecida (auditar)", "integration_id": 15368 },
+          { "context": "Ferramentas do roadmap e estado gerado", "integration_id": 15368 },
+          { "context": "Fluxo ponta a ponta no navegador", "integration_id": 15368 },
+          { "context": "Aplicativo de campo", "integration_id": 15368 },
+          { "context": "A API sobe contra Postgres real", "integration_id": 15368 },
+          { "context": "Imagens Docker (API e console)", "integration_id": 15368 },
+          { "context": "Varredura de segredos", "integration_id": 15368 },
+          { "context": "SAST (Semgrep)", "integration_id": 15368 }
+        ]
+      }
+    }
+  ]
+}

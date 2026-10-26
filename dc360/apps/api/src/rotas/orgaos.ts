@@ -31,6 +31,12 @@ import { registrarAtoAdministrativo } from "../trilha.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
+/** A query de `GET /orgaos`. Exportada para o contrato OpenAPI (V2-F02-E04). */
+export const consultaDosOrgaosSchema = z.object({
+  incluirInativos: z.enum(["0", "1", "true", "false"]).optional()
+    .transform((v) => v === "1" || v === "true"),
+});
+
 /*
   O email é opcional aqui, e essa é uma decisão de operação e não de esquema.
 
@@ -39,14 +45,14 @@ const idSchema = z.object({ id: z.string().uuid() });
   emitido e impresso normalmente; o que não acontece é o envio, e a rota de
   envio diz isso com todas as letras em vez de falhar sozinha.
 */
-const orgaoSchema = z.object({
+export const orgaoSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome do órgão").max(200),
   sigla: z.string().trim().max(20).optional(),
   email: z.string().trim().email("Informe um email válido").max(320).optional(),
   telefone: z.string().trim().max(40).optional(),
 });
 
-const desativacaoSchema = z.object({
+export const desativacaoSchema = z.object({
   /*
     Quinze caracteres, e a régua é a mesma do levantamento de interdição.
 
@@ -81,10 +87,7 @@ export async function rotasOrgaos(
 ): Promise<void> {
   app.get("/", async (req) => {
     const quem = await app.exigirAutenticacao(req);
-    const { incluirInativos } = z.object({
-      incluirInativos: z.enum(["0", "1", "true", "false"]).optional()
-        .transform((v) => v === "1" || v === "true"),
-    }).parse(req.query);
+    const { incluirInativos } = consultaDosOrgaosSchema.parse(req.query);
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
       /*

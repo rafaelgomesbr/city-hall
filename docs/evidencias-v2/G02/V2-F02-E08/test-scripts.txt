@@ -1,0 +1,8 @@
+Comando: CI=true npm run test:scripts (arvore completa; 0 falhas, 23 puladas por ambiente)
+# tests 831
+# suites 31
+# pass 808
+# fail 0
+# cancelled 0
+# skipped 23
+# todo 0

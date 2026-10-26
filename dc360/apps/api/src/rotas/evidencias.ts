@@ -50,7 +50,7 @@ import { eRecorteDoAgente } from "./recorte-do-agente.js";
  */
 const pedidoSchema = pedidoDeEvidenciaSchema;
 
-const confirmacaoSchema = z.object({
+export const confirmacaoSchema = z.object({
   evidenciaId: z.string().uuid(),
   /**
    * Opcional, e NUNCA gravado como veio. Quando o aparelho declara a soma,

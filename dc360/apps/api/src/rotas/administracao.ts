@@ -36,10 +36,13 @@ const idSchema = z.object({ id: z.string().uuid().transform((id) => id.toLowerCa
  * para a mensagem de erro chegar ao formulário em vez de "violates check
  * constraint".
  */
-const retencaoSchema = z.object({
+export const retencaoSchema = z.object({
   solicitanteDias: z.number().int().min(1).max(36500).nullable(),
   vulnerabilidadeDias: z.number().int().min(1).max(36500).nullable(),
 });
+
+/** O corpo de `PATCH /usuarios/:id/situacao`: ligar ou desligar a conta. */
+export const situacaoSchema = z.object({ ativo: z.boolean() });
 
 /*
   Os schemas vêm do pacote compartilhado, e não são redefinidos aqui. Antes
@@ -55,6 +58,20 @@ function ehDuplicidade(erro: unknown): boolean {
   if (codigo === "23505") return true;
   return /duplicate key|unique constraint/i.test(String((erro as Error)?.message ?? ""));
 }
+
+/**
+ * O gatilho `usuarios_papel_nao_se_converte` (migração 053) recusou a troca. A
+ * rota confere antes e responde 409 sem chegar ao banco; este é o caso da
+ * corrida (o papel mudou entre a leitura e o UPDATE).
+ */
+function ehConversaoDePapel(erro: unknown): boolean {
+  const e = erro as { code?: string; constraint?: string };
+  return e?.code === "23514" && e?.constraint === "papel_nao_se_converte";
+}
+
+const MENSAGEM_PAPEL_NAO_SE_CONVERTE =
+  "Conta de usuário de órgão externo e conta de servidor não se convertem uma na outra. "
+  + "Crie uma conta nova com o papel desejado e desative esta.";
 
 export async function rotasAdministracao(
   app: FastifyInstance,
@@ -213,7 +230,7 @@ export async function rotasAdministracao(
   app.patch("/usuarios/:id/situacao", async (req) => {
     const quem = await autorizar(app, req, "gerenciar_usuarios");
     const { id } = idSchema.parse(req.params);
-    const { ativo } = z.object({ ativo: z.boolean() }).parse(req.body);
+    const { ativo } = situacaoSchema.parse(req.body);
 
     if (id === quem.usuarioId && !ativo) {
       throw new RegraDeNegocio(
@@ -324,6 +341,25 @@ export async function rotasAdministracao(
         exigirPostoParaGerir(quem.papel, alvo.papel);
 
         /*
+          `usuario_orgao` NÃO SE CONVERTE (ADR 0009, decisão 5, V2-F03-E04).
+
+          É conta de quem representa outro órgão, nascida por convite e sem
+          nenhuma ação de servidor. Virar servidor entregaria a ela, num único
+          UPDATE, as permissões do município; virar `usuario_orgao` esconderia
+          um servidor atrás de um papel sem ação, e a trilha contaria a mesma
+          pessoa como duas coisas. Os dois sentidos são recusados com 409, e o
+          banco repete a recusa por gatilho para quem escrever por fora da API.
+          Regravar o mesmo papel (editar nome, matrícula, equipe) segue valendo.
+        */
+        if ((alvo.papel === "usuario_orgao") !== (dados.papel === "usuario_orgao")) {
+          throw new RegraDeNegocio(
+            "papel_nao_se_converte",
+            MENSAGEM_PAPEL_NAO_SE_CONVERTE,
+            409,
+          );
+        }
+
+        /*
           TROCAR O EMAIL DE OUTRA CONTA É ATO DO ADMINISTRADOR, mesmo sobre
           conta de posto inferior. O email é a identidade de login, e trocá-lo
           é o primeiro passo da tomada de conta (trocar, pedir recuperação,
@@ -399,6 +435,13 @@ export async function rotasAdministracao(
         return r.rows[0];
       });
     } catch (erro) {
+      if (ehConversaoDePapel(erro)) {
+        throw new RegraDeNegocio(
+          "papel_nao_se_converte",
+          MENSAGEM_PAPEL_NAO_SE_CONVERTE,
+          409,
+        );
+      }
       if (ehDuplicidade(erro)) {
         throw new RegraDeNegocio(
           "usuario_repetido",

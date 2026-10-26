@@ -1,0 +1,38 @@
+Portões da correção 1 da F01, parte B (ramo trab/f01-corr-b), rodados no Windows
+11 (Git Bash), na árvore com as quatro etapas (E10, E12, E15, E16) já corrigidas,
+antes dos índices de evidência da rodada. Saídas completas ficaram fora do git
+(scratchpad da sessão); abaixo, o resumo e as linhas que decidem.
+
+typecheck: codigo 0 (26 s): npm run typecheck
+test: codigo 1 (505 s): npm test
+  shared: 1 falha, a aceita (regras-de-conteudo, "tolera o arquivo que some
+          entre a listagem e a leitura": EPERM ao criar link simbólico no
+          Windows sem privilégio, DV-46)
+  api: 2 falhas, as aceitas (semear-homologacao, "o comando de verdade recusa
+       antes de conectar", 2 casos: código null no Windows)
+  db: 8 falhas, as aceitas (desfazer-migracao 5 e guarda-da-semente 3: o
+      comando de verdade devolve código null no Windows)
+  console, web e campo: verdes
+isolamento: codigo 1 (65 s): npm run test:isolamento
+  as mesmas 8 do db, aceitas (desfazer-migracao 5, guarda-da-semente 3); o
+  isolamento entre municípios (CA-06) passou inteiro
+test-scripts: codigo 1 (96 s): env CI=true npm run test:scripts
+  864 casos, 840 passam, 23 pulados por ambiente, 1 falha: "conferir-indices-
+  de-evidencia: a evidência real", porque as pastas correcao-1 desta rodada
+  ainda não estavam nos INDEX.md (é o que esta rodada acrescenta depois; ver
+  08-portoes-depois-dos-indices.txt)
+lint: codigo 0 (124 s): npm run lint
+lint-teto: codigo 0 (1 s): npm run lint:teto
+  OK: lint-teto.json confere com as baselines (431 supressões).
+formato: codigo 0 (20 s): npm run formato:conferir
+numeros: codigo 0 (316 s): npm run conferir:numeros
+  O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de
+  casos que a árvore tem, nas oito suítes.
+  Todos os números da documentação batem com a realidade.
+regras: codigo 1 (43 s): npx vitest run packages/shared/test/regras-de-conteudo.test.ts
+  1 falha, a aceita (EPERM em symlink, DV-46)
+auditar: codigo 0 (18 s): node scripts/auditar.mjs
+estado: codigo 0 (9 s): node scripts/roadmap/gerar-estado.mjs --conferir
+indices: codigo 1 (74 s): node dc360/scripts/conferir-indices-de-evidencia.mjs
+  4 índices sem as linhas da correcao-1 (E10, E12, E15, E16), o esperado antes
+  de acrescentá-las
