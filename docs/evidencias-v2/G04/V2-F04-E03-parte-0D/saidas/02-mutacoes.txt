@@ -1,0 +1,43 @@
+=== mutação: devolver depois do aceite permitido
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > tem exatamente as treze linhas da decisão 9, com o evento de cada uma
+ FAIL  test/encaminhamento.test.ts > D-23: devolução só antes do aceite > devolver em `aceito` é recusado com `devolucao_so_antes_do_aceite`, para qualquer ator
+ FAIL  test/encaminhamento.test.ts > D-23: devolução só antes do aceite > nenhuma transição da tabela leva a `devolvido` que não saia de `enviado`
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > um evento por par: dois pares só compartilham o evento quando é o `cancelado`
+      Tests  4 failed | 42 passed (46)
+=== mutação: operador entra na lista da Defesa Civil (D-24)
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > cada ator errado é recusado, em todas as transições
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > D-24: o operador só aceita e responde, e em nome do órgão
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > D-24 e P-12 batem com `permissoes.ts`: as listas de papéis são as das ações existentes
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > `dossie_recomposto` é fato de linha da marca do legado, não transição de estado
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > os fatos de linha da Defesa Civil são de coordenação e administrador; a atribuição é do gestor do órgão
+=== mutação: leitor do orgao transita
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > cada ator errado é recusado, em todas as transições
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > o leitor do órgão não faz transição nenhuma
+      Tests  2 failed | 44 passed (46)
+=== mutação: terminal ganha saida
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > tem exatamente as treze linhas da decisão 9, com o evento de cada uma
+ FAIL  test/encaminhamento.test.ts > estados terminais > `concluido` não tem saída
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > um evento por par: dois pares só compartilham o evento quando é o `cancelado`
+      Tests  3 failed | 43 passed (46)
+=== mutação: aceito declara versao nova do dossie
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > só `enviado`, `reenviado` e `dossie_recomposto` declaram versão nova do dossiê
+      Tests  1 failed | 45 passed (46)
+=== mutação: servidor insere escalonado
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > a lista positiva de inserção direta por ator: órgão só `visualizado`, sistema só `lembrete` e `escalonado`, servidor nenhum
+      Tests  1 failed | 45 passed (46)
+=== mutação: reencaminhado visivel ao orgao
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > `reencaminhado` nunca é visível ao órgão, e nenhum outro tipo de fato interno do pai vaza o destino
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > os eventos de transição do órgão são visíveis ao órgão, e só `reencaminhado` e `migracao` não são
+      Tests  2 failed | 44 passed (46)
+=== mutação: aceite em nome do orgao sem a marca
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > D-24: o operador só aceita e responde, e em nome do órgão
+ FAIL  test/encaminhamento.test.ts > a marca `em_nome_do_orgao` (P-12) > deriva do ator: o servidor que aceita ou responde tem a marca; o usuário de órgão não
+ FAIL  test/encaminhamento.test.ts > a marca `em_nome_do_orgao` (P-12) > só `enviado` para `aceito` e `aceito` para `respondido` admitem o servidor em nome do órgão
+      Tests  3 failed | 43 passed (46)
+=== mutação: cancelar sai de respondido
+ FAIL  test/encaminhamento.test.ts > a tabela de transições > tem exatamente as treze linhas da decisão 9, com o evento de cada uma
+ FAIL  test/encaminhamento.test.ts > transição fora da tabela > todo par que não é linha da tabela é `transicao_invalida` (fora os terminais e a D-23)
+ FAIL  test/encaminhamento.test.ts > o catálogo de eventos (decisão 17) > um evento por par: dois pares só compartilham o evento quando é o `cancelado`
+      Tests  3 failed | 43 passed (46)
+=== original restaurado
+      Tests  46 passed (46)

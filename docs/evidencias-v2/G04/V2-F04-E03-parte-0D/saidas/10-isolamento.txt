@@ -1,0 +1,303 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a5d05f8a285fdd182/dc360/db
+
+09:27:55 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-a5d05f8a285fdd182/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 5451ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 5544ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 5817ms
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 6176ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 6221ms
+ ✓ test/carga.test.ts (15 tests) 6723ms
+ ❯ test/guarda-da-semente.test.ts (18 tests | 3 failed) 29ms
+   ✓ positivos: banco descartável semeia > sem DATABASE_URL (o banco em WebAssembly que morre com o processo) 2ms
+   ✓ positivos: banco descartável semeia > o Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto) 1ms
+   ✓ negativos: o que a guarda recusa > a URL de PRODUÇÃO sem NODE_ENV (o caso do defeito): pela identidade no usuário 0ms
+   ✓ negativos: o que a guarda recusa > a URL de PRODUÇÃO pela identidade no host (conexão direta) 0ms
+   ✓ negativos: o que a guarda recusa > a identidade de PROD em maiúsculas não escapa 0ms
+   ✓ negativos: o que a guarda recusa > NODE_ENV=production recusa, com qualquer URL ou nenhuma 0ms
+   ✓ negativos: o que a guarda recusa > AMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina 0ms
+   ✓ negativos: o que a guarda recusa > AMBIENTE_DC360=hml recusa e manda usar a semente própria 0ms
+   ✓ negativos: o que a guarda recusa > um banco de HML hospedado recusa: a semente de desenvolvimento tem senha pública 0ms
+   ✓ negativos: o que a guarda recusa > a identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD) 0ms
+   ✓ negativos: o que a guarda recusa > o túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa 0ms
+   ✓ negativos: o que a guarda recusa > URL que não dá para analisar recusa (fail-closed), sem repetir o texto 0ms
+   ✓ negativos: o que a guarda recusa > host público que não é da máquina recusa 0ms
+   ✓ negativos: o que a guarda recusa > nenhum motivo repete a senha da URL 0ms
+   ✓ a identidade de PROD da guarda é a mesma da matriz de ambientes > scripts/ambientes.json declara a identidade que a guarda protege 2ms
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha 12ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1 2ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento) 4ms
+     → .toMatch() expects to receive a string, but got undefined
+ ✓ test/migracoes-regras.test.ts (19 tests) 318ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 9286ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar  688ms
+   ✓ Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade > a funcao de eliminar ESTOURA nomeando a tabela, e nenhuma linha sai  320ms
+ ✓ test/catalogo-nominal.test.ts (58 tests) 7155ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas  546ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 10681ms
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 4875ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 5048ms
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 8ms
+ ✓ test/endurecer-extensao.test.ts (9 tests) 6723ms
+   ✓ sem a extensão instalada > o arquivo inteiro roda num Postgres comum, sem os papéis do provedor  2978ms
+ ✓ test/postgis-decisao.test.ts (8 tests) 8ms
+ ✓ test/chave-de-criacao-migracao.test.ts (9 tests) 17167ms
+   ✓ os índices da 052, com a base inteira > evidência: o índice da 052 SOZINHO recusa repetir (município, ocorrência, chave) e aceita outra ocorrência  3527ms
+   ✓ a volta da 052 > aplicar, desfazer e reaplicar: colunas, índices, RLS e funções idênticos  3696ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 3948ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 8675ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  2287ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  1934ms
+ ✓ test/trava-de-migracao.test.ts (15 tests | 3 skipped) 24382ms
+   ✓ a decisão, em PGlite > aplica, e a trava é largada no fim  3925ms
+   ✓ a decisão, em PGlite > a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle  2559ms
+   ✓ a decisão, em PGlite > usa a chave fixa do produto  2209ms
+   ✓ a decisão, em PGlite > trava ocupada: espera, tenta de novo e aplica quando a outra termina  2464ms
+   ✓ a decisão, em PGlite > trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado  2153ms
+   ✓ a decisão, em PGlite > com esperaMs 0 é uma tentativa só  2588ms
+   ✓ a decisão, em PGlite > avisa uma vez, no registro, que está esperando  1953ms
+   ✓ a decisão, em PGlite > a trava é larga mesmo quando a migração falha  1483ms
+   ✓ a decisão, em PGlite > a trava é larga quando o histórico foi alterado  1357ms
+   ✓ a decisão, em PGlite > migrar com o papel errado continua dando a mensagem do papel, e larga a trava  1242ms
+   ✓ o pooler não serve > a porta 6543 (pooler em modo transação) é recusada com a explicação  1143ms
+   ✓ o pooler não serve > conexão direta, sem URL e URL ilegível não recusam aqui  1302ms
+ ✓ test/migrar.test.ts (17 tests) 31503ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  4099ms
+   ✓ Aplicação > rodar de novo não faz nada  2554ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  2756ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  2392ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  2606ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  2533ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  1685ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  1376ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  1300ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  1218ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  1345ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  1185ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  1939ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  1969ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  862ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  811ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  868ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 29921ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  6752ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  1708ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  995ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  1249ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  3414ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  3079ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  2731ms
+   ✓ item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046  1265ms
+ ❯ test/desfazer-migracao.test.ts (29 tests | 5 failed) 39084ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > aplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos  4395ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > desfaz UMA só: a anterior continua aplicada  2647ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > sem nada aplicado, diz que não há o que desfazer  2318ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > larga a trava de migração no fim  2784ms
+   ✓ o número da migração de prova é calculado (a última real mais um) > vai depois da última real, qualquer que seja ela, sem depender do CLI  2322ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > uma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato  3912ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > a última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada  2374ms
+   ✓ negativos: o que o desfazer recusa > migração declarada IRREVERSIVEL  1240ms
+   ✓ negativos: o que o desfazer recusa > migração aplicada cujo arquivo não existe nesta versão do código  1209ms
+   ✓ negativos: o que o desfazer recusa > volta que falha: desfaz inteira ou não desfaz nada, e o registro continua  1355ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > AMBIENTE_DC360=prod  1146ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > NODE_ENV=production, mesmo sem AMBIENTE_DC360  1054ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha  1134ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > a identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege  1170ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > banco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável  774ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > descartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade)  858ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > PROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha  817ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > declarar hml sem a identidade, ou com a de outro banco, ainda recusa  785ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL  701ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > HML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML)  634ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO  631ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > NODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML  598ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > URL que não dá para analisar recusa sem repetir o texto  698ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host)  566ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar 663ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar 599ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar 592ms
+     → expected null to be 2 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2 574ms
+     → expected null to be 2 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0 530ms
+     → expected null to be +0 // Object.is equality
+ ✓ test/isolamento.test.ts (162 tests) 43932ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  774ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  2923ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  2613ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  27640ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:473:22
+    471|       DATABASE_URL: "postgres://u:senha-secreta@127.0.0.1:1/postgres",
+    472|     });
+    473|     expect(r.status).toBe(1);
+       |                      ^
+    474|     expect(r.stderr).toMatch(/AMBIENTE_DC360=prod/);
+    475|     expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:484:22
+    482|       DATABASE_URL: "postgres://u:senha-secreta@db.refnovaprodxxxxxxxx…
+    483|     });
+    484|     expect(r.status).toBe(1);
+       |                      ^
+    485|     expect(r.stderr).toMatch(/banco hospedado/);
+    486|     expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar
+AssertionError: expected null to be 2 // Object.is equality
+
+- Expected: 
+2
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:493:22
+    491|   it("com a porta 6543 (pooler): código 2, sem conectar", () => {
+    492|     const r = rodar([], { DATABASE_URL: "postgres://u:senha-secreta@12…
+    493|     expect(r.status).toBe(2);
+       |                      ^
+    494|     expect(r.stderr).toMatch(/6543/);
+    495|     expect(`${r.stdout}${r.stderr}`).not.toContain("senha-secreta");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2
+AssertionError: expected null to be 2 // Object.is equality
+
+- Expected: 
+2
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:500:22
+    498|   it("--desfazer com --semear: código 2", () => {
+    499|     const r = rodar(["--desfazer", "--semear"], {});
+    500|     expect(r.status).toBe(2);
+       |                      ^
+    501|     expect(r.stderr).toMatch(/não combinam/);
+    502|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0
+AssertionError: expected null to be +0 // Object.is equality
+
+- Expected: 
+0
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:506:32
+    504|   it("banco efêmero vazio: nada a desfazer, código 0", () => {
+    505|     const r = rodar(["--desfazer"], {});
+    506|     expect(r.status, r.stderr).toBe(0);
+       |                                ^
+    507|     expect(r.stdout).toMatch(/nada a desfazer/);
+    508|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/guarda-da-semente.test.ts:166:22
+    164|       DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.…
+    165|     });
+    166|     expect(r.status).toBe(1);
+       |                      ^
+    167|     expect(r.stderr).toMatch(/PRODUÇÃO/);
+    168|     expect(r.stdout).not.toMatch(/Aplicadas|Nada a fazer|Semeado/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/guarda-da-semente.test.ts:176:22
+    174|       DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secr…
+    175|     });
+    176|     expect(r.status).toBe(1);
+       |                      ^
+    177|     expect(r.stderr).toMatch(/descartável/);
+    178|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+TypeError: .toMatch() expects to receive a string, but got undefined
+ ❯ test/guarda-da-semente.test.ts:183:22
+    181|     const r = rodar({});
+    182|     expect(r.status ?? 0).toBe(0);
+    183|     expect(r.stdout).toMatch(/Semeado/);
+       |                      ^
+    184|   });
+    185| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  2 failed | 22 passed (24)
+      Tests  8 failed | 577 passed | 6 skipped (591)
+   Start at  09:27:54
+   Duration  48.44s (transform 25.41s, setup 0ms, collect 40.09s, tests 278.67s, environment 7ms, prepare 8.76s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a5d05f8a285fdd182\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a5d05f8a285fdd182\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
