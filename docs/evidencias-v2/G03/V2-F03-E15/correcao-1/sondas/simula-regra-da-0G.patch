@@ -1,0 +1,16 @@
+diff --git a/dc360/db/test/catalogo/conferir.ts b/dc360/db/test/catalogo/conferir.ts
+index 9e572099..1fd7a1dd 100644
+--- a/dc360/db/test/catalogo/conferir.ts
++++ b/dc360/db/test/catalogo/conferir.ts
+@@ -231,7 +231,10 @@ export async function conferirFuncoesPrivilegiadas(
+     if (f.tenant !== "ainda_nao_confere" && f.corrigidaEm) {
+       problemas.push(`${chave}: tem corrigidaEm mas já declara conferir o tenant (${f.tenant})`);
+     }
+-    if (f.executavelPor.length === 0) {
++    // SONDA DESCARTÁVEL da correção 1 da E15 (simula a regra da 0G): função de
++    // gatilho não tem papel do produto com EXECUTE, por desenho.
++    const deGatilho = ["conta_ganha_pessoa", "pessoa_espelha_a_conta"].includes(f.nome);
++    if (f.executavelPor.length === 0 && !deGatilho) {
+       problemas.push(
+         `${chave}: sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir`,
+       );

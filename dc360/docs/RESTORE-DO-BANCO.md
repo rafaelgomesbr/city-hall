@@ -228,6 +228,7 @@ SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NO
 ALTER SCHEMA public OWNER TO dc360_setup;
 GRANT ALL ON SCHEMA public TO dc360_setup;
 GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;
+REVOKE TEMPORARY ON DATABASE prova_e25_origem FROM PUBLIC;
 SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
 SQL
 
@@ -312,6 +313,7 @@ setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_console NOLOGIN NOSUPE
 createdb -h 127.0.0.1 -p $PORTA_DESTINO -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_restaurado
 super -p $PORTA_DESTINO -d prova_e25_restaurado -c "DROP SCHEMA public CASCADE;"
 super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT CREATE ON DATABASE prova_e25_restaurado TO dc360_setup;"
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "REVOKE TEMPORARY ON DATABASE prova_e25_restaurado FROM PUBLIC;"
 ```
 
 ## Passo 5: o restore

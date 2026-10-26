@@ -1069,6 +1069,12 @@ jobs:
       # cria e migra; a aplicacao conecta com um login restrito, membro de
       # dc360_app, que nao e superusuario nem dono.
       #
+      # O `REVOKE TEMPORARY ... FROM PUBLIC` e da migracao 054 (V2-F03-E15,
+      # correcao 1): o papel de aplicacao nao cria tabela temporaria (onde
+      # anexaria gatilho). So o DONO do banco revoga o TEMP que o PUBLIC tem
+      # por padrao; o `dc360_setup` nao e dono, e a 054 confere e FALHA FECHADA
+      # se o TEMP continuar. Mesma linha no job `imagens` e no roteiro de restore.
+      #
       # O `GRANT CREATE ON DATABASE` e o que faltava. A migracao 041 cria a
       # extensao `pg_trgm`; ela e extensao CONFIAVEL (qualquer papel pode
       # cria-la), mas "confiavel" exige o privilegio CREATE no banco, e um banco
@@ -1091,6 +1097,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT CREATE ON DATABASE dc360 TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "REVOKE TEMPORARY ON DATABASE dc360 FROM PUBLIC;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
           } 2>&1 | tee "$RUNNER_TEMP/artefatos/02-provisionar.txt"
 
@@ -1188,6 +1195,26 @@ jobs:
           if [ "$status" != "0" ]; then exit "$status"; fi
           if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/10-trava-de-migracao.txt"; then
             echo "o bloco de Postgres real foi pulado: a prova da trava nao rodou"
+            exit 1
+          fi
+
+      # A pessoa global e a conta no município (V2-F03-E15, migração 054): a
+      # trava da pessoa (N2) com duas conexões, a corrida de duas contas com o
+      # mesmo e-mail, o ataque da tabela temporária num banco criado com
+      # CREATE DATABASE (o PGlite nasce sem TEMP para PUBLIC) e a ordem das
+      # travas N4 antes de N7 (correção 1). O PGlite tem uma conexão só, então
+      # esses casos pulam fora daqui. Pulado aqui é vermelho. O superusuário
+      # serve só para o teste criar e apagar o próprio banco descartável
+      # (`prova_e15_<sorteio>`).
+      - name: Pessoa e conta no município (054), em Postgres real
+        env:
+          DC360_POSTGRES_DE_PROVA: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          npx vitest run --root db test/pessoas.test.ts 2>&1 | tee "$RUNNER_TEMP/artefatos/11-pessoas.txt"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then exit "$status"; fi
+          if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/11-pessoas.txt"; then
+            echo "o bloco de Postgres real foi pulado: a prova da 054 nao rodou"
             exit 1
           fi
 
@@ -1355,6 +1382,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT CREATE ON DATABASE dc360 TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "REVOKE TEMPORARY ON DATABASE dc360 FROM PUBLIC;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
             psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_console_login LOGIN PASSWORD 'console' NOSUPERUSER;"
           } 2>&1 | tee "$RUNNER_TEMP/artefatos/08-provisionar.txt"

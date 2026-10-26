@@ -142,6 +142,12 @@ beforeAll(async () => {
   db = new PGlite();
   await db.waitReady;
   await aplicarMigracoes(executorDe(db), antesDa054());
+  // O banco do PGlite nasce sem TEMP para PUBLIC; um banco criado com
+  // `CREATE DATABASE` (o do provedor, o do CI) nasce com ele. A sonda devolve o
+  // padrão do Postgres para a 054 ter o que revogar (correção 1, achado 1).
+  await db.exec(
+    "DO $$ BEGIN EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO PUBLIC', current_database()); END $$",
+  );
 
   orgA = await umValor<string>(
     db,
@@ -681,11 +687,13 @@ describe("`pessoa_id` é imutável e há uma conta por pessoa no sistema", () =>
                                               'pessoas'::regclass, 'origens_de_conta'::regclass)
          AND tgname IN ('usuarios_ganha_pessoa', 'usuarios_origem_da_pessoa', 'usuarios_pessoa_id_nao_muda',
                         'usuarios_pessoa_id_nao_muda_no_estado_final',
-                        'usuarios_espelha_credencial_na_pessoa', 'sessao_carrega_a_pessoa',
+                        'pessoa_recebe_a_credencial_da_conta', 'sessao_carrega_a_pessoa',
                         'pessoas_nao_se_apagam', 'pessoas_nao_se_truncam',
-                        'origens_de_conta_nao_se_reescrevem', 'origens_de_conta_nao_se_truncam')
+                        'origens_de_conta_nao_se_reescrevem', 'origens_de_conta_nao_se_truncam',
+                        'conta_nasce_no_municipio_do_contexto', 'usuarios_nenhuma_pessoa_sem_conta',
+                        'pessoas_id_nao_muda', 'pessoas_id_nao_muda_no_estado_final')
        ORDER BY tgname`);
-    expect(r.rows).toHaveLength(10);
+    expect(r.rows).toHaveLength(14);
     for (const t of r.rows) expect(t.tgenabled, t.tgname).toBe("O");
     const adiado = r.rows.find((t) => t.tgname === "usuarios_origem_da_pessoa")!;
     expect(adiado).toMatchObject({ tgdeferrable: true, tginitdeferred: true });
@@ -697,8 +705,9 @@ describe("`pessoa_id` é imutável e há uma conta por pessoa no sistema", () =>
         SELECT count(*)::int AS n FROM pg_trigger
          WHERE tgrelid = 'usuarios'::regclass AND tgenabled = 'O'
            AND tgname IN ('usuarios_pessoa_id_nao_muda', 'usuarios_pessoa_id_nao_muda_no_estado_final',
-                          'usuarios_ganha_pessoa', 'usuarios_origem_da_pessoa')`);
-      expect(c.rows[0]!.n).toBe(4);
+                          'usuarios_ganha_pessoa', 'usuarios_origem_da_pessoa',
+                          'conta_nasce_no_municipio_do_contexto', 'usuarios_nenhuma_pessoa_sem_conta')`);
+      expect(c.rows[0]!.n).toBe(6);
     } finally {
       await completo.close();
     }
@@ -782,11 +791,14 @@ describe("`pessoas` e `origens_de_conta`: o papel de aplicação não toca, de j
     ).toBe("42501");
   });
 
-  it("a função dos gatilhos não se chama fora de gatilho: o EXECUTE do app é inerte", async () => {
-    for (const f of ["conta_ganha_pessoa", "pessoa_espelha_a_conta"]) {
+  it("as funções dos gatilhos: o app não as executa (sem EXECUTE), e nem o dono as chama fora de gatilho", async () => {
+    for (const f of ["conta_ganha_pessoa", "pessoa_espelha_a_conta", "conta_nasce_no_contexto"]) {
       const e = await erroDe(comoApp(db, orgA, (tx) => tx.query(`SELECT ${f}()`)));
-      expect(e.code, f).toBe("0A000");
-      expect(e.message, f).toMatch(/trigger functions can only be called as triggers/);
+      expect(e.code, f).toBe("42501");
+      expect(e.message, f).toMatch(/permission denied for function/);
+      const dono = await erroDe(db.query(`SELECT ${f}()`));
+      expect(dono.code, f).toBe("0A000");
+      expect(dono.message, f).toMatch(/trigger functions can only be called as triggers/);
     }
   });
 });
@@ -1220,7 +1232,9 @@ const INVENTARIO_DO_BANCO: Readonly<Record<string, string>> = {
     "e-mail do operador; revoga sessões do município (escopo local)",
   "consumir_recuperacao(text,text)":
     "grava a senha da conta do link (espelhada; E08 passa à pessoa)",
-  "conta_ganha_pessoa()": "054: cria a pessoa nova e a marca criador; o adiado confere",
+  "chave_da_pessoa_nao_muda()": "054 (correção 1): recusa a mudança de pessoas.id",
+  "conta_ganha_pessoa()":
+    "054: cria a pessoa nova e a marca criador; o de comando e o adiado conferem",
   "credenciais_da_pessoa(text)": "054: lê a credencial da pessoa (E02 passa a chamar)",
   "credenciais_para_login(text)": "lê a credencial da conta (E02 troca; caminho antigo)",
   "envio_so_para_dominio_do_catalogo()": "e-mail de órgão do ofício, não de pessoa",
@@ -1349,10 +1363,317 @@ describe("a volta da 054", () => {
       await outro.close();
     }
   }, 240_000);
+
+  it("falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica", async () => {
+    const outro = new PGlite();
+    await outro.waitReady;
+    const bd = executorDe(outro);
+    try {
+      const ate = ateA054();
+      await aplicarMigracoes(bd, ate.slice(0, -1));
+      await outro.exec(`
+        CREATE ROLE sonda_herda_temp NOLOGIN;
+        DO $$ BEGIN EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO sonda_herda_temp', current_database()); END $$;
+        GRANT sonda_herda_temp TO dc360_app;`);
+      const e = await erroDe(aplicarMigracoes(bd, ate));
+      expect(e.message).toMatch(/TEMP/);
+      expect((await migracoesAplicadas(bd)).map((m) => m.versao)).not.toContain(ARQUIVO_054);
+    } finally {
+      await outro.close();
+    }
+  }, 240_000);
 });
 
 /* ======================================================================= */
-/* 12. Em Postgres real: duas conexões.                                     */
+/* 12. Correção 1 da E15 (revisão independente do Codex, achados 1 a 5 e 7) */
+/* ======================================================================= */
+
+/** Os campos do erro que alguém do lado de fora consegue comparar. */
+const formaDoErro = (e: Erro & Record<string, unknown>) => ({
+  code: e.code,
+  message: e.message,
+  detail: e["detail"],
+  hint: e["hint"],
+  schema: e["schema"],
+  table: e["table"],
+  column: e["column"],
+  constraint: e.constraint,
+});
+
+/** Roda `fn` numa transação que SEMPRE volta (a sonda nunca deixa rastro). */
+async function semRastro(fn: (tx: Transaction) => Promise<void>): Promise<Erro> {
+  return erroDe(
+    db.transaction(async (tx) => {
+      await fn(tx);
+      throw Object.assign(new Error("a sonda passou inteira, sem recusa"), { code: "SONDA" });
+    }),
+  );
+}
+
+describe("correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária", () => {
+  const TABELA_FALSA = `CREATE TEMP TABLE usuarios (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organizacao_id uuid, nome text, email text,
+      pessoa_id uuid, senha_hash text, falhas_login int DEFAULT 0, bloqueado_ate timestamptz,
+      senha_provisoria_ate timestamptz, ativo boolean DEFAULT true) ON COMMIT DROP`;
+
+  it("o ataque relatado: o dc360_app cria TEMP `usuarios`, anexa o espelho e escreve a credencial de outra pessoa. Recusado, e a pessoa não muda", async () => {
+    const pessoaB1 = await umValor<string>(
+      db,
+      "SELECT pessoa_id AS v FROM usuarios WHERE id = $1",
+      [contas["B1"]],
+    );
+    const antes = await umValor<string>(db, "SELECT senha_hash AS v FROM pessoas WHERE id = $1", [
+      pessoaB1,
+    ]);
+    const e = await semRastro(async (tx) => {
+      await tx.exec("SET LOCAL ROLE dc360_app");
+      await tx.query("SELECT set_config('app.organizacao_atual', $1, true)", [orgA]);
+      await tx.exec(TABELA_FALSA);
+      await tx.exec(`CREATE TRIGGER espelho_na_falsa AFTER UPDATE ON pg_temp.usuarios
+                       FOR EACH ROW EXECUTE FUNCTION public.pessoa_espelha_a_conta()`);
+      await tx.query(
+        "INSERT INTO pg_temp.usuarios (organizacao_id, pessoa_id, email, senha_hash) VALUES ($1, $2, 'x@x', 'velha')",
+        [orgA, pessoaB1],
+      );
+      await tx.exec("UPDATE pg_temp.usuarios SET senha_hash = 'senha-do-atacante'");
+    });
+    expect(e.code).toBe("42501");
+    expect(e.message).toMatch(/permission denied/);
+    expect(
+      await umValor<string>(db, "SELECT senha_hash AS v FROM pessoas WHERE id = $1", [pessoaB1]),
+    ).toBe(antes);
+  });
+
+  it("o dc360_app, o dc360_console e PUBLIC não têm TEMP no banco", async () => {
+    const r = await db.query<{ papel: string; temp: boolean }>(`
+      SELECT p AS papel, has_database_privilege(p, current_database(), 'TEMPORARY') AS temp
+        FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS p ORDER BY 1`);
+    expect(r.rows).toEqual([
+      { papel: "dc360_app", temp: false },
+      { papel: "dc360_console", temp: false },
+      { papel: "public", temp: false },
+    ]);
+  });
+
+  it("nenhum papel do produto executa função de gatilho da 054; e mesmo com TEMP devolvido, o app não anexa o espelho nem o criador", async () => {
+    const r = await db.query<{ f: string; quem: string[] }>(`
+      SELECT p.proname::text AS f,
+             ARRAY(SELECT x FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) x
+                    WHERE has_function_privilege(x, p.oid, 'EXECUTE')) AS quem
+        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public' AND p.prorettype = 'trigger'::regtype
+         AND EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgfoid = p.oid
+                        AND t.tgrelid IN ('usuarios'::regclass, 'pessoas'::regclass,
+                                          'origens_de_conta'::regclass, 'sessoes'::regclass))
+         AND p.proname NOT IN ('foto_cabe_no_teto', 'senha_trocada_deixa_de_ser_provisoria',
+                               'invalidar_recuperacoes_pendentes')
+       ORDER BY 1`);
+    expect(r.rows.map((l) => l.f)).toEqual(
+      expect.arrayContaining(["conta_ganha_pessoa", "pessoa_espelha_a_conta"]),
+    );
+    for (const l of r.rows) expect(l.quem, l.f).toEqual([]);
+    for (const [f, quando] of [
+      ["pessoa_espelha_a_conta", "AFTER UPDATE"],
+      ["conta_ganha_pessoa", "BEFORE INSERT"],
+    ] as const) {
+      const e = await semRastro(async (tx) => {
+        await tx.exec(
+          "DO $$ BEGIN EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO dc360_app', current_database()); END $$",
+        );
+        await tx.exec("SET LOCAL ROLE dc360_app");
+        await tx.exec(TABELA_FALSA);
+        await tx.exec(
+          `CREATE TRIGGER sonda ${quando} ON pg_temp.usuarios FOR EACH ROW EXECUTE FUNCTION public.${f}()`,
+        );
+      });
+      expect(e.code, f).toBe("42501");
+      expect(e.message, f).toMatch(/permission denied for function/);
+    }
+  });
+
+  it("anexadas pelo DONO a uma tabela que não é `public.usuarios`, as duas funções privilegiadas recusam, sem escrever nada", async () => {
+    const pessoaB1 = await umValor<string>(
+      db,
+      "SELECT pessoa_id AS v FROM usuarios WHERE id = $1",
+      [contas["B1"]],
+    );
+    const pessoasAntes = await umValor<number>(db, "SELECT count(*)::int AS v FROM pessoas");
+    const marcasAntes = await umValor<number>(
+      db,
+      "SELECT count(*)::int AS v FROM origens_de_conta",
+    );
+    const espelho = await semRastro(async (tx) => {
+      await tx.exec(TABELA_FALSA);
+      await tx.exec(`CREATE TRIGGER sonda AFTER UPDATE ON pg_temp.usuarios
+                       FOR EACH ROW EXECUTE FUNCTION public.pessoa_espelha_a_conta()`);
+      await tx.query(
+        "INSERT INTO pg_temp.usuarios (organizacao_id, pessoa_id, email) VALUES ($1, $2, 'x@x')",
+        [orgB, pessoaB1],
+      );
+      await tx.exec("UPDATE pg_temp.usuarios SET senha_hash = 'pelo-dono-na-falsa'");
+    });
+    expect(espelho.code).toBe("42501");
+    expect(espelho.message).toMatch(/so serve/);
+    const criador = await semRastro(async (tx) => {
+      await tx.exec(TABELA_FALSA);
+      await tx.exec(`CREATE TRIGGER sonda BEFORE INSERT ON pg_temp.usuarios
+                       FOR EACH ROW EXECUTE FUNCTION public.conta_ganha_pessoa()`);
+      await tx.query(
+        "INSERT INTO pg_temp.usuarios (organizacao_id, nome, email) VALUES ($1, 'Falsa', 'falsa.criador@exemplo.gov.br')",
+        [orgB],
+      );
+    });
+    expect(criador.code).toBe("42501");
+    expect(criador.message).toMatch(/so serve/);
+    expect(await umValor<number>(db, "SELECT count(*)::int AS v FROM pessoas")).toBe(pessoasAntes);
+    expect(await umValor<number>(db, "SELECT count(*)::int AS v FROM origens_de_conta")).toBe(
+      marcasAntes,
+    );
+  });
+});
+
+describe("correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município", () => {
+  it("com município no contexto, recusa (42501), seja o e-mail de outro município ou do próprio", async () => {
+    for (const [ctx, email] of [
+      [orgA, "B1@EXEMPLO.GOV.BR"],
+      [orgA, "a1@exemplo.gov.br"],
+      [orgB, "b1@exemplo.gov.br"],
+    ] as const) {
+      const e = await erroDe(
+        comoApp(db, ctx, (tx) => tx.query("SELECT * FROM credenciais_da_pessoa($1)", [email])),
+      );
+      expect(e.code, email).toBe("42501");
+      expect(e.message, email).toMatch(/antes do municipio/);
+    }
+  });
+
+  it("sem contexto, continua respondendo (o outro lado, o do login)", async () => {
+    const r = await comoApp(
+      db,
+      null,
+      async (tx) =>
+        (
+          await tx.query<{ usuario_id: string }>(
+            "SELECT usuario_id FROM credenciais_da_pessoa('b1@exemplo.gov.br')",
+          )
+        ).rows,
+    );
+    expect(r).toEqual([{ usuario_id: contas["B1"] }]);
+  });
+});
+
+describe("correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre", () => {
+  const inserir = (ctx: string | null, org: string, email: string) =>
+    erroDe(
+      comoApp(db, ctx, (tx) =>
+        tx.query(
+          `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+           VALUES ($1, 'Sonda do Oráculo', $2, $3, 'operador')`,
+          [org, `M-OR-${Math.random().toString(36).slice(2, 8)}`, email],
+        ),
+      ),
+    );
+
+  it("sem contexto: o mesmo erro (código, mensagem, detalhe, restrição, tabela) para e-mail existente e livre, e nenhuma pessoa nova", async () => {
+    const pessoasAntes = await umValor<number>(db, "SELECT count(*)::int AS v FROM pessoas");
+    const existente = await inserir(null, orgA, "a1@exemplo.gov.br");
+    const livre = await inserir(null, orgA, "ninguem.oraculo@exemplo.gov.br");
+    expect(existente.code).toBe("42501");
+    expect(formaDoErro(existente as Erro & Record<string, unknown>)).toEqual(
+      formaDoErro(livre as Erro & Record<string, unknown>),
+    );
+    expect(await umValor<number>(db, "SELECT count(*)::int AS v FROM pessoas")).toBe(pessoasAntes);
+  });
+
+  it("com o contexto de outro município: o mesmo erro para e-mail existente e livre", async () => {
+    const existente = await inserir(orgA, orgB, "b1@exemplo.gov.br");
+    const livre = await inserir(orgA, orgB, "ninguem.oraculo.2@exemplo.gov.br");
+    expect(existente.code).toBe("42501");
+    expect(formaDoErro(existente as Erro & Record<string, unknown>)).toEqual(
+      formaDoErro(livre as Erro & Record<string, unknown>),
+    );
+  });
+});
+
+describe("correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta", () => {
+  const contagens = async () =>
+    (
+      await db.query<{ pessoas: number; marcas: number; com_email: number }>(`
+        SELECT (SELECT count(*)::int FROM pessoas) AS pessoas,
+               (SELECT count(*)::int FROM origens_de_conta) AS marcas,
+               (SELECT count(*)::int FROM pessoas WHERE email LIKE 'conflito.%') AS com_email`)
+    ).rows[0]!;
+
+  it("matrícula já existente, id novo e e-mail livre, pelo dc360_app no município e pelo dono: a transação volta inteira", async () => {
+    const antes = await contagens();
+    const sql = `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+                 VALUES ($1, 'Conflito', 'M-A1', $2, 'operador')
+                 ON CONFLICT (organizacao_id, matricula) DO NOTHING`;
+    const peloApp = await erroDe(
+      comoApp(db, orgA, (tx) => tx.query(sql, [orgA, "conflito.app@exemplo.gov.br"])),
+    );
+    expect(peloApp).toMatchObject({ code: "23514", constraint: "usuarios_origem_da_pessoa" });
+    const peloDono = await erroDe(db.query(sql, [orgA, "conflito.dono@exemplo.gov.br"]));
+    expect(peloDono).toMatchObject({ code: "23514", constraint: "usuarios_origem_da_pessoa" });
+    expect(await contagens()).toEqual(antes);
+    expect(antes.com_email).toBe(0);
+  });
+
+  it("o mesmo comando sem conflito continua passando (a conta, a pessoa e a marca nascem juntas)", async () => {
+    await comoApp(db, orgA, (tx) =>
+      tx.query(
+        `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+         VALUES ($1, 'Sem Conflito', 'M-SEM-CONFLITO', 'sem.conflito@exemplo.gov.br', 'operador')
+         ON CONFLICT (organizacao_id, matricula) DO NOTHING`,
+        [orgA],
+      ),
+    );
+    expect(
+      await umValor<number>(
+        db,
+        `SELECT count(*)::int AS v FROM usuarios u JOIN pessoas p ON p.id = u.pessoa_id
+           JOIN origens_de_conta o ON o.usuario_id = u.id AND o.pessoa_id = p.id
+          WHERE u.email = 'sem.conflito@exemplo.gov.br'`,
+      ),
+    ).toBe(1);
+  });
+});
+
+describe("correção 1, achado 5: o espelho dispara antes do gatilho dos links (N4 antes de N7)", () => {
+  it("entre os gatilhos AFTER UPDATE de `usuarios`, o do espelho vem antes do da 051 (ordem alfabética do Postgres)", async () => {
+    const r = await db.query<{ funcao: string }>(`
+      SELECT tgfoid::regproc::text AS funcao FROM pg_trigger
+       WHERE tgrelid = 'usuarios'::regclass AND NOT tgisinternal
+         AND (tgtype & 1) = 1 AND (tgtype & 2) = 0 AND (tgtype & 16) = 16
+       ORDER BY tgname`);
+    const ordem = r.rows.map((x) => x.funcao);
+    expect(ordem).toContain("pessoa_espelha_a_conta");
+    expect(ordem.indexOf("pessoa_espelha_a_conta")).toBeLessThan(
+      ordem.indexOf("invalidar_recuperacoes_pendentes"),
+    );
+  });
+});
+
+describe("correção 1, achado 7: `pessoas.id` não muda", () => {
+  it("UPDATE de `pessoas.id` pelo dono, direto: recusado; reescrever o mesmo valor passa", async () => {
+    const pessoa = await umValor<string>(db, "SELECT pessoa_id AS v FROM usuarios WHERE id = $1", [
+      contas["A1"],
+    ]);
+    const e = await semRastro(async (tx) => {
+      await tx.query("UPDATE pessoas SET id = gen_random_uuid() WHERE id = $1", [pessoa]);
+    });
+    expect(e).toMatchObject({ code: "23514", constraint: "pessoas_id_nao_muda" });
+    await db.query("UPDATE pessoas SET id = id WHERE id = $1", [pessoa]);
+    expect(
+      await umValor<number>(db, "SELECT count(*)::int AS v FROM usuarios WHERE pessoa_id = $1", [
+        pessoa,
+      ]),
+    ).toBe(1);
+  });
+});
+
+/* ======================================================================= */
+/* 13. Em Postgres real: duas conexões.                                     */
 /* ======================================================================= */
 
 const URL_DE_PROVA = process.env["DC360_POSTGRES_DE_PROVA"] ?? "";
@@ -1510,6 +1831,138 @@ describe.skipIf(!URL_DE_PROVA)(
         await b.end();
       }
     }, 60_000);
+
+    it("correção 1, achado 1, num banco criado com CREATE DATABASE: o dc360_app não cria TEMP `usuarios` para anexar o espelho, e a pessoa não muda", async () => {
+      const outra = (
+        await dono.query(
+          "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash) VALUES ($1,'Alvo','U-ALVO','alvo@exemplo.gov.br','operador','hash-do-alvo') RETURNING pessoa_id",
+          [org2],
+        )
+      ).rows[0].pessoa_id as string;
+      const a = await conectar();
+      try {
+        await a.query("BEGIN");
+        await a.query("SET LOCAL ROLE dc360_app");
+        await a.query("SELECT set_config('app.organizacao_atual', $1, true)", [org1]);
+        const e = await erroDe(
+          (async () => {
+            await a.query(`CREATE TEMP TABLE usuarios (id uuid DEFAULT gen_random_uuid(), organizacao_id uuid,
+                             pessoa_id uuid, email text, senha_hash text, falhas_login int DEFAULT 0,
+                             bloqueado_ate timestamptz, senha_provisoria_ate timestamptz) ON COMMIT DROP`);
+            await a.query(`CREATE TRIGGER espelho_na_falsa AFTER UPDATE ON pg_temp.usuarios
+                             FOR EACH ROW EXECUTE FUNCTION public.pessoa_espelha_a_conta()`);
+            await a.query(
+              "INSERT INTO pg_temp.usuarios (organizacao_id, pessoa_id, email, senha_hash) VALUES ($1, $2, 'x@x', 'velha')",
+              [org1, outra],
+            );
+            await a.query("UPDATE pg_temp.usuarios SET senha_hash = 'senha-do-atacante'");
+            await a.query("COMMIT");
+          })(),
+        );
+        // A mensagem segue o idioma do servidor; o código e o ponto da recusa, não.
+        expect(e.code).toBe("42501");
+        expect(e.message).toMatch(/temporary tables|tabelas tempor/);
+      } finally {
+        await a.end();
+      }
+      expect(
+        (await dono.query("SELECT senha_hash FROM pessoas WHERE id = $1", [outra])).rows[0]
+          .senha_hash,
+      ).toBe("hash-do-alvo");
+    }, 60_000);
+
+    /** Espera até `pid` ficar parado em qualquer trava, ou desiste. */
+    async function paradoEmAlgo(pid: number): Promise<boolean> {
+      for (let i = 0; i < 100; i++) {
+        const r = await dono.query(
+          "SELECT count(*)::int AS n FROM pg_locks WHERE pid = $1 AND NOT granted",
+          [pid],
+        );
+        if (r.rows[0].n > 0) return true;
+        await new Promise((ok) => setTimeout(ok, 50));
+      }
+      return false;
+    }
+
+    /*
+      Correção 1, achado 5 (a ordem das travas da decisão 7). A transação A
+      segue a ordem da ADR: segura a linha da pessoa (N4) e DEPOIS marca o link
+      (N7), como o caminho global da E08 fará. B é o caminho de hoje que chega
+      à pessoa só pelo espelho. Na ordem certa, B espera em N4 sem segurar o
+      link: C consegue o link com NOWAIT, A termina, B segue, e ninguém recebe
+      40P01. Com o espelho depois do gatilho da 051 (ou `consumir_recuperacao`
+      travando o link antes da pessoa), B segura o link enquanto espera a
+      pessoa: o NOWAIT de C falha e A fecharia ciclo com B.
+
+      `consumir_recuperacao` (051) ainda toma o link antes da pessoa: é
+      divergência REGISTRADA no cabeçalho da 054 (C5, dono E08), que não fecha
+      ciclo enquanto nenhum caminho tomar N4 por comando próprio (a E08 é o
+      primeiro). O caso dela fica em `it.fails`: mede a divergência hoje e
+      reprova no dia em que a E08 a corrigir, para virar `it`.
+    */
+    for (const caminho of ["consumir_recuperacao", "redefinição por quem administra"] as const) {
+      const caso = caminho === "consumir_recuperacao" ? it.fails : it;
+      caso(
+        `${caminho} contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01`,
+        async () => {
+          const token = `link-${Math.random().toString(36).slice(2, 10)}`;
+          await dono.query(
+            "SELECT * FROM abrir_recuperacao('um@exemplo.gov.br', $1, interval '30 minutes', NULL)",
+            [token],
+          );
+          const link = (
+            await dono.query("SELECT id FROM recuperacoes_senha WHERE token_hash = $1", [token])
+          ).rows[0].id as string;
+          const a = await conectar();
+          const b = await conectar();
+          const c = await conectar();
+          try {
+            const pidB = (await b.query("SELECT pg_backend_pid() AS p")).rows[0].p as number;
+            await a.query("BEGIN");
+            await a.query("SELECT 1 FROM pessoas WHERE id = $1 FOR NO KEY UPDATE", [pessoa1]);
+            await b.query("BEGIN");
+            const erroB: { e: Erro | null } = { e: null };
+            const segunda = (
+              caminho === "consumir_recuperacao"
+                ? b.query("SELECT * FROM consumir_recuperacao($1, 'hash-pelo-link')", [token])
+                : b
+                    .query("SELECT set_config('app.organizacao_atual', $1, true)", [org1])
+                    .then(() => b.query("SET LOCAL ROLE dc360_app"))
+                    .then(() =>
+                      b.query("UPDATE usuarios SET senha_hash = 'hash-redefinido' WHERE id = $1", [
+                        conta1,
+                      ]),
+                    )
+            ).catch((e: Erro) => {
+              erroB.e = e;
+            });
+            expect(await paradoEmAlgo(pidB)).toBe(true);
+            await c.query("BEGIN");
+            const linkLivre = await c
+              .query("SELECT id FROM recuperacoes_senha WHERE id = $1 FOR UPDATE NOWAIT", [link])
+              .then(
+                () => "livre",
+                (e: Erro) => e.code,
+              );
+            await c.query("ROLLBACK");
+            expect(linkLivre).toBe("livre");
+            await a.query(
+              "UPDATE recuperacoes_senha SET usada_em = now() WHERE id = $1 AND usada_em IS NULL",
+              [link],
+            );
+            await a.query("COMMIT");
+            await segunda;
+            expect(erroB.e?.code).toBeUndefined();
+            await b.query("COMMIT");
+          } finally {
+            await a.end();
+            await b.end();
+            await c.end();
+          }
+        },
+        60_000,
+      );
+    }
 
     for (const vence of ["município 1", "município 2"] as const) {
       it(`duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (${vence} primeiro): uma fica, a outra recebe 23505, sem 40P01`, async () => {

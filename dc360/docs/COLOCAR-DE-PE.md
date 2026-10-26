@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **6578 testes somando o aplicativo** (contagem estática de `npm run
+- **6591 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -149,6 +149,9 @@ com os dois erros que ele encontrou pelo caminho.
   -- papel administrativo com CREATEROLE e BYPASSRLS, use-o como setup.
   -- papel de APLICAÇÃO: é este que vai na DATABASE_URL da API.
   CREATE ROLE dc360_api LOGIN PASSWORD '...' NOSUPERUSER;
+  -- a migração 054 tira o TEMP do PUBLIC e para se ele continuar; se quem
+  -- migra não é o dono do banco, o dono roda antes:
+  REVOKE TEMPORARY ON DATABASE dc360 FROM PUBLIC;
   -- depois de migrar (a migração 001 cria dc360_app):
   GRANT dc360_app TO dc360_api WITH SET TRUE;
   ```
@@ -351,7 +354,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, lint, formatação, 6578 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 6591 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

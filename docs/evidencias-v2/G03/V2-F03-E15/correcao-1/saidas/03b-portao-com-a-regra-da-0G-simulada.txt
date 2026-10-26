@@ -1,0 +1,26 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db[39m
+
+[2m11:27:43[22m [33m[1m[vite][22m[39m [33m[2m(ssr)[22m[39m [33mwarning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).[39m
+  Plugin: [35mvite:dynamic-import-vars[39m
+  File: [36mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db/test/catalogo-nominal.test.ts[39m
+ [32m✓[39m test/catalogo-nominal.test.ts [2m([22m[2m58 tests[22m[2m)[22m[33m 2702[2mms[22m[39m
+ [32m✓[39m test/portao-comportamental.test.ts [2m([22m[2m40 tests[22m[2m)[22m[33m 14144[2mms[22m[39m
+   [33m[2m✓[22m[39m linha de base: o banco de hoje passa por tudo[2m > [22ma prova comportamental inteira não acha nada no banco de hoje [33m 2244[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22muma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa [33m 745[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22mPREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos [33m 507[2mms[22m[39m
+   [33m[2m✓[22m[39m item 2: o modo de cada policy, e a composição[2m > [22mcomposição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede [33m 603[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada [33m 1645[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some [33m 1733[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mcom security_invoker, a mesma visão passa nas duas [33m 1583[2mms[22m[39m
+   [33m[2m✓[22m[39m item 5: a função recriada por SQL dinâmico[2m > [22ma definição instalada mostra: a função mudou na 999 e o catálogo diz 046 [33m 1040[2mms[22m[39m
+ [32m✓[39m test/isolamento.test.ts [2m([22m[2m162 tests[22m[2m)[22m[33m 33082[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 1380[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 1515[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 24169[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m260 passed[39m[22m[90m (260)[39m
+[2m   Start at [22m 11:27:42
+[2m   Duration [22m 34.20s[2m (transform 363ms, setup 0ms, collect 1.58s, tests 49.93s, environment 1ms, prepare 529ms)[22m
+

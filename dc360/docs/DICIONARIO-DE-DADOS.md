@@ -541,13 +541,15 @@ travas: RLS ativada e forçada **sem nenhuma policy**; **nenhum privilégio** do
 papel de aplicação, do console ou de `PUBLIC` (nem `SELECT`: tocar a tabela dá
 "permissão negada"); acesso só pelas funções `SECURITY DEFINER` da lista nominal
 do portão; e essa lista conferida nos dois sentidos (`db/test/catalogo/f03-e15.ts`).
-A pessoa **não se apaga** (gatilho `pessoas_nao_se_apagam`, para o dono também).
+A pessoa **não se apaga** (gatilho `pessoas_nao_se_apagam`, para o dono também), e
+o `id` dela **não muda** (gatilhos `pessoas_id_nao_muda`, antes e no estado final):
+contas, sessões e marcas apontam para ele sem chave estrangeira.
 
 | Coluna | Significado |
 | --- | --- |
 | `nome` | O nome da pessoa, copiado da conta na criação. O nome que o município digitou continua na conta, e a pessoa não acompanha a troca dele |
 | `email` | O e-mail da pessoa. Único entre todas as pessoas (`pessoas_email_idx`, total, em `lower(email)`; a E09 o troca pelo único entre pessoas ativas) |
-| `senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate` | A credencial. **Até a E08 é cópia da conta**: toda escrita em `usuarios` é espelhada aqui pelo gatilho `usuarios_espelha_credencial_na_pessoa`, de mão única. A E02 passa a ler daqui; a E08 passa a gravar só aqui |
+| `senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate` | A credencial. **Até a E08 é cópia da conta**: toda escrita em `usuarios` é espelhada aqui pelo gatilho `pessoa_recebe_a_credencial_da_conta`, de mão única, que dispara antes do gatilho dos links de recuperação (a linha da pessoa antes das dos links, na ordem de travas da ADR 0009). A E02 passa a ler daqui; a E08 passa a gravar só aqui |
 | `email_verificado_em` | Quando a pessoa provou que recebe no e-mail. Nulo em toda pessoa do backfill: não havia verificação antes |
 | `ativo` | Se a pessoa pode entrar. Até a E09 é a foto da criação (do backfill, a da conta); a autoridade é o `ativo` da conta, que as funções devolvem junto. A E09 passa a mantê-lo pelas contas ativas |
 
@@ -565,6 +567,11 @@ junto com ela (destino da pessoa: H98).
 
 ### Como a conta ganha a pessoa
 
+- **Antes de tudo**, o gatilho comum `conta_nasce_no_municipio_do_contexto` recusa,
+  com o mesmo erro da policy de inserção, a conta que o RLS de `usuarios` vai
+  recusar (fora do município do contexto, ou sem contexto), antes de qualquer
+  consulta a `pessoas`: sem contexto, e-mail existente e e-mail livre recebem a
+  mesma resposta.
 - **Conta nova sem pessoa informada** (o cadastro de hoje, o modo local do painel,
   `provisionar_municipio`, as sementes): o gatilho `usuarios_ganha_pessoa`
   (`BEFORE INSERT`) cria uma pessoa **nova** com a credencial e o e-mail da conta e
@@ -575,6 +582,13 @@ junto com ela (destino da pessoa: H98).
 - **No fim da transação**, o gatilho adiado `usuarios_origem_da_pessoa` confere que
   toda conta inserida tem a marca da mesma transação e da mesma pessoa da linha
   final. Sem isso, a transação inteira volta.
+- **No fim de cada INSERT**, o gatilho de comando `usuarios_nenhuma_pessoa_sem_conta`
+  confere que toda marca `criador` da transação tem a sua conta: a linha que o
+  criador viu e que foi descartada depois (`ON CONFLICT DO NOTHING`) não deixa
+  pessoa nem marca sem conta; o comando volta inteiro.
+- **As funções dos gatilhos só servem a `public.usuarios`** (conferem o oid da
+  tabela) e nenhum papel do produto as executa; o papel de aplicação, o console e
+  `PUBLIC` não têm `TEMP` no banco (não criam tabela temporária).
 - **`pessoa_id` não muda**: os gatilhos `usuarios_pessoa_id_nao_muda` (antes e no
   estado final) recusam toda mudança, para todo papel, inclusive o dono.
 
@@ -583,7 +597,7 @@ junto com ela (destino da pessoa: H98).
 | Função | O que responde |
 | --- | --- |
 | `vigencia_da_sessao(pessoa, org, sid)` | Numa consulta: município suspenso, a conta da pessoa no município, se está ativa, papel e nome, pessoa ativa, senha provisória e se a sessão está viva. Só para o município do contexto; com outro, nada |
-| `credenciais_da_pessoa(email)` | A credencial lida da pessoa, com cada conta dela (município, papel, ativo). Antes do tenant, como o login de hoje. Não compara senha |
+| `credenciais_da_pessoa(email)` | A credencial lida da pessoa, com cada conta dela (município, papel, ativo). Só antes do tenant, como o login de hoje: com município no contexto, recusa. Não compara senha |
 | `travar_pessoa(pessoa)` e `travar_pessoa_da_conta(conta)` | A trava da pessoa (nível N2 da ordem de travas da ADR 0009, escrita no cabeçalho da 054), separada da trava das sessões da conta. A segunda acha a pessoa pela conta no município do contexto e não devolve o `pessoa_id` |
 
 As duas primeiras ainda não têm quem as chame na API (E02 e E03). As contagens

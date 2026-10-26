@@ -10,18 +10,26 @@
  *     grant (nem SELECT) para `dc360_app`, `dc360_console` e `PUBLIC`, nenhuma
  *     chave estrangeira sem município e nenhum DELETE (as quatro travas da
  *     decisão 3, conferidas pelo portão);
- *   - quatro funções SECURITY DEFINER: o gatilho criador e adiado
- *     (`conta_ganha_pessoa`, a ÚNICA que cita `origens_de_conta`, marca
- *     `criador`), o espelho da credencial (`pessoa_espelha_a_conta`, passo 1
- *     da P-04), `vigencia_da_sessao` e `credenciais_da_pessoa`;
+ *   - quatro funções SECURITY DEFINER: o gatilho criador, adiado e de
+ *     comando (`conta_ganha_pessoa`, a ÚNICA que cita `origens_de_conta`,
+ *     marca `criador`), o espelho da credencial (`pessoa_espelha_a_conta`,
+ *     passo 1 da P-04), `vigencia_da_sessao` e `credenciais_da_pessoa`;
+ *   - as duas funções de GATILHO privilegiadas com `executavelPor: []`
+ *     (correção 1, C1): nenhum papel do produto as executa, porque o Postgres
+ *     só confere o EXECUTE de função de gatilho no `CREATE TRIGGER`, e o
+ *     EXECUTE só servia para anexá-las a outra tabela. É a forma da regra
+ *     "nenhum EXECUTE em função de gatilho para papel do produto" da parte 0G;
+ *     o portão de hoje (`conferirFuncoesPrivilegiadas`) ainda reprova função
+ *     privilegiada sem papel com EXECUTE, e essas duas linhas somem com a 0G;
  *   - o UPDATE de `usuarios` por coluna, numa lista positiva sem `pessoa_id`
  *     (a 054 tira o UPDATE de TABELA que vinha da 001);
  *   - o preparo de `origens_de_conta` para a prova comportamental (a coluna
  *     `transacao` é `xid8`, que a fábrica genérica não sabe gerar).
  *
  * `travar_pessoa`, `travar_pessoa_da_conta`, `pessoa_da_conta_nao_muda`,
- * `linha_permanente` e `sessao_carrega_a_pessoa` são SECURITY INVOKER e por
- * isso não entram aqui: rodam com o privilégio e o RLS de quem chama.
+ * `chave_da_pessoa_nao_muda`, `conta_nasce_no_contexto`, `linha_permanente` e
+ * `sessao_carrega_a_pessoa` são SECURITY INVOKER e por isso não entram aqui:
+ * rodam com o privilégio e o RLS de quem chama.
  */
 import type { ColunaComUpdate, ContribuicaoDoCatalogo } from "./tipos.js";
 
@@ -91,19 +99,22 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
       assinatura: "public.conta_ganha_pessoa()",
       migracao: "054",
       etapa: ETAPA,
-      executavelPor: ["dc360_app"],
+      executavelPor: [],
       motivo:
-        "Função dos dois gatilhos de INSERT de `usuarios`: o criador (BEFORE) cria a pessoa NOVA " +
-        "da conta que chega sem `pessoa_id` e grava a marca `criador` em `origens_de_conta`; o " +
-        "adiado (constraint trigger, fim da transação) confere marca, transação e pessoa da linha " +
-        "final. Privilegiada porque o `dc360_app` cadastra conta e não alcança `pessoas` nem " +
-        "`origens_de_conta`. O EXECUTE ao app é inerte: função de gatilho não se chama fora de " +
-        "gatilho (provado em pessoas.test.ts).",
+        "Função dos três gatilhos de INSERT de `public.usuarios`: o criador (BEFORE) cria a pessoa " +
+        "NOVA da conta que chega sem `pessoa_id` e grava a marca `criador` em `origens_de_conta`; " +
+        "o de comando (AFTER, FOR EACH STATEMENT) recusa marca `criador` da transação sem conta " +
+        "(ON CONFLICT DO NOTHING); o adiado (constraint trigger) confere marca, transação e pessoa " +
+        "da linha final. Privilegiada porque o `dc360_app` cadastra conta e não alcança `pessoas` " +
+        "nem `origens_de_conta`. Nenhum papel do produto a executa (correção 1, C1).",
       tenant: "contexto",
       confere:
-        "Age só sobre a linha inserida (NEW), sem parâmetro e sem procurar pessoa existente. Com " +
-        "município no contexto, recusa (42501) a conta de outro município antes de criar a pessoa; " +
-        "o RLS de `usuarios` confere o mesmo logo depois. `pessoa_id` informado é recusado (42501).",
+        "Só serve aos três gatilhos nomeados de `public.usuarios` (confere TG_RELID, o nome, o " +
+        "momento e o nível; outra tabela, mesmo TEMP `usuarios`, é recusada com 42501). Age só " +
+        "sobre a linha inserida (NEW), sem parâmetro e sem procurar pessoa existente. Antes dela, " +
+        "o gatilho comum `conta_nasce_no_municipio_do_contexto` recusa, com o erro da policy, a " +
+        "conta que o RLS recusaria (sem oráculo de e-mail); com município no contexto, ela mesma " +
+        "recusa a conta de outro município (o dono). `pessoa_id` informado é recusado (42501).",
       provas: [PROVA],
       gravaOrigemDeConta: "criador",
     },
@@ -112,14 +123,17 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
       assinatura: "public.pessoa_espelha_a_conta()",
       migracao: "054",
       etapa: ETAPA,
-      executavelPor: ["dc360_app"],
+      executavelPor: [],
       motivo:
         "Espelho de mão única da credencial e do e-mail de `usuarios` para `pessoas` (P-04, passo " +
-        "1 da ADR 0009). Privilegiada porque quem atualiza a conta pode ser o `dc360_app` (a " +
-        "redefinição de senha por quem administra), que não alcança `pessoas`. A E08 a desliga. " +
-        "O EXECUTE ao app é inerte (função de gatilho).",
+        "1 da ADR 0009), no gatilho `pessoa_recebe_a_credencial_da_conta`, que dispara antes do " +
+        "da 051 (N4 antes de N7). Privilegiada porque quem atualiza a conta pode ser o " +
+        "`dc360_app` (a redefinição de senha por quem administra), que não alcança `pessoas`. A " +
+        "E08 a desliga. Nenhum papel do produto a executa (correção 1, C1).",
       tenant: "contexto",
       confere:
+        "Só serve ao gatilho AFTER UPDATE nomeado de `public.usuarios` (TG_RELID, nome, momento e " +
+        "nível; outra tabela, mesmo TEMP `usuarios`, é recusada com 42501). " +
         "Atinge só a pessoa da própria conta atualizada (NEW.pessoa_id), cuja linha já passou " +
         "pelo RLS de quem atualizou; com município no contexto, recusa conta de outro município. " +
         "Pessoa não encontrada levanta erro: a escrita na conta volta inteira, nunca calada.",
@@ -155,6 +169,8 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
         "por igualdade de e-mail, sem filtro, ordem livre nem limite; não compara senha.",
       tenant: "antes_do_tenant",
       confere:
+        "Só antes do município: com município no contexto, recusa (42501), seja qual for o " +
+        "e-mail (correção 1, C2), e dentro de A nunca devolve a conta de B. " +
         "O e-mail é o único caminho: `pessoas_email_idx` (total até a E09) garante uma pessoa por " +
         "e-mail, e cada linha devolvida é uma conta DELA, com o município da própria conta. Até a " +
         "064 o `UNIQUE (pessoa_id)` garante uma conta só.",

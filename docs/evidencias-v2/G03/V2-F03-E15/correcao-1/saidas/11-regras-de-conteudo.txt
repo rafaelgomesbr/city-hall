@@ -1,0 +1,36 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360[39m
+
+ [31m❯[39m packages/shared/test/regras-de-conteudo.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 3441[2mms[22m[39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22ma varredura alcança o código, o protótipo e a documentação [33m 572[2mms[22m[39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22mnenhum travessão em texto nenhum [33m 901[2mms[22m[39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22mnenhuma norma citada fora da lista autorizada [33m 1116[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mnenhum número de artigo em documento oficial[32m 2[2mms[22m[39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22mas isenções da E20 valem só no recorte, e na árvore real [33m 707[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mrecorte das isenções num repositório sintético[2m > [22mreprova o travessão novo em documento, evidência escrita à mão e produto[32m 42[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mrecorte das isenções num repositório sintético[2m > [22mdeixa passar só a saída bruta e o relatório histórico pelo nome exato[32m 26[2mms[22m[39m
+[31m   [31m×[31m Regras de conteúdo[2m > [22mrecorte das isenções num repositório sintético[2m > [22mtolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura[39m[32m 37[2mms[22m[39m
+[31m     → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Wm5WEO\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Wm5WEO\docs\sumiu-depois-da-listagem.md'[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mrecorte das isenções num repositório sintético[2m > [22msó tolera ENOENT: outro erro de leitura continua derrubando a varredura[32m 33[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mas próprias expressões funcionam[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m packages/shared/test/regras-de-conteudo.test.ts[2m > [22mRegras de conteúdo[2m > [22mrecorte das isenções num repositório sintético[2m > [22mtolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+[31m[1mError[22m: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Wm5WEO\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Wm5WEO\docs\sumiu-depois-da-listagem.md'[39m
+[36m [2m❯[22m packages/shared/test/regras-de-conteudo.test.ts:[2m403:9[22m[39m
+    [90m401| [39m      [35mconst[39m raiz [33m=[39m [34mmontar[39m()[33m;[39m
+    [90m402| [39m      [35mtry[39m {
+    [90m403| [39m        [34msymlinkSync[39m(
+    [90m   | [39m        [31m^[39m
+    [90m404| [39m          [34mjoin[39m(raiz[33m,[39m [32m"alvo-que-nao-existe.md"[39m)[33m,[39m
+    [90m405| [39m          [34mjoin[39m(raiz[33m,[39m [32m"docs"[39m[33m,[39m [32m"sumiu-depois-da-listagem.md"[39m)[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m9 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 11:23:53
+[2m   Duration [22m 4.32s[2m (transform 91ms, setup 0ms, collect 117ms, tests 3.44s, environment 0ms, prepare 245ms)[22m
+

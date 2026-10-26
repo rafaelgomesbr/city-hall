@@ -1119,11 +1119,20 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `pessoas` e de `origens_de_conta`, o espelho, `vigencia_da_sessao`,
     `credenciais_da_pessoa`, a trava N2, o inventario contra o banco e a
     volta). Os 6 do bloco de Postgres real pulam sem `DC360_POSTGRES_DE_PROVA`.
+    Correcao 1 (revisao do Codex): 16 casos a mais, 86 no total. Em PGlite, 13
+    (o ataque da tabela temporaria, TEMP e EXECUTE dos papeis do produto, as
+    funcoes de gatilho presas a `public.usuarios`, `credenciais_da_pessoa`
+    recusada com contexto e respondendo sem, o oraculo do cadastro sem contexto
+    e com contexto alheio, ON CONFLICT DO NOTHING e o caso sem conflito, a
+    ordem do espelho antes da 051, `pessoas.id` imutavel, e a 054 que falha
+    fechada com TEMP herdado); em Postgres real, 3 (o ataque num banco de
+    CREATE DATABASE e a ordem N4 antes de N7, um deles `it.fails`), 9 pulados
+    sem a variavel.
     `chave-de-criacao-migracao.test.ts` (a prova da 052 para na 052, a mesma
     troca da parte 1A) e `portao-comportamental.test.ts` (a sonda da marca
     criador ja encontra a do gatilho criador) mudaram sem caso novo.
   */
-  "V2-F03-E15": { total: 70, falhas: 0, puladas: 6 },
+  "V2-F03-E15": { total: 86, falhas: 0, puladas: 9 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
