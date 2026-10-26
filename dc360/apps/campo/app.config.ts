@@ -316,12 +316,16 @@ const config: ExpoConfig = {
       Arquivo do Firebase, exigido pelo FCM para a notificação chegar no
       Android. Projeto `defesa-civil-360`, criado em 09/09/2026.
 
-      Fica rastreado no git de propósito: o EAS constrói a partir do
-      repositório, e arquivo ignorado não chega no worker. Ele não é segredo,
-      todo o conteúdo sai de um APK publicado com um descompactador. Ver a
-      justificativa inteira em `.gitignore`.
+      Fora do git desde 26/10/2026, por regra do Rafael: nenhuma chave mora
+      no código. O EAS constrói a partir do git e arquivo ignorado não chega
+      no worker, então no build na nuvem o arquivo vem de uma variável de
+      ambiente do tipo arquivo do EAS (`GOOGLE_SERVICES_JSON`), que entrega o
+      CAMINHO de uma cópia temporária. Na máquina de quem desenvolve, a mesma
+      variável aponta para a cópia guardada fora do repositório; sem ela, vale
+      `./google-services.json` ao lado deste arquivo, que o `.gitignore`
+      impede de voltar ao git. Ver `LEIA-ME.md`, "Arquivo do Firebase".
     */
-    googleServicesFile: "./google-services.json",
+    googleServicesFile: process.env["GOOGLE_SERVICES_JSON"]?.trim() || "./google-services.json",
     versionCode: BUILD,
     adaptiveIcon: {
       foregroundImage: "./assets/icone-adaptativo.png",

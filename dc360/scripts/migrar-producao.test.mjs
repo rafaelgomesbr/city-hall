@@ -112,3 +112,38 @@ test("o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina",
   assert.equal(typeof CONTA, "string");
   assert.equal(typeof COFRE, "string");
 });
+
+test("no Windows a senha sai do Gerenciador de Credenciais, e nunca vai na linha de comando", async () => {
+  const { comandoDeLeitura, senhaDoChaveiro } = await import("./producao.mjs");
+  const win = comandoDeLeitura("win32");
+  assert.equal(win.programa, "powershell.exe");
+  const script = win.argumentos.at(-1);
+  assert.match(script, /PasswordVault/);
+  assert.ok(script.includes(`Retrieve('${COFRE}','${CONTA}')`));
+  assert.match(script, /OutputEncoding=\[Text\.Encoding\]::UTF8/, "senha com acento chega inteira");
+
+  const mac = comandoDeLeitura("darwin");
+  assert.equal(mac.programa, "security");
+  assert.deepEqual(mac.argumentos, ["find-generic-password", "-a", CONTA, "-s", COFRE, "-w"]);
+
+  let chamado;
+  const senha = senhaDoChaveiro({
+    plataforma: "win32",
+    executar: (programa, argumentos) => { chamado = { programa, argumentos }; return "s3nh@#/\r\n"; },
+  });
+  assert.equal(senha, "s3nh@#/", "o fim de linha do Windows não entra na senha");
+  assert.equal(chamado.programa, "powershell.exe");
+});
+
+test("o guia de como guardar a senha no Windows pergunta sem eco", async () => {
+  const { comoGuardar } = await import("./producao.mjs");
+  const guia = comoGuardar("win32");
+  assert.match(guia, /Read-Host -AsSecureString/);
+  assert.ok(guia.includes(`PasswordCredential('${COFRE}','${CONTA}'`));
+  assert.doesNotMatch(comoGuardar("darwin"), /PowerShell/);
+});
+
+test("no Windows o npm é chamado pelo shell, porque o Node 22 recusa .cmd sem ele", () => {
+  const fonte = readFileSync(new URL("./migrar-producao.mjs", import.meta.url), "utf8");
+  assert.match(fonte, /shell: process\.platform === "win32"/);
+});

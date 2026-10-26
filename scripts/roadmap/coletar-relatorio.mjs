@@ -86,6 +86,7 @@ const DEGRAU = new Map([
   ["IMPLEMENTADA", 2],
   ["EM VALIDAÇÃO", 3],
   ["VALIDADA COM PENDÊNCIA HUMANA", 4],
+  ["ACEITA", 4],
   ["VALIDADA", 5],
   ["CONCLUÍDA COM RISCO ACEITO", 6],
   ["CONCLUÍDA", 7],

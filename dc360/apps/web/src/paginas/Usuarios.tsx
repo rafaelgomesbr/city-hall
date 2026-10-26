@@ -481,14 +481,17 @@ export function Usuarios() {
       {/*
         A senha sai UMA vez, e fechar sem anotar a perde. Por isso a janela não
         fecha por clique fora (o que apagaria a única cópia no meio de uma
-        leitura) e não tem o "Fechar" do canto: a saída é o botão que diz que a
-        senha foi anotada. Escape ainda fecha, como em toda janela do painel.
+        leitura), não fecha por Escape (quem aperta a tecla sem ter copiado perdia
+        a senha, H05, decisão do Rafael em 2026-10-26) e não tem o "Fechar" do
+        canto: a única saída é o botão que diz que a senha foi anotada. As outras
+        janelas do painel continuam fechando por Escape.
       */}
       <Modal
         aberto={senhaGerada !== null}
         titulo="Senha temporária"
         aoFechar={() => setSenhaGerada(null)}
         fecharAoClicarFora={false}
+        fecharComEscape={false}
         mostrarBotaoFechar={false}
       >
         {senhaGerada && (

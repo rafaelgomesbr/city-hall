@@ -277,6 +277,26 @@ test("conferir: CONCLUÍDA COM RISCO ACEITO exige RISCO-ACEITO.md além do PASS"
   }
 });
 
+test("conferir: ACEITA (H84) exige VEREDITO.md que registre ACEITA, e ACEITA não vale como PASS", () => {
+  const copia = copiarFixture();
+  const vereditoDa = "docs/evidencias-v2/G00/V2-F00-E01/VEREDITO.md";
+  try {
+    trocarNoArquivo(copia.raiz, STATUS, "| V2-F00-E01 | Religar a vigencia na escrita | S | P0 | EM ANDAMENTO |", "| V2-F00-E01 | Religar a vigencia na escrita | S | P0 | ACEITA |");
+    const opcoes = () => ({ raiz: copia.raiz, arquivoEstado: gravarEstado(copia.raiz, copia.pasta), commitExiste: todosExistem });
+
+    assert.deepEqual(codigos(conferir(opcoes())), ["sem-aceite"], "sem VEREDITO.md");
+    escrever(copia.raiz, vereditoDa, "# Veredito\nveredito: PASS\n");
+    assert.deepEqual(codigos(conferir(opcoes())), ["sem-aceite"], "PASS pede VALIDADA, não ACEITA");
+    escrever(copia.raiz, vereditoDa, "# Veredito\nveredito: ACEITA\n");
+    assert.deepEqual(conferir(opcoes()), []);
+
+    trocarNoArquivo(copia.raiz, STATUS, "| S | P0 | ACEITA |", "| S | P0 | VALIDADA |");
+    assert.deepEqual(codigos(conferir(opcoes())), ["veredito-sem-pass"], "ACEITA não aprova uma VALIDADA");
+  } finally {
+    copia.limpar();
+  }
+});
+
 test("conferir (d): IMPLEMENTADA exige SHA existente citado na observação", () => {
   const copia = copiarFixture();
   try {

@@ -201,14 +201,13 @@ for (const [botao, padrao] of [["Encerrar sessões", /^Encerrar sessões de Marc
  * A barra de navegação do pé da tela (largura até 900 px).
  *
  * "Cortado" aqui é o que a validação viu: o rótulo passando da borda da tela, ou
- * do próprio botão. Mede o item DEPOIS de a página assentar e com a barra
- * rolada para o começo, que é como a pessoa a encontra ao abrir o painel.
+ * do próprio botão. Mede o item DEPOIS de a página assentar. Desde o menu
+ * "Mais" (H08) a barra não rola: se rolar, `barraRola` acusa.
  */
 async function medirBarra() {
   return page.evaluate(() => {
     const barra = document.querySelector("nav.lateral");
     if (!barra) return null;
-    barra.scrollLeft = 0;
     const largura = window.innerWidth;
     const itens = [...barra.querySelectorAll(".lateral__item")].map((a) => {
       const r = a.getBoundingClientRect();
@@ -220,49 +219,13 @@ async function medirBarra() {
         cortado: a.scrollWidth > a.clientWidth + 1 || a.scrollHeight > a.clientHeight + 1,
       };
     });
-    return { largura, itens, paginaRola: document.documentElement.scrollWidth > largura + 1 };
+    return {
+      largura, itens, paginaRola: document.documentElement.scrollWidth > largura + 1,
+      barraRola: barra.scrollWidth > barra.clientWidth + 1,
+    };
   });
 }
 
-console.log("\n== 3. A barra de navegação não corta os rótulos ==");
-await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
-await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
-for (const largura of [320, 360, 361, 390, 768]) {
-  await page.setViewportSize({ width: largura, height: 800 });
-  await page.waitForTimeout(150);
-  const m = await medirBarra();
-  const mapa = m?.itens.find((i) => i.texto === "Mapa da cidade");
-  ok(`a ${largura} px a barra existe e tem o item "Mapa da cidade"`, Boolean(mapa));
-  if (!mapa) continue;
-  ok(`a ${largura} px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra`,
-     mapa.esq >= -0.5 && mapa.dir <= m.largura + 0.5, `(${mapa.esq.toFixed(0)}..${mapa.dir.toFixed(0)} de ${m.largura})`);
-  ok(`a ${largura} px o rótulo de "Mapa da cidade" cabe no próprio botão`,
-     !mapa.cortado && mapa.rotuloEsq >= mapa.esq - 0.5 && mapa.rotuloDir <= mapa.dir + 0.5,
-     `(rótulo ${mapa.rotuloEsq.toFixed(0)}..${mapa.rotuloDir.toFixed(0)}, botão ${mapa.esq.toFixed(0)}..${mapa.dir.toFixed(0)})`);
-  ok(`a ${largura} px nenhum item da barra tem texto cortado`,
-     m.itens.every((i) => !i.cortado), `(${m.itens.filter((i) => i.cortado).map((i) => i.texto).join(", ")})`);
-  ok(`a ${largura} px todo item tem pelo menos 44 px de toque`,
-     m.itens.every((i) => i.altura >= 43.5 && i.largura >= 43.5),
-     `(${m.itens.filter((i) => i.altura < 43.5 || i.largura < 43.5).map((i) => `${i.texto} ${i.largura.toFixed(0)}x${i.altura.toFixed(0)}`).join(", ")})`);
-  ok(`a ${largura} px a página não ganhou rolagem horizontal`, !m.paginaRola);
-}
-/*
-  A tela atual precisa estar à vista na barra: a de "Organização" é a décima
-  e fica na parte que rola, a 390 px. E o primeiro Tab continua caindo em
-  "Pular para o conteúdo", e não no item seguinte ao da tela atual (o
-  Chromium toma `scrollIntoView` como ponto de partida do Tab).
-*/
-await page.setViewportSize({ width: 390, height: 800 });
-await page.goto(`${BASE}/organizacao`, { waitUntil: "networkidle" });
-await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
-await page.waitForTimeout(300);
-const atual = await page.evaluate(() => {
-  const a = document.querySelector('.lateral__item[aria-current="page"]');
-  const r = a?.getBoundingClientRect();
-  return r ? { texto: a.textContent.trim(), esq: r.left, dir: r.right, largura: window.innerWidth } : null;
-});
-ok("a 390 px o ladrilho da tela atual (Organização) está inteiro à vista",
-   Boolean(atual) && atual.esq >= -0.5 && atual.dir <= atual.largura + 0.5, `(${JSON.stringify(atual)})`);
 /*
   O WebKit do Playwright no macOS não leva o Tab a links nem a botões (é a
   preferência "Pressionar Tab para destacar cada item", desligada por padrão
@@ -276,6 +239,201 @@ await paginaSonda.setContent('<a href="#x" id="alvo">link</a>');
 await paginaSonda.keyboard.press("Tab");
 const tabAlcancaLink = await paginaSonda.evaluate(() => document.activeElement?.id === "alvo");
 await paginaSonda.close();
+
+console.log("\n== 3. A barra de navegação não corta os rótulos e não rola (H08) ==");
+/*
+  O menu "Mais" (H08, decisão do Rafael em 2026-10-26) trocou a barra que rolava
+  na horizontal por uma barra de ladrilhos que cabem INTEIROS: os destinos mais
+  usados e o botão "Mais", que abre o resto. A conta de quantos entram é a de
+  `navegacao-mais.ts`: 2 destinos até 360 px, 3 até 600 px, 5 até 900 px.
+*/
+function ladrilhosEsperados(largura) {
+  const todos = ["Painel", "Ocorrências", "Mapa da cidade", "Quem está em campo"];
+  const quantos = largura <= 360 ? 2 : largura <= 600 ? 3 : 5;
+  return [...todos.slice(0, quantos), "Mais"];
+}
+await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+for (const largura of [320, 360, 361, 390, 768]) {
+  await page.setViewportSize({ width: largura, height: 800 });
+  await page.waitForTimeout(150);
+  const m = await medirBarra();
+  const textos = m?.itens.map((i) => i.texto) ?? [];
+  ok(`a ${largura} px a barra tem os destinos principais e o Mais, nessa ordem`,
+     JSON.stringify(textos) === JSON.stringify(ladrilhosEsperados(largura)),
+     `(${textos.join(" | ")})`);
+  if (!m) continue;
+  ok(`a ${largura} px todo ladrilho está inteiro dentro da tela`,
+     m.itens.every((i) => i.esq >= -0.5 && i.dir <= m.largura + 0.5),
+     `(${m.itens.map((i) => `${i.texto} ${i.esq.toFixed(0)}..${i.dir.toFixed(0)}`).join(", ")} de ${m.largura})`);
+  ok(`a ${largura} px o rótulo de cada ladrilho cabe no próprio botão`,
+     m.itens.every((i) => !i.cortado && i.rotuloEsq >= i.esq - 0.5 && i.rotuloDir <= i.dir + 0.5),
+     `(${m.itens.filter((i) => i.cortado).map((i) => i.texto).join(", ")})`);
+  ok(`a ${largura} px todo item tem pelo menos 44 px de toque`,
+     m.itens.every((i) => i.altura >= 43.5 && i.largura >= 43.5),
+     `(${m.itens.filter((i) => i.altura < 43.5 || i.largura < 43.5).map((i) => `${i.texto} ${i.largura.toFixed(0)}x${i.altura.toFixed(0)}`).join(", ")})`);
+  ok(`a ${largura} px a barra não rola na horizontal (nada escondido para a direita)`, !m.barraRola);
+  ok(`a ${largura} px a página não ganhou rolagem horizontal`, !m.paginaRola);
+}
+
+console.log("\n== 3b. O menu Mais: abre, mostra o resto, fecha por Esc, fora e ao escolher (H08) ==");
+/*
+  O comportamento que a validação de teclado e de leitor de tela cobra de um
+  botão que abre e fecha: `aria-expanded` verdadeiro quando aberto, o foco
+  entra no menu, o Esc fecha e devolve o foco ao botão, o Tab que sai da barra
+  fecha sem armadilha, escolher um destino fecha e leva à tela nova com o botão
+  marcado como "você está aqui". Mede retângulos, e não classe.
+*/
+const DESTINOS_DO_MENU = {
+  320: ["Mapa da cidade", "Quem está em campo", "Equipes", "Órgãos de destino", "Usuários", "Prestação de contas", "Organização", "Tema escuro", "Sair"],
+  390: ["Quem está em campo", "Equipes", "Órgãos de destino", "Usuários", "Prestação de contas", "Organização", "Tema escuro", "Sair"],
+  768: ["Equipes", "Órgãos de destino", "Usuários", "Prestação de contas", "Organização", "Tema escuro", "Sair"],
+};
+const maisAberto = () => page.locator("button.lateral__mais").getAttribute("aria-expanded");
+for (const [largura, altura] of [[320, 568], [390, 844], [768, 900]]) {
+  await page.setViewportSize({ width: largura, height: altura });
+  await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+  await page.waitForTimeout(150);
+  ok(`a ${largura} px o Mais começa fechado, sem menu na página`,
+     (await maisAberto()) === "false" && (await page.locator(".lateral__menu").count()) === 0);
+  await page.locator("button.lateral__mais").click();
+  await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+  await page.waitForTimeout(200);
+  ok(`a ${largura} px aberto, o Mais diz aria-expanded=true e aponta o menu por aria-controls`,
+     (await maisAberto()) === "true"
+     && (await page.locator("button.lateral__mais").getAttribute("aria-controls"))
+        === (await page.locator(".lateral__menu").getAttribute("id")));
+  const aberto = await page.evaluate(() => {
+    const menu = document.querySelector(".lateral__menu");
+    const caixa = menu.getBoundingClientRect();
+    const barra = document.querySelector("nav.lateral").getBoundingClientRect();
+    const itens = [...menu.querySelectorAll(".lateral__menu-item")].map((a) => {
+      a.scrollIntoView({ block: "nearest" });
+      const r = a.getBoundingClientRect();
+      const topo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return {
+        texto: a.textContent.trim(), altura: r.height, largura: r.width,
+        recebeOToque: topo === a || a.contains(topo),
+        dentro: r.left >= caixa.left - 0.5 && r.right <= caixa.right + 0.5,
+        cortado: a.scrollWidth > a.clientWidth + 1,
+      };
+    });
+    menu.scrollTop = 0;
+    return {
+      itens, esq: caixa.left, dir: caixa.right, topo: caixa.top, base: caixa.bottom,
+      barraTopo: barra.top, largura: window.innerWidth,
+      rolaPagina: document.documentElement.scrollWidth > window.innerWidth + 1,
+      focoNoMenu: Boolean(document.activeElement?.closest(".lateral__menu")),
+      aviso: document.querySelectorAll(".toast").length,
+    };
+  });
+  ok(`a ${largura} px o menu tem exatamente o que saiu da barra, mais o Tema e o Sair`,
+     JSON.stringify(aberto.itens.map((i) => i.texto)) === JSON.stringify(DESTINOS_DO_MENU[largura]),
+     `(${aberto.itens.map((i) => i.texto).join(" | ")})`);
+  ok(`a ${largura} px o menu está inteiro dentro da tela e acima da barra, sem rolagem horizontal da página`,
+     aberto.esq >= -0.5 && aberto.dir <= aberto.largura + 0.5 && aberto.topo >= -0.5
+     && aberto.base <= aberto.barraTopo + 0.5 && !aberto.rolaPagina,
+     `(menu ${aberto.esq.toFixed(0)}..${aberto.dir.toFixed(0)} x ${aberto.topo.toFixed(0)}..${aberto.base.toFixed(0)}, barra em ${aberto.barraTopo.toFixed(0)}, tela ${aberto.largura})`);
+  ok(`a ${largura} px todo item do menu tem pelo menos 44 px de toque, texto inteiro e recebe o toque`,
+     aberto.itens.every((i) => i.altura >= 43.5 && i.largura >= 43.5 && i.recebeOToque && i.dentro && !i.cortado),
+     `(${aberto.itens.filter((i) => i.altura < 43.5 || !i.recebeOToque || !i.dentro || i.cortado).map((i) => i.texto).join(", ")})`);
+  ok(`a ${largura} px ao abrir, o foco entra no menu`, aberto.focoNoMenu);
+
+  // Esc: fecha e devolve o foco ao botão Mais.
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(150);
+  ok(`a ${largura} px o Esc fecha o menu, o botão volta a aria-expanded=false e leva o foco`,
+     (await maisAberto()) === "false" && (await page.locator(".lateral__menu").count()) === 0
+     && (await page.evaluate(() => document.activeElement?.classList.contains("lateral__mais"))));
+
+  // Clique fora: fecha.
+  await page.locator("button.lateral__mais").click();
+  await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+  await page.mouse.click(Math.round(largura / 2), 4);
+  await page.waitForTimeout(150);
+  ok(`a ${largura} px tocar fora do menu o fecha`,
+     (await maisAberto()) === "false" && (await page.locator(".lateral__menu").count()) === 0);
+
+  // O botão alterna: segundo toque fecha.
+  await page.locator("button.lateral__mais").click();
+  await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+  await page.locator("button.lateral__mais").click();
+  await page.waitForTimeout(150);
+  ok(`a ${largura} px tocar o Mais de novo fecha o menu`, (await maisAberto()) === "false");
+
+  // Tab para fora da barra fecha, sem armadilha de foco.
+  if (tabAlcancaLink) {
+    await page.locator("button.lateral__mais").click();
+    await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+    let passos = 0;
+    while ((await page.locator(".lateral__menu").count()) > 0 && passos < 20) {
+      await page.keyboard.press("Tab");
+      passos += 1;
+      await page.waitForTimeout(40);
+    }
+    ok(`a ${largura} px o Tab que sai da barra fecha o menu (em ${passos} Tab, sem armadilha de foco)`,
+       (await page.locator(".lateral__menu").count()) === 0 && passos > 1 && passos < 20);
+  } else {
+    console.log(`  PULADA o Tab que sai da barra (em ${MOTOR} o Tab não alcança links nem numa página mínima)`);
+  }
+
+  // Escolher um destino: vai à tela, fecha o menu e o Mais passa a dizer "você está aqui".
+  await page.locator("button.lateral__mais").click();
+  await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+  await page.locator(".lateral__menu-item", { hasText: "Usuários" }).click();
+  await page.waitForURL(/\/usuarios$/, { timeout: 10_000 });
+  await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+  await page.waitForTimeout(300);
+  const depois = await page.evaluate(() => ({
+    menu: document.querySelectorAll(".lateral__menu").length,
+    atual: document.querySelector("button.lateral__mais")?.classList.contains("lateral__mais--atual"),
+    nome: document.querySelector("button.lateral__mais")?.textContent.trim(),
+    foco: document.activeElement?.id,
+  }));
+  ok(`a ${largura} px escolher Usuários leva à tela, fecha o menu, marca o Mais e leva o foco ao conteúdo`,
+     depois.menu === 0 && depois.atual === true && /inclui a tela atual/.test(depois.nome) && depois.foco === "conteudo",
+     `(${JSON.stringify(depois)})`);
+  // A tela dentro do menu aparece marcada ao reabrir.
+  await page.locator("button.lateral__mais").click();
+  await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+  ok(`a ${largura} px reaberto em Usuários, o item da tela atual leva aria-current`,
+     (await page.locator('.lateral__menu-item[aria-current="page"]').textContent())?.trim() === "Usuários");
+  await page.keyboard.press("Escape");
+}
+
+console.log("\n== 3c. Girar o aparelho com o menu aberto, e a lateral de mesa sem Mais ==");
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+await page.locator("button.lateral__mais").click();
+await page.locator(".lateral__menu").waitFor({ timeout: 5_000 });
+await page.setViewportSize({ width: 1280, height: 800 });
+await page.waitForTimeout(300);
+ok("ao passar do celular para a mesa com o menu aberto, ele some e a lateral volta inteira",
+   (await page.locator(".lateral__menu").count()) === 0 && (await page.locator("button.lateral__mais").count()) === 0
+   && (await page.locator("nav.lateral .lateral__item").count()) >= 11);
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(300);
+ok("e de volta ao celular o menu começa fechado", (await maisAberto()) === "false" && (await page.locator(".lateral__menu").count()) === 0);
+
+/*
+  A tela atual precisa estar à vista na barra, e o primeiro Tab continua caindo
+  em "Pular para o conteúdo". A de "Organização" mora no menu: o Mais é que leva
+  a marca, e continua à vista.
+*/
+await page.setViewportSize({ width: 390, height: 800 });
+await page.goto(`${BASE}/organizacao`, { waitUntil: "networkidle" });
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+await page.waitForTimeout(300);
+const atual = await page.evaluate(() => {
+  const a = document.querySelector("button.lateral__mais--atual");
+  const r = a?.getBoundingClientRect();
+  return r ? { texto: a.textContent.trim(), esq: r.left, dir: r.right, largura: window.innerWidth } : null;
+});
+ok("a 390 px, em Organização, o botão Mais leva a marca de tela atual e está inteiro à vista",
+   Boolean(atual) && atual.esq >= -0.5 && atual.dir <= atual.largura + 0.5, `(${JSON.stringify(atual)})`);
+
 if (tabAlcancaLink) {
   await page.keyboard.press("Tab");
   ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
@@ -523,6 +681,7 @@ for (const [largura, altura] of [[320, 568], [390, 844], [1280, 900]]) {
     const titulo = painelEl.querySelector("h2").getBoundingClientRect();
     const topoDoPainel = painelEl.getBoundingClientRect().top;
     return {
+      avisosNoDom: document.querySelectorAll(".toast").length,
       visiveis: visiveis.length, sobreAJanela: sobre.length, botoes,
       rolagemDoPainel: painelEl.scrollTop, focoDentro,
       tituloVisivel: titulo.top >= topoDoPainel - 0.5 && titulo.bottom <= window.innerHeight,
@@ -536,6 +695,32 @@ for (const [largura, altura] of [[320, 568], [390, 844], [1280, 900]]) {
   ok(`a ${largura} px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista`,
      medida.rolagemDoPainel === 0 && medida.tituloVisivel, `(rolagem ${medida.rolagemDoPainel}, título à vista: ${medida.tituloVisivel})`);
   ok(`a ${largura} px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)`, medida.focoDentro);
+  /*
+    H26 (decisão do Rafael em 2026-10-26): com a janela da senha aberta o aviso
+    não existe na página, então não há texto dele para cobrir "Já anotei a
+    senha" nem para receber o toque que fecharia a janela. Ele espera e volta
+    quando a janela fecha (conferido mais abaixo).
+  */
+  ok(`a ${largura} px, com a janela da senha temporária aberta, não há aviso passageiro na página para receber o toque`,
+     medida.avisosNoDom === 0, `(${medida.avisosNoDom} aviso(s) no DOM)`);
+  /*
+    H05 (decisão do Rafael em 2026-10-26): o Esc NÃO fecha a janela da senha,
+    que aparece uma vez só. Vale com o foco no painel e com o foco fora dele (no
+    <body>, que é por onde o Esc chega ao documento).
+  */
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  ok(`a ${largura} px, o Esc não fecha a janela da senha temporária (foco dentro dela)`,
+     await janelaSenha.isVisible());
+  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  ok(`a ${largura} px, o Esc não fecha a janela da senha temporária (foco fora dela, no corpo da página)`,
+     await janelaSenha.isVisible());
+  ok(`a ${largura} px, depois do Esc a senha continua na tela, com os dois botões`,
+     (await janelaSenha.locator(".senha-temporaria__valor").innerText()).trim().length >= 8
+     && await janelaSenha.getByRole("button", { name: "Copiar senha" }).isVisible()
+     && await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).isVisible());
   // Fechar a janela pelo botão dela: o aviso, que esperava, volta, e o "Fechar" dele responde.
   await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).click();
   await janelaSenha.waitFor({ state: "detached", timeout: 10_000 });
