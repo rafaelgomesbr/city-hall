@@ -4,7 +4,7 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-25, depois da rodada 9 da validação (`dda7557`), das correções 8, 8b (E09) e 11 (E19) do ramo `v2/f00` (pendências H79 a H83) e da implementação da F01 no ramo `v2/f01` (seção F01, H45 a H78).
+**Atualizado em:** 2026-10-26, depois do lote 2 da F02 (H90 a H93) e, antes disso, em 2026-10-25, depois da rodada 9 da validação (`dda7557`), das correções 8, 8b (E09) e 11 (E19) do ramo `v2/f00` (pendências H79 a H83) e da implementação da F01 no ramo `v2/f01` (seção F01, H45 a H78).
 
 ## Situação da F00 em uma linha
 
@@ -48,8 +48,12 @@ As 22 etapas da F01 estão IMPLEMENTADAS no ramo `v2/f01` (2026-10-24), nenhuma 
 | H83 | E19 | Neste Mac, o `node_modules` do aplicativo de campo na árvore principal está desatualizado em relação ao lockfile (`expo` 57.0.30 e `zod` 3.25.76 no topo, contra `expo` 57.0.31 e `zod` 4.6.7 no lockfile). Não é defeito do repositório: um `npm ci` em `dc360/apps/campo` resolve, e o validador da rodada 9 já provou o resultado numa cópia limpa. Fazer antes de rodar o aplicativo ou o `expo-doctor` aqui. | `docs/evidencias-v2/G00/V2-F00-E19/validacao/dda7557/engenharia-entrega.md` (achado 4) | Rafael (máquina) |
 | H86 | F02-E08 | A data em que o espelho legado sem `/v1` deixa de funcionar (`ESPELHO_LEGADO_ATE`, hoje provisória 2027-12-31). Recomendação do plano da F02: adiar, com registro, e só encerrar na F28-E11 depois de medir o uso do espelho. Não trava o lote. | `docs/evidencias-v2/G02/V2-F02-E01/RESUMO.md` | Rafael |
 | H87 | F02-E01 | Validação humana da etapa: ver duas chamadas autenticadas, uma por prefixo (`/v1/...` e o espelho), e os cabeçalhos Deprecation, Sunset e Link do espelho. | `docs/evidencias-v2/G02/V2-F02-E01/` | Rafael |
-| H88 | F02-E03 | Ler a tabela do catálogo de códigos de erro (92 códigos, com status, categoria e título; 3 reservados). É a validação humana da etapa. | `docs/evidencias-v2/G02/V2-F02-E03-parte-1D/tabela-do-catalogo.md` | Rafael |
+| H88 | F02-E03 | Ler a tabela do catálogo de códigos de erro (95 códigos emitidos e 2 reservados, com status, categoria e título). É a validação humana da etapa. A tabela da parte 2C substitui a da 1D. | `docs/evidencias-v2/G02/V2-F02-E03-parte-2C/tabela-do-catalogo.md` | Rafael |
 | H89 | F02-E09 | Na homologação, registrar uma ocorrência entre 21h e meia-noite no horário local e conferir a data no CSV e o ano do protocolo. | `docs/evidencias-v2/G02/V2-F02-E09/RESUMO.md` | Rafael |
+| H90 | F02-E02 | Validação humana do painel (parte 2A): abrir o painel com o DevTools na aba Rede e conferir que toda chamada à API vai a `/v1` (nenhuma sem prefixo). | `docs/evidencias-v2/G02/V2-F02-E02-parte-2A/` | Rafael |
+| H91 | F02-E02 e E03 | Validação humana do aplicativo de campo (parte 2B), no simulador ou no aparelho: a origem aparece na tela, as chamadas vão a `/v1`, a foto abre pela URL assinada sem `/v1`, e uma coleta feita sem sinal sobe ao reabrir o aplicativo. | `docs/evidencias-v2/G02/V2-F02-E02-parte-2B/` | Rafael |
+| H92 | F02-E04 | Abrir o `v1.json` (OpenAPI gerado) num visualizador e conferir três rotas contra o que o painel realmente envia e recebe. É a validação humana da etapa; o lote 3 completa as 40 rotas pendentes. | `docs/evidencias-v2/G02/V2-F02-E04/` | Rafael |
+| H93 | F02-E07 | Na tela de nova ocorrência, dar duplo clique em "Registrar" e conferir que nasce uma ocorrência só (a segunda chamada responde 200 com o mesmo registro). | `docs/evidencias-v2/G02/V2-F02-E07/` | Rafael |
 
 ## B. Texto de produto e percepção visual (gatilhos da seção 10 de `28`)
 
