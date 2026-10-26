@@ -326,25 +326,28 @@ function secaoPrazo({ est, blocos, anoRef }) {
   const nec = est.necessario;
   const hojeD = dataDeIso(est.hoje);
   const fimEixo = dataDeIso(cons.fimTotal);
-  // Eixo: de hoje ao fim do cenário conservador, com marcas a cada 6 meses.
+  // Eixo: de hoje ao fim do cenário conservador, com marca e linha de grade a cada trimestre.
+  const mesCurto = (d) => `${MESES[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`;
   const marcas = [];
   const cursor = new Date(Date.UTC(hojeD.getUTCFullYear(), hojeD.getUTCMonth() + 1, 1));
   while (cursor < fimEixo) {
-    if (cursor.getUTCMonth() % 6 === 0) marcas.push(new Date(cursor));
+    const p = posicao(cursor.toISOString().slice(0, 10), hojeD, fimEixo);
+    // Longe o bastante de "hoje" e do fim para o rótulo não encavalar.
+    if (cursor.getUTCMonth() % 3 === 0 && p > 9 && p < 94) marcas.push({ p, rotulo: mesCurto(cursor) });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
-  const eixo = marcas
-    .map((m) => `<span style="left:${posicao(m.toISOString().slice(0, 10), hojeD, fimEixo)}%">${MESES[m.getUTCMonth()]}/${String(m.getUTCFullYear()).slice(2)}</span>`)
-    .join("");
+  const eixo = `<span style="left:0%">hoje</span>${marcas.map((m) => `<span style="left:${m.p}%">${m.rotulo}</span>`).join("")}`;
+  const grade = marcas.map((m) => `<i class="gt-grade" style="left:${m.p}%"></i>`).join("");
   const metaPos = posicao(est.meta, hojeD, fimEixo);
+  const faseEmCurso = prov.fases[0]?.fase;
   const linhasGantt = blocos
     .map((b, i) => {
       const jp = janelaDoBloco(prov, b.fases);
-      if (!jp) return "";
-      const jo = janelaDoBloco(otim, b.fases);
+      if (!jp) return `<div class="gt-linha feito"><div class="n">${i + 1}. ${esc(b.nome)}</div><div class="gt-trilho">${grade}<span class="gt-feito">✓ já concluído</span></div></div>`;
       const jc = janelaDoBloco(cons, b.fases);
-      const aqui = b.fases.includes(prov.fases[0]?.fase);
-      return `<div class="gt-linha"><div class="n">${i + 1}. ${esc(b.nome)}</div><div class="gt-trilho"><i class="gt-metalinha" style="left:${metaPos}%"></i><div class="gt-faixa" style="left:${posicao(jo.fim, hojeD, fimEixo)}%;width:${Math.max(0.6, posicao(jc.fim, hojeD, fimEixo) - posicao(jo.fim, hojeD, fimEixo))}%"></div><div class="gt-barra${aqui ? " aqui" : ""}" style="left:${posicao(jp.inicio, hojeD, fimEixo)}%;width:${Math.max(0.8, posicao(jp.fim, hojeD, fimEixo) - posicao(jp.inicio, hojeD, fimEixo))}%" title="${esc(`${b.nome}: de ${formatarData(jp.inicio, anoRef)} a ${formatarData(jp.fim, anoRef)} (provável)`)}"></div></div></div>`;
+      const aqui = b.fases.includes(faseEmCurso);
+      const periodo = `${mesCurto(dataDeIso(jp.inicio))} a ${mesCurto(dataDeIso(jp.fim))}`;
+      return `<div class="gt-linha"><div class="n">${i + 1}. ${esc(b.nome)}${aqui ? '<span class="aqui-tag">estamos aqui</span>' : ""}<small>${esc(periodo)}</small></div><div class="gt-trilho">${grade}<i class="gt-metalinha" style="left:${metaPos}%"></i><div class="gt-faixa" style="left:${posicao(jp.fim, hojeD, fimEixo)}%;width:${Math.max(0.6, posicao(jc.fim, hojeD, fimEixo) - posicao(jp.fim, hojeD, fimEixo))}%"></div><div class="gt-barra" style="left:${posicao(jp.inicio, hojeD, fimEixo)}%;width:${Math.max(0.8, posicao(jp.fim, hojeD, fimEixo) - posicao(jp.inicio, hojeD, fimEixo))}%" title="${esc(`${b.nome}: de ${formatarData(jp.inicio, anoRef)} a ${formatarData(jp.fim, anoRef)} (provável); no conservador, termina em ${formatarData(jc.fim, anoRef)}`)}"></div></div></div>`;
     })
     .join("\n      ");
 
@@ -364,9 +367,13 @@ function secaoPrazo({ est, blocos, anoRef }) {
   const maxRitmo = Math.max(nec.ritmoNecessarioSemEsperaPorSemana, est.ritmoMedido.pontosPorSemana, otim.ritmoPontosPorSemana) * 1.05;
   const linhaRitmo = (rotulo, valor, cls = "") => `<div class="rt ${cls}"><div>${esc(rotulo)}</div><div class="tr"><i style="width:${pct(valor, maxRitmo)}%"></i></div><div class="v">${String(valor).replace(".", ",")}</div></div>`;
   const medido = est.ritmoMedido.pontosPorSemana;
-  const acompanha = medido < cons.ritmoPontosPorSemana
-    ? `O ritmo medido hoje (${String(medido).replace(".", ",")}) está abaixo do que o cenário conservador assume (${String(cons.ritmoPontosPorSemana).replace(".", ",")}). O prazo só vale se o ritmo subir, e este relatório confere isso toda semana.`
-    : `O ritmo medido hoje (${String(medido).replace(".", ",")}) já sustenta o que o cenário conservador assume (${String(cons.ritmoPontosPorSemana).replace(".", ",")}).`;
+  const acompanha = medido < prov.ritmoPontosPorSemana
+    ? `Hoje o ritmo medido (${virg(medido)}) está abaixo do que a estimativa provável assume (${virg(prov.ritmoPontosPorSemana)})${medido < cons.ritmoPontosPorSemana ? `, e abaixo até do cenário conservador (${virg(cons.ritmoPontosPorSemana)})` : ""}. As datas acima só valem se o ritmo subir, e esta página confere isso a cada atualização.`
+    : `Hoje o ritmo medido (${virg(medido)}) já sustenta o que a estimativa provável assume (${virg(prov.ritmoPontosPorSemana)}).`;
+  const NOME_DO_TAMANHO = { XS: "muito pequena", S: "pequena", M: "média", L: "grande", XL: "muito grande" };
+  const tamanhos = Object.entries(est.parametros.pontosPorTamanho ?? { XS: 0.5, S: 1, M: 2, L: 4 })
+    .map(([t, v]) => `${NOME_DO_TAMANHO[t] ?? t} vale ${virg(v)}`)
+    .join(", ");
 
   const cards = [
     ["Otimista", otim],
@@ -439,18 +446,20 @@ function secaoPrazo({ est, blocos, anoRef }) {
   </div>
   <p>${esc(veredito)}</p>
   <div class="card gantt">
-    <h3 style="font-size:.95rem;font-weight:600">Cada bloco no tempo (provável, com a faixa até o conservador)</h3>
+    <h3 style="font-size:.95rem;font-weight:600">Quando cada bloco deve acontecer</h3>
+    <p class="nota">A barra é o período provável de cada bloco, com o mês de início e de fim abaixo do nome. A linha fina mostra até quando o fim pode escorregar no cenário conservador.</p>
     <div class="gt-linhas">
       <div class="gt-linha"><div></div><div class="gt-eixo" aria-hidden="true">${eixo}<span class="gt-meta-rot" style="left:${metaPos}%">meta</span></div></div>
       ${linhasGantt}
     </div>
-    <div class="gt-legenda"><span><i style="width:18px;height:10px;border-radius:3px;background:var(--accent)"></i>janela provável do bloco</span><span><i style="width:18px;height:4px;border-radius:2px;background:var(--accent-soft)"></i>do fim otimista ao fim conservador</span><span><i style="width:0;height:12px;border-left:2px dashed var(--bad)"></i>meta ${esc(formatarData(est.meta, 9999))}</span></div>
+    <div class="gt-legenda"><span><i style="width:18px;height:10px;border-radius:3px;background:var(--accent)"></i>período provável do bloco</span><span><i style="width:18px;height:6px;border-radius:3px;background:var(--idle)"></i>atraso possível, até o conservador</span><span><i style="width:0;height:12px;border-left:2px dashed var(--bad)"></i>meta ${esc(formatarData(est.meta, 9999))}</span></div>
   </div>
   <div class="card ritmo">
-    <h3 style="font-size:.95rem;font-weight:600">Ritmo, em pontos por semana (P=0,5, S=1, M=2, L=4)</h3>
+    <h3 style="font-size:.95rem;font-weight:600">Velocidade: quanto trabalho sai por semana</h3>
+    <p class="nota">Medida em pontos. Cada etapa vale pontos pelo tamanho estimado: ${esc(tamanhos)}.</p>
     ${linhaRitmo("Medido até hoje", medido)}
-    ${linhaRitmo("Assumido no cenário provável", prov.ritmoPontosPorSemana)}
-    ${linhaRitmo(`Necessário para ${metaTxt}, sem espera`, nec.ritmoNecessarioSemEsperaPorSemana, "nec")}
+    ${linhaRitmo("Assumido na estimativa provável", prov.ritmoPontosPorSemana)}
+    ${linhaRitmo(`Necessário para fechar até ${metaTxt}, sem nenhuma espera (${virg(nec.vezesOMedidoSemEspera)} vezes o medido)`, nec.ritmoNecessarioSemEsperaPorSemana, "nec")}
     <p class="nota">${esc(acompanha)}</p>
   </div>
   <div class="alavancas">

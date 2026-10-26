@@ -151,7 +151,16 @@ test("a seção de prazo diz se o cenário conservador cabe no teto desejado e c
   const fora = montar({ estimativa: estimar({ etapas: ETAPAS, ordem: ORDEM, gates: GATES, hoje: "2026-10-13", parametros: { ...PARAMETROS, tetoDeEntregaDesejado: "2026-10-20" } }) }).html;
   assert.match(fora, /FORA do teto desejado/);
   assert.match(dentro, /O que precisa ser verdade para essas datas/);
-  assert.match(dentro, /O ritmo medido hoje/);
+  assert.match(dentro, /Hoje o ritmo medido/);
+});
+
+test("gráfico de blocos no tempo: eixo começa em hoje, período escrito por bloco e tamanho explicado", () => {
+  const { html } = montar();
+  assert.match(html, /Quando cada bloco deve acontecer/);
+  assert.match(html, /<div class="gt-eixo"[^>]*><span style="left:0%">hoje<\/span>/);
+  assert.match(html, /<small>[a-z]{3}\/\d\d a [a-z]{3}\/\d\d<\/small>/);
+  assert.doesNotMatch(html, /gt-barra aqui/);
+  assert.match(html, /Cada etapa vale pontos pelo tamanho estimado: [^<]*vale/);
 });
 
 test("o link de saída só aparece quando pedido", () => {

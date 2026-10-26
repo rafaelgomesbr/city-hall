@@ -150,12 +150,14 @@ body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-s
 .gt-eixo span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .gt-eixo span:first-child { transform: none; }
 .gt-linhas { position: relative; display: flex; flex-direction: column; gap: 10px; }
-.gt-linha { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 12px; align-items: center; font-size: .85rem; }
+.gt-linha { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 12px; align-items: center; font-size: .85rem; }
 .gt-linha .n { line-height: 1.2; }
+.gt-linha .n small { display: block; color: var(--muted); font-family: var(--mono); font-size: .72rem; margin-top: 2px; }
 .gt-trilho { position: relative; height: 18px; }
-.gt-faixa { position: absolute; top: 7px; height: 4px; border-radius: 2px; background: var(--accent-soft); }
+.gt-faixa { position: absolute; top: 6px; height: 6px; border-radius: 3px; background: var(--idle); }
+.gt-grade { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 1px solid var(--line); pointer-events: none; }
+.gt-feito { position: absolute; left: 0; top: 0; font-size: .8rem; color: var(--ok); font-weight: 500; line-height: 18px; }
 .gt-barra { position: absolute; top: 2px; height: 14px; border-radius: 4px; background: var(--accent); }
-.gt-barra.aqui { background: var(--ok); }
 .gt-metalinha { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 2px dashed var(--bad); pointer-events: none; }
 .gt-eixo .gt-meta-rot { top: 22px; color: var(--bad); font-weight: 500; }
 
