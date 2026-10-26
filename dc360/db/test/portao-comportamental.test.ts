@@ -473,7 +473,9 @@ describe("item 7: tipos fora de public e o ACL de extensão", () => {
         CREATE EXTENSION pg_trgm WITH SCHEMA extensions;
         GRANT USAGE ON SCHEMA extensions TO dc360_app;
         CREATE TABLE extensions.sonda_ref (srid int);
-        ALTER EXTENSION pg_trgm ADD TABLE extensions.sonda_ref;`);
+        ALTER EXTENSION pg_trgm ADD TABLE extensions.sonda_ref;
+        CREATE TYPE extensions.sonda_composto AS (a int, b text);
+        ALTER EXTENSION pg_trgm ADD TYPE extensions.sonda_composto;`);
     });
     afterAll(async () => {
       await ext?.close();
@@ -486,7 +488,7 @@ describe("item 7: tipos fora de public e o ACL de extensão", () => {
       motivo: "Sonda: a relação da extensão que o papel de aplicação lê.",
     };
 
-    it("esquema só de extensão (funções, tipos e a relação da extensão) aceita o USAGE do papel de aplicação", async () => {
+    it("esquema só de extensão (funções, tipos, tipo composto e a relação da extensão) aceita o USAGE do papel de aplicação", async () => {
       expect(await conferirEsquemas(ext)).toEqual([]);
     });
 

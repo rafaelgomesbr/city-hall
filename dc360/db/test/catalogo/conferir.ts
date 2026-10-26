@@ -55,6 +55,17 @@ const DE_EXTENSAO = (classe: string, oid: string) =>
   `EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = '${classe}'::regclass ` +
   `AND d.objid = ${oid} AND d.deptype = 'e')`;
 
+/**
+ * A relação `c` (tipo composto avulso) pertence a uma extensão. O Postgres não
+ * grava a dependência da extensão na linha de `pg_class` de um tipo composto
+ * (`heap_create_with_catalog` a pula para `RELKIND_COMPOSITE_TYPE`): ela fica na
+ * linha de `pg_type`. Foi o que o PostGIS real mostrou no CI (`geometry_dump` e
+ * `valid_detail`), que o PGlite sem PostGIS não mostrava.
+ */
+const RELACAO_DE_EXTENSAO = (c: string) =>
+  `(${DE_EXTENSAO("pg_class", `${c}.oid`)} OR (${c}.relkind = 'c' AND EXISTS ` +
+  `(SELECT 1 FROM pg_type ct WHERE ct.typrelid = ${c}.oid AND ${DE_EXTENSAO("pg_type", "ct.oid")})))`;
+
 /** O nome de uma tabela como o catálogo nominal o escreve: nu em `public`, qualificado fora dele. */
 export function nomeQualificado(esquema: string, nome: string): string {
   return esquema === "public" ? nome : `${esquema}.${nome}`;
@@ -557,7 +568,7 @@ export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
       JOIN pg_namespace n ON n.oid = c.relnamespace
      WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S', 'c')
        AND ${FORA_DO_SISTEMA} AND n.nspname <> 'public'
-       AND NOT ${DE_EXTENSAO("pg_class", "c.oid")}
+       AND NOT ${RELACAO_DE_EXTENSAO("c")}
     UNION ALL
     SELECT n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')',
            'função'
@@ -595,7 +606,7 @@ export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
               OR EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid)
               OR EXISTS (SELECT 1 FROM pg_type t WHERE t.typnamespace = n.oid))
            AND NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid
-                             AND NOT ${DE_EXTENSAO("pg_class", "c.oid")})
+                             AND NOT ${RELACAO_DE_EXTENSAO("c")})
            AND NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid
                              AND NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
            AND NOT EXISTS (SELECT 1 FROM pg_type t WHERE t.typnamespace = n.oid
