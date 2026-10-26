@@ -404,7 +404,9 @@ jobs:
     # minutos no passo: um travamento ali reprova com o passo nomeado, em vez de
     # gastar o orçamento do job inteiro. `saidas/00-duracoes-antes.txt` da E02 é
     # a medida de antes; a de depois sai deste run (correção do CI 2).
-    timeout-minutes: 50
+    # Teto 65 min (maior tempo verde recente 43,3 min x 1,5, mesma correção do v2/f01 em 273c759):
+    # o run 40335597874 do v2/f03 foi CANCELADO aos 50 min, com os outros 9 jobs verdes.
+    timeout-minutes: 65
     defaults:
       run:
         shell: bash
@@ -524,7 +526,8 @@ jobs:
       # Safari, não foca (ver o cabeçalho de `scripts/e2e-api.mjs`).
       - name: Caminho de produção, contra a API, no WebKit (geometria e foco)
         if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
-        timeout-minutes: 12
+        # 18 min: maior tempo verde recente 11,8 min x 1,5 (mesma correção do v2/f01 em 273c759).
+        timeout-minutes: 18
         run: node scripts/e2e-api.mjs webkit --so-layout 2>&1 | tee "$RUNNER_TEMP/artefatos/06c-e2e-contra-a-api-webkit.txt"
 
       - name: Registro do servidor de pré-visualização
