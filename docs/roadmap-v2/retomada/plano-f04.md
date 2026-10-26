@@ -118,3 +118,10 @@ Lote 0: 30 a 50 mais 10 a 20. Lote 1: 90 a 140 mais 35 a 65. Lote 2: 50 a 85 mai
 - H127 GET de documento que pratica ato (`GET .../termo-de-interdicao` e o PDF mudam o estado da ocorrência; os documentos de vistoria registram `documento_emitido`): converter em POST na F09, junto do documento emitido da ADR 0013. A ADR 0010 os nomeia "ato administrativo por GET (legado)", fora da família do órgão e sem entrada nova permitida.
 - H128 legados sem texto livre: encaminhamento aberto antes da F04 só volta ao órgão depois de a Defesa Civil recompor o dossiê (versão 2); até lá o órgão vê só protocolo, tipo e endereço. Recomendação: aceitar.
 - H129 retenção dos textos visíveis ao órgão nos eventos (resposta, motivos, esclarecimentos): pedido de escopo à F05-E09, ampliando o CP-10, que hoje fala só de `campos_sensiveis`. Recomendação: aceitar e registrar no CP-10.
+- H130 `pedido` e `observacoes_da_coordenacao` dispensam justificativa de 20 caracteres (leitura da decisão 5 da ADR 0010 pela parte 0E; se for literal, a troca é de duas linhas). H131 no CP-09: `ponto_referencia`, `severidade` e data de interdição entram no catálogo do dossiê? H132 confirmar o código `cadeia_esgotada`, reservado pela 0C a partir de `docs/roadmap-v2/08-painel-prefeitura.md:177`.
+
+## Mudanças de plano trazidas pelo lote 0 (2026-10-26)
+- E16 e E08: definem como a rota manual de escalonamento aciona o evento `escalonado`, que pela ADR só o sistema insere.
+- 1A: compara a tabela de transições do shared com `transicoes_do_encaminhamento()`, o gerador e os CHECK por tipo; decide `cobrado` e `atribuicao_alterada` (nomes e origem propostos pela 0D); trata os legados com `tipo = 'outro'`, que o shared reprova.
+- 1B: mapeia `ok:false` do dossiê para 422 `dados_invalidos`; grava `justificativas` e `chaves_incluidas` no evento `enviado`; decide se a justificativa é visível ao órgão.
+- E12: o teste `oficio-so-leva-o-dossie` usa `COLUNAS_DE_TEXTO_LIVRE_FORA_DO_DOSSIE` (exportada por `dossie.ts`).
