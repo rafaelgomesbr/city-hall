@@ -882,6 +882,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-3C1": { total: 15, falhas: 0, puladas: 0 },
   // V2-F02-E04, parte 3C3 (contrato de documentos, ofícios e órgãos, prestação de contas e público): `apps/api/test/contrato-respostas-3c3.test.ts` é novo, com 14 casos (cada rota dos quatro grupos chamada de verdade por `/v1` e a resposta conferida contra a `resposta` que o registro do contrato declara: status, esquema sem chave de sobra ou o tipo de mídia dos arquivos HTML, PDF, CSV e ZIP; mais o guarda de que nenhuma entrada dos quatro grupos fica sem resposta).
   "V2-F02-E04-parte-3C3": { total: 14, falhas: 0, puladas: 0 },
+  // V2-F02-E05, parte 4A (contrato cliente x rota): `apps/api/test/contrato-cliente-rota.test.ts` e novo, com 82 casos (o painel, o campo com a fila offline e o console lidos como texto e confrontados com as rotas /v1 do servidor montado: caminho, metodo, corpo e consulta contra o esquema do registro, pedido sem token, ancora de chamadas por arquivo; a varredura que reprova fetch solto fora da base e das duas URLs assinadas declaradas; 18 casos sinteticos, entre eles POST /pacote.zip, GET contra rota POST e chamada do campo sem rota; o relatorio das rotas /v1 sem cliente). `contrato-do-painel.test.ts` e `superficie.test.ts` passaram a usar `apoio/rotas.ts` e `apoio/extrair-chamadas.ts`, sem caso novo nem removido.
+  "V2-F02-E05": { total: 82, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

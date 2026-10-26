@@ -6,7 +6,12 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
+import {
+  chamarComOpcoes, contarChamadas, extrairChamadas, fetchNaBase, semComentarios,
+  type Extracao, type Infra, type Perfil,
+} from "./apoio/extrair-chamadas.js";
+import { normalizarRota, rotasRegistradas } from "./apoio/rotas.js";
+import { SEM_TOKEN } from "./superficie-registrada.js";
 
 /**
  * Contrato mínimo painel x API (V2-F00-E23).
@@ -69,249 +74,21 @@ function lerUniao(fonte: string, nome: string): string[] {
 // ---------------------------------------------------------------------------
 // Leitura do cliente
 // ---------------------------------------------------------------------------
+//
+// O extrator e a âncora moram em `apoio/extrair-chamadas.ts` desde a
+// V2-F02-E05, que o usa também para o campo e o console.
 
-type Parte = { tipo: "texto" | "expr"; valor: string };
-
-export type Chamada = {
-  funcao: "chamar" | "fetch";
-  linha: number;
-  metodo: string;
-  /** Um caminho normalizado, ou vários quando uma interpolação se expande. */
-  caminhos: string[];
-  /** Pedido feito sem token: `semSessao: true`, ou `fetch` sem `authorization`. */
-  semToken: boolean;
+const PERFIL_DO_PAINEL: Perfil = {
+  funcoes: [chamarComOpcoes({ tipo: "opcao-verdadeira", chave: "semSessao" }), fetchNaBase(["BASE"])],
 };
 
-type Infra = "definicao" | "repeticao" | "envio";
-
-type Extracao = {
-  chamadas: Chamada[];
-  infra: Infra[];
-  naoLidas: string[];
-};
-
-function linhaDe(fonte: string, i: number): number {
-  return fonte.slice(0, i).split("\n").length;
-}
-
-/** Pula string ou template a partir da aspa em `i`; devolve o índice depois do fim. */
-function pularLiteral(fonte: string, i: number): number {
-  return lerLiteral(fonte, i).fim;
-}
-
-/**
- * Lê um literal de string. Template devolve as partes de texto e as
- * interpolações separadas, com aninhamento (template dentro de `${}`).
- */
-function lerLiteral(fonte: string, i: number): { partes: Parte[]; fim: number } {
-  const aspa = fonte[i]!;
-  const partes: Parte[] = [];
-  let texto = "";
-  let j = i + 1;
-  while (j < fonte.length) {
-    const c = fonte[j]!;
-    if (c === "\\") { texto += fonte.slice(j, j + 2); j += 2; continue; }
-    if (c === aspa) {
-      if (texto) partes.push({ tipo: "texto", valor: texto });
-      return { partes, fim: j + 1 };
-    }
-    if (aspa === "`" && c === "$" && fonte[j + 1] === "{") {
-      if (texto) partes.push({ tipo: "texto", valor: texto });
-      texto = "";
-      const inicio = j + 2;
-      let k = inicio;
-      let nivel = 1;
-      while (k < fonte.length && nivel > 0) {
-        const d = fonte[k]!;
-        if (d === '"' || d === "'" || d === "`") { k = pularLiteral(fonte, k); continue; }
-        if (d === "{") nivel++;
-        else if (d === "}") nivel--;
-        k++;
-      }
-      partes.push({ tipo: "expr", valor: fonte.slice(inicio, k - 1).trim() });
-      j = k;
-      continue;
-    }
-    texto += c;
-    j++;
-  }
-  throw new Error(`literal sem fim na linha ${linhaDe(fonte, i)}`);
-}
-
-/** Índice depois do `>` que fecha o genérico em `i`, ignorando `=>`. */
-function pularGenerico(fonte: string, i: number): number {
-  let nivel = 0;
-  let k = i;
-  while (k < fonte.length) {
-    const c = fonte[k]!;
-    if (c === '"' || c === "'" || c === "`") { k = pularLiteral(fonte, k); continue; }
-    if (c === "<") nivel++;
-    else if (c === ">" && fonte[k - 1] !== "=") {
-      nivel--;
-      if (nivel === 0) return k + 1;
-    }
-    k++;
-  }
-  throw new Error(`genérico sem fim na linha ${linhaDe(fonte, i)}`);
-}
-
-/** Índice depois do `)` que fecha os argumentos abertos em `i`. */
-function pularArgumentos(fonte: string, i: number): number {
-  let nivel = 0;
-  let k = i;
-  while (k < fonte.length) {
-    const c = fonte[k]!;
-    if (c === '"' || c === "'" || c === "`") { k = pularLiteral(fonte, k); continue; }
-    if (c === "(") nivel++;
-    else if (c === ")") {
-      nivel--;
-      if (nivel === 0) return k + 1;
-    }
-    k++;
-  }
-  throw new Error(`chamada sem fim na linha ${linhaDe(fonte, i)}`);
-}
-
-/**
- * Transforma as partes do literal em caminho(s) de rota.
- *
- * Interpolação que ocupa um segmento inteiro vira `:p`; a que fica no fim e
- * monta query (`${x ? "?a=1" : ""}`) sai junto com a query; qualquer outra
- * forma é recusada, para nunca adivinhar um caminho.
- */
-function montarCaminhos(partes: Parte[], exp: Map<string, string[]>): string[] | string {
-  let caminhos = [""];
-  for (let n = 0; n < partes.length; n++) {
-    const p = partes[n]!;
-    if (p.tipo === "texto") {
-      const corte = p.valor.indexOf("?");
-      const pedaco = corte >= 0 ? p.valor.slice(0, corte) : p.valor;
-      caminhos = caminhos.map((c) => c + pedaco);
-      if (corte >= 0) return caminhos;
-      continue;
-    }
-    const anterior = caminhos[0]!;
-    const seguinte = partes[n + 1];
-    const fechaSegmento = !seguinte
-      || (seguinte.tipo === "texto" && /^[/?]/.test(seguinte.valor));
-    if (anterior.endsWith("/") && fechaSegmento) {
-      const valores = exp.get(p.valor);
-      caminhos = valores
-        ? caminhos.flatMap((c) => valores.map((v) => c + v))
-        : caminhos.map((c) => c + ":p");
-      continue;
-    }
-    if (!seguinte && /["'`]\?/.test(p.valor)) return caminhos;
-    return `interpolação que não é segmento nem query: \${${p.valor}}`;
-  }
-  return caminhos;
-}
-
-/**
- * Tira de `fonte` cada chamada ao servidor. Exportada só para os casos
- * sintéticos poderem trocá-la por uma que perde chamada e provar a âncora.
- */
-export function extrairChamadas(fonte: string, exp: Map<string, string[]> = new Map()): Extracao {
-  const chamadas: Chamada[] = [];
-  const infra: Infra[] = [];
-  const naoLidas: string[] = [];
-
-  for (const casou of fonte.matchAll(/\b(chamar|fetch)\b/g)) {
-    const funcao = casou[1] as "chamar" | "fetch";
-    const inicio = casou.index!;
-    const linha = linhaDe(fonte, inicio);
-    const textoDaLinha = fonte.split("\n")[linha - 1]!.trim();
-    if (/^(\*|\/\/|\/\*)/.test(textoDaLinha)) continue;
-
-    let k = inicio + funcao.length;
-    while (/\s/.test(fonte[k]!)) k++;
-    if (fonte[k] === "<") {
-      k = pularGenerico(fonte, k);
-      while (/\s/.test(fonte[k]!)) k++;
-    }
-    if (fonte[k] !== "(") continue;
-
-    if (/function\s+$/.test(fonte.slice(Math.max(0, inicio - 20), inicio))) {
-      infra.push("definicao");
-      continue;
-    }
-
-    const fimDosArgumentos = pularArgumentos(fonte, k);
-    let a = k + 1;
-    while (/\s/.test(fonte[a]!)) a++;
-    const aspa = fonte[a];
-
-    if (funcao === "chamar" && fonte.startsWith("caminho,", a)) {
-      infra.push("repeticao");
-      continue;
-    }
-    if (aspa !== '"' && aspa !== "'" && aspa !== "`") {
-      naoLidas.push(`linha ${linha}: ${funcao} com caminho que não é literal`);
-      continue;
-    }
-
-    const literal = lerLiteral(fonte, a);
-    let partes = literal.partes;
-    const opcoes = fonte.slice(literal.fim, fimDosArgumentos);
-
-    if (funcao === "fetch") {
-      if (partes[0]?.tipo !== "expr" || partes[0].valor !== "BASE") {
-        naoLidas.push(`linha ${linha}: fetch que não começa por \${BASE}`);
-        continue;
-      }
-      if (partes.length === 2 && partes[1]!.tipo === "expr" && partes[1]!.valor === "caminho") {
-        infra.push("envio");
-        continue;
-      }
-      partes = partes.slice(1);
-    }
-    if (partes[0]?.tipo !== "texto" || !partes[0].valor.startsWith("/")) {
-      naoLidas.push(`linha ${linha}: caminho que não começa por /`);
-      continue;
-    }
-
-    const caminhos = montarCaminhos(partes, exp);
-    if (typeof caminhos === "string") {
-      naoLidas.push(`linha ${linha}: ${caminhos}`);
-      continue;
-    }
-
-    const chave = funcao === "chamar" ? "metodo" : "method";
-    const metodoLiteral = new RegExp(`\\b${chave}\\s*:\\s*"([A-Z]+)"`).exec(opcoes);
-    if (!metodoLiteral && new RegExp(`\\b${chave}\\b`).test(opcoes)) {
-      naoLidas.push(`linha ${linha}: método que não é literal`);
-      continue;
-    }
-
-    chamadas.push({
-      funcao, linha, caminhos,
-      metodo: metodoLiteral?.[1] ?? "GET",
-      semToken: funcao === "chamar"
-        ? /\bsemSessao\s*:\s*true\b/.test(opcoes)
-        : !/authorization/.test(opcoes),
-    });
-  }
-  return { chamadas, infra, naoLidas };
-}
-
-/**
- * A âncora: conta as chamadas sem o extrator, por expressão regular sobre as
- * linhas que não são comentário. Caminho independente de propósito: se os dois
- * usassem o mesmo código, um defeito nele enganaria os dois juntos.
- */
-export function contarChamadas(fonte: string): number {
-  return fonte
-    .split("\n")
-    .filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l))
-    .reduce((total, l) => total + (l.match(/\bchamar\s*[<(]|\bfetch\s*\(/g)?.length ?? 0), 0);
+/** Tira de `fonte` as chamadas do painel (já sem comentários). */
+function extrair(fonte: string, exp: Map<string, string[]> = new Map()): Extracao {
+  return extrairChamadas(semComentarios(fonte), PERFIL_DO_PAINEL, exp);
 }
 
 /** As três chamadas que são o próprio mecanismo, e não um endereço do produto. */
 const INFRA_ESPERADA: Infra[] = ["definicao", "envio", "repeticao"];
-
-function normalizarRota(caminho: string): string {
-  return caminho.replace(/:[A-Za-z_][A-Za-z0-9_]*/g, ":p");
-}
 
 function normalizarChave(chave: string): string {
   const [metodo, caminho] = chave.split(" ");
@@ -331,9 +108,9 @@ type Resultado = {
 export function conferirContrato(
   fonte: string,
   registradas: Set<string>,
-  extrair: (f: string) => Extracao = (f) => extrairChamadas(f, expansoes()),
+  extrair_: (f: string) => Extracao = (f) => extrair(f, expansoes()),
 ): Resultado {
-  const { chamadas, infra, naoLidas } = extrair(fonte);
+  const { chamadas, infra, naoLidas } = extrair_(fonte);
   const isentas = new Set([...SEM_TOKEN.keys()].map(normalizarChave));
   const faltando: string[] = [];
   const semTokenForaDaIsencao: string[] = [];
@@ -352,7 +129,7 @@ export function conferirContrato(
     }
   }
   return {
-    contadas: contarChamadas(fonte),
+    contadas: contarChamadas(semComentarios(fonte), PERFIL_DO_PAINEL),
     extraidas: chamadas.length,
     infra, naoLidas, faltando, semTokenForaDaIsencao, excecoesUsadas,
   };
@@ -431,7 +208,7 @@ describe("Tudo o que o painel chama existe na API", () => {
   it("os tipos de documento se expandem em rotas que existem", () => {
     // Prova de que a expansão de `${tipo}` aconteceu: sem ela o extrator
     // produziria `/documentos/:p/:p`, que não é rota.
-    const { chamadas } = extrairChamadas(readFileSync(HTTP_DO_PAINEL, "utf8"), expansoes());
+    const { chamadas } = extrair(readFileSync(HTTP_DO_PAINEL, "utf8"), expansoes());
     const doc = chamadas.find((c) => c.caminhos.some((x) => x.startsWith("/documentos/")));
     expect(doc?.caminhos).toEqual(expect.arrayContaining(["/documentos/:p/laudo", "/documentos/:p/laudo.pdf"]));
     expect(doc?.caminhos.length).toBe(expansoes().get("tipo")!.length);
@@ -474,7 +251,7 @@ describe("Casos sintéticos: o teste teria pego o defeito", () => {
   it("extrator que perde uma chamada reprova a âncora", () => {
     const fonte = readFileSync(HTTP_DO_PAINEL, "utf8");
     const perdeUma = (f: string) => {
-      const e = extrairChamadas(f, expansoes());
+      const e = extrair(f, expansoes());
       return { ...e, chamadas: e.chamadas.slice(0, -1) };
     };
     const r = conferirContrato(fonte, registradas, perdeUma);
