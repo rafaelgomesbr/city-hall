@@ -187,7 +187,7 @@ Resposta de Rafael às perguntas de escopo. A V2 passa a conter tudo que foi pla
 | D-22 | Painel e portal são site responsivo E instalável na tela inicial (PWA), sem funcionar offline | Retira o item 20 de `21-fora-da-v2.md` | F10 e F11 (etapas novas) |
 | D-23 | Encaminhamento só pode ser devolvido ANTES do aceite | Resolve parte de CP-20 | F04 (já é assim) |
 | D-24 | Só a coordenação classifica e despacha; o operador não. O critério ALY:CA-01 é corrigido nesse sentido | Resolve a divergência M4 | Matriz de autorização |
-| D-25 | PREMISSA: a saída a campo é implementada no app (CP-02 = implementar) | Resolve CP-02 | F14-E01 |
+| D-25 | CONFIRMADA por Rafael em 2026-10-26 (H01; era PREMISSA): a saída a campo é implementada no app (CP-02 = implementar) | Resolve CP-02 | F14-E01 |
 | D-26 | PREMISSA: a foto de perfil é construída no painel (CP-18 = construir) | Resolve CP-18 | F10-E09 |
 | D-27 | PREMISSA: o segundo fator do agente de campo é opcional, com tela de código no app | Resolve GAP-DEF-10 | F14 (etapa nova) |
 | D-28 | Capacidade: 1 pessoa dedicada (CP-01). Um commit por etapa aprovada, com mensagem `V2-Fnn-Enn: resumo`. O repositório é privado. Seção "Retomada do Roadmap V2" no CLAUDE.md. EMENDADA por D-30: a etapa tem um ou mais commits com o prefixo `V2-Fnn-Enn:` (candidato, correções, registro) e termina no commit de registro de um PASS | Resolve CP-01 | Todas |
