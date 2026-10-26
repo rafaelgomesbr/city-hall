@@ -216,6 +216,33 @@ type DevolvidaEsperandoDecisao = {
   tem_observacao: boolean;
 };
 
+/** O índice único parcial da migração 052: a corrida na criação cai nele. */
+const INDICE_DA_CHAVE_DE_CRIACAO = "ocorrencias_chave_de_criacao";
+
+/**
+ * A violação de unicidade da chave de criação, e só ela. Qualquer outro 23505
+ * (o protocolo, por exemplo) continua sendo erro de verdade.
+ */
+function ehConflitoDaChaveDeCriacao(erro: unknown): boolean {
+  const e = erro as { code?: string; constraint?: string; message?: string };
+  if (e?.code !== "23505") return false;
+  return e.constraint === INDICE_DA_CHAVE_DE_CRIACAO
+    || String(e.message ?? "").includes(INDICE_DA_CHAVE_DE_CRIACAO);
+}
+
+/** O chamado já criado com esta chave neste município, se houver. */
+async function chamadoDaChave(
+  c: Consulta,
+  organizacaoId: string,
+  chave: string,
+): Promise<{ id: string; protocolo: string } | null> {
+  const r = await c.query<{ id: string; protocolo: string }>(
+    "SELECT id, protocolo FROM ocorrencias WHERE organizacao_id = $1 AND chave_de_criacao = $2",
+    [organizacaoId, chave],
+  );
+  return r.rows[0] ?? null;
+}
+
 export async function rotasOcorrencias(
   app: FastifyInstance,
   { banco, despertarPush }: {
@@ -630,8 +657,32 @@ export async function rotasOcorrencias(
   app.post("/", async (req, resposta) => {
     const quem = await autorizar(app, req, "abrir_ocorrencia");
     const dados = aberturaOcorrenciaSchema.parse(req.body);
+    const chave = dados.chaveDeCriacao;
 
-    const criada = await banco.comTenant(quem.organizacaoId, async (c) => {
+    /*
+      IDEMPOTÊNCIA DA CRIAÇÃO (V2-F02-E07).
+
+      Com `chaveDeCriacao`, repetir o pedido (toque duplo, reenvio sob sinal
+      ruim) devolve o chamado que já nasceu, com o MESMO `id` e `protocolo` e
+      status 200, sem gerar protocolo: número de protocolo consumido não volta.
+      Sem chave, o comportamento é o de sempre, um chamado por pedido.
+
+      A leitura pela chave vem ANTES de `proximo_protocolo`. Na corrida (dois
+      pedidos com a mesma chave ao mesmo tempo, os dois sem achar nada), o
+      segundo INSERT cai no índice único `ocorrencias_chave_de_criacao`
+      (23505). Como o `proximo_protocolo` roda na MESMA transação, ela volta
+      inteira e a sequência não é consumida; a rota então relê pela chave e
+      devolve o chamado que ganhou. A chave vale só dentro do município do
+      token (a leitura e o índice levam `organizacao_id`): a de A não colide com
+      a de B e não revela nada a B.
+    */
+    type Aberta = { id: string; protocolo: string; jaExistia: boolean };
+    const abrir = async (c: Consulta): Promise<Aberta> => {
+      if (chave) {
+        const achado = await chamadoDaChave(c, quem.organizacaoId, chave);
+        if (achado) return { ...achado, jaExistia: true };
+      }
+
       // O protocolo sai do banco, dentro da transação, com a linha da
       // sequência travada. Gerar na aplicação abriria corrida entre dois
       // operadores registrando ao mesmo tempo.
@@ -649,8 +700,9 @@ export async function rotasOcorrencias(
         `INSERT INTO ocorrencias
            (organizacao_id, protocolo, tipo, tipo_descricao, status, endereco,
             ponto_referencia, latitude, longitude,
-            solicitante_nome, solicitante_contato, canal_entrada, descricao, vinculada_a)
-         VALUES ($1,$2,$3,$4,'registrada',$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            solicitante_nome, solicitante_contato, canal_entrada, descricao, vinculada_a,
+            chave_de_criacao)
+         VALUES ($1,$2,$3,$4,'registrada',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
          RETURNING id, protocolo`,
         [
           quem.organizacaoId, protocolo, dados.tipo,
@@ -670,6 +722,7 @@ export async function rotasOcorrencias(
           dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
           dados.solicitanteNome, dados.solicitanteContato ?? null,
           dados.canalEntrada, dados.descricao, dados.vinculadaA ?? null,
+          chave ?? null,
         ],
       );
       const nova = r.rows[0]!;
@@ -690,10 +743,31 @@ export async function rotasOcorrencias(
           ? dados.tipoDescricao?.trim() ?? null
           : null,
       });
-      return nova;
-    });
+      return { ...nova, jaExistia: false };
+    };
 
-    return resposta.code(201).send(criada);
+    let criada: Aberta;
+    try {
+      criada = await banco.comTenant(quem.organizacaoId, abrir);
+    } catch (erro) {
+      if (!chave || !ehConflitoDaChaveDeCriacao(erro)) throw erro;
+      // Perdeu a corrida: a transação do INSERT já voltou. Relê e devolve.
+      criada = await banco.comTenant(quem.organizacaoId, async (c): Promise<Aberta> => {
+        const achado = await chamadoDaChave(c, quem.organizacaoId, chave);
+        if (!achado) throw erro;
+        return { ...achado, jaExistia: true };
+      });
+    }
+
+    if (criada.jaExistia) {
+      req.log.info(
+        { ocorrenciaId: criada.id },
+        "abertura repetida com a mesma chave de criacao: devolvido o chamado existente",
+      );
+    }
+    return resposta
+      .code(criada.jaExistia ? 200 : 201)
+      .send({ id: criada.id, protocolo: criada.protocolo });
   });
 
   /** Possíveis duplicidades: mesmo tipo, ativa, nas últimas 48 horas. */

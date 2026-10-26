@@ -1,0 +1,16 @@
+chaveDeCriacao: 8b861f81-a571-434a-ab13-7b28c7a4972a
+protocolo_sequencias ANTES ...............: [{"ano":2026,"ultimo":478}]
+1o POST com a chave -> 201 {"id":"64f35ee3-7a43-450b-9318-eff3918cf217","protocolo":"000479/2026"}
+protocolo_sequencias depois do 1o POST ...: [{"ano":2026,"ultimo":479}]
+2o POST (mesma chave) -> 200 {"id":"64f35ee3-7a43-450b-9318-eff3918cf217","protocolo":"000479/2026"}
+protocolo_sequencias depois do 2o POST ...: [{"ano":2026,"ultimo":479}]
+3o POST (mesma chave) -> 200 {"id":"64f35ee3-7a43-450b-9318-eff3918cf217","protocolo":"000479/2026"}
+protocolo_sequencias depois do 3o POST ...: [{"ano":2026,"ultimo":479}]
+
+-- sem chave: dois pedidos, dois chamados, dois numeros --
+sem chave #1 -> 201 {"id":"adbdf8dd-24ca-4001-8613-f36656797af7","protocolo":"000480/2026"}
+sem chave #2 -> 201 {"id":"6e15d7e8-c30d-4214-87df-b0d93d812fda","protocolo":"000481/2026"}
+protocolo_sequencias depois ..............: [{"ano":2026,"ultimo":481}]
+
+chamados com a chave: 1
+chave que nao e uuid -> 422 {"erro":"dados_invalidos","mensagem":"Alguns campos precisam ser corrigidos.","campos":[{"campo":"chaveDeCriacao","mensagem":"Não é um identificador válido (UUID)"}]}

@@ -297,6 +297,27 @@ export async function rotasEvidencias(
             throw autorDivergente();
           }
           /*
+            A CHAVE É DE OUTRA OCORRÊNCIA (V2-F02-E07). A busca acima é por
+            chave, e esta ramificação devolvia a evidência da PRIMEIRA
+            ocorrência a quem pedia autorização para a SEGUNDA: a foto de um
+            chamado entrava, na tela e no laudo, como se fosse do outro. Chave
+            de foto é um UUID por arquivo, gerado no aparelho com a captura, de
+            modo que reaparecer em outra ocorrência é cliente errado ou chave
+            reaproveitada, e repetir o pedido nunca dá certo: 409, categoria
+            `permanente`. Depois da conferência do autor (que não pode virar
+            oráculo de existência para quem não é dono da chave) e antes de
+            qualquer escrita. Chave de OUTRO município nem chega aqui: a RLS a
+            esconde, e ela cai no fluxo normal de criação.
+          */
+          if (achada.ocorrencia_id.toLowerCase() !== dados.ocorrenciaId.toLowerCase()) {
+            throw new RegraDeNegocio(
+              "chave_ja_usada_em_outro_registro",
+              "Essa chave de envio já foi usada em outra ocorrência. Gere uma chave nova "
+              + "para esta fotografia.",
+              409,
+            );
+          }
+          /*
             RESSUSCITA a autorização que a varredura de órfão deu por perdida.
 
             A varredura marca `abandonada_em` numa autorização velha cujo arquivo

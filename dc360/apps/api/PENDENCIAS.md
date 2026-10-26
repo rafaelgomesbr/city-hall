@@ -524,3 +524,53 @@ fica em aberto:
    cabeçalho de depreciação já aparece nas respostas que eles recebem.
 4. **Nada mede o uso do espelho ainda.** Sem essa medição, a data de retirada não
    tem como ser decidida com dado. É escopo da E08.
+
+## Idempotência da criação: o padrão para os próximos criadores (V2-F02-E07)
+
+`POST /ocorrencias` aceita `chaveDeCriacao` (uuid, opcional) e `evidencias`
+passou a recusar a chave de foto que já é de outra ocorrência. O padrão que os
+próximos criadores copiam (encaminhamento da F04-E08, anexo da F06, relato da
+F17-E08), e o que ainda não está coberto:
+
+1. **O padrão, em quatro peças.** (a) O CLIENTE gera o uuid quando abre o
+   formulário e o reaproveita em todo reenvio (`novaChaveDeCriacao` em
+   `apps/web/src/paginas/ocorrencia-regras.ts`; quem repete o pedido sem a
+   mesma chave abre outro registro). (b) Coluna `chave_de_criacao uuid` NULA por
+   padrão e índice único PARCIAL `(organizacao_id, chave)` `WHERE chave IS NOT
+   NULL`: a chave nunca vale fora do município do token. (c) A rota lê pela
+   chave ANTES de qualquer coisa que gaste (no chamado, o `proximo_protocolo`) e
+   devolve 200 com o registro existente. (d) Na corrida, o segundo INSERT cai no
+   índice (23505 com a constraint conhecida), a transação inteira volta, a rota
+   relê e devolve 200. Só esse 23505 é engolido: qualquer outro sobe. O teste
+   `apps/api/test/chave-de-criacao.test.ts` é o molde, com a corrida simulada
+   (o banco em memória tem uma conexão só e não corre sozinho).
+2. **O reenvio com corpo diferente devolve o registro ORIGINAL, sem alterá-lo e
+   sem avisar.** É o que a etapa pede (a chave identifica o ato, não o conteúdo).
+   Se um cliente reaproveitar a chave num formulário novo por engano, o
+   segundo chamado não nasce e a tela mostra o primeiro. O painel evita isso
+   gerando a chave na abertura do formulário; um cliente de terceiros, não. Se
+   isso virar problema, a saída é comparar um resumo do corpo e responder 409
+   `chave_ja_usada_em_outro_registro` quando divergir.
+3. **A resposta de repetição é 200 e a de criação é 201**, com o mesmo corpo
+   (`{ id, protocolo }`). O painel não distingue os dois; quem precisar saber se
+   o chamado já existia olha o status.
+4. **O 409 da chave de foto só vale se a chave for um uuid POR foto.** Conferido
+   no campo (`apps/campo/src/app/(agente)/vistoria/[id].tsx`): a foto e a
+   assinatura recebem `Crypto.randomUUID()` na captura, e a chave do rascunho
+   guarda a mesma durante concluir, corrigir e concluir de novo, sempre dentro
+   da mesma ocorrência. Nenhum caminho do campo reaproveita a chave entre
+   ocorrências, então o aparelho já instalado não recebe o 409 em uso normal. O
+   campo trata 4xx como permanente (a coleta vira `bloqueado`): se um dia surgir
+   um aparelho que reaproveite a chave, o item para em vez de gravar a foto na
+   ocorrência errada, que é o mesmo defeito de antes, só que visível.
+5. **O índice de evidência da 052 é mais fraco que o da 004**
+   (`evidencias_idempotencia`, por município e chave). Hoje a 004 já impede a
+   mesma chave em duas ocorrências do município, então o novo não rejeita nada
+   a mais. Ele fica por ser o contrato da etapa e como segunda rede se a 004
+   for afrouxada. Se a decisão for um dia permitir a mesma chave em
+   ocorrências distintas, a 004 sai e o 409 da API sai junto.
+6. **Falta o resto dos criadores.** `POST /ocorrencias` e a foto são os dois
+   cobertos. Vistoria já tinha a sua; relato do cidadão, anexo e
+   encaminhamento nascem com o padrão acima nas etapas deles. Não existe
+   cabeçalho `Idempotency-Key` genérico (fora do escopo; só se surgir
+   necessidade).

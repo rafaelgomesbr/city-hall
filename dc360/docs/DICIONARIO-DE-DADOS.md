@@ -121,6 +121,7 @@ O centro do sistema. Uma linha por atendimento.
 | `descricao_removida_em` | Quando o relato virou marcador. Nulo significa que o relato na linha é o de verdade. A restrição `marcador_de_relato_e_coerente` amarra a data ao marcador |
 | `equipe_id` | Para quem foi despachada |
 | `vinculada_a` | Aponta para outra ocorrência do mesmo evento. É como duplicidade se resolve sem apagar nada |
+| `chave_de_criacao` | Chave de idempotência da CRIAÇÃO do chamado (migração 052, V2-F02-E07): um uuid que o cliente gera ao abrir o formulário e reaproveita no reenvio. Opcional: nula em todo chamado anterior à 052 e em todo cliente que não a manda. Único por município onde existe (`ocorrencias_chave_de_criacao`, índice parcial sobre `organizacao_id, chave_de_criacao`), então a mesma chave em dois municípios cria um chamado em cada. A API lê por ela ANTES de gerar o protocolo e devolve o chamado que já nasceu; na corrida, o segundo INSERT cai no índice (23505) e a transação inteira volta, sem consumir número. Não é segredo nem autoridade |
 | `prazo_em` | Quando vence. Calculado na triagem a partir da severidade. **Despachar não mexe nele** |
 | `encerrado_em`, `motivo_encerramento` | Obrigatórios quando `status = 'encerrada'`, e o banco recusa encerrar sem motivo |
 | `busca` | Chave de busca gerada a partir de `protocolo`, `endereco`, `ponto_referencia` e `solicitante_nome`, normalizada. **Sem** `solicitante_contato`, **sem** `descricao` e **sem** `vulnerabilidade_descricao`, de propósito. Quando a minimização por prazo troca o nome por "removido por prazo", a chave acompanha na mesma instrução. Ver "A busca com tolerância a erro" |
@@ -171,6 +172,7 @@ Fotografia anexada a uma vistoria.
 | `legenda` | Texto do agente |
 | `latitude`, `longitude`, `capturada_em` | Onde e quando a foto foi tirada |
 | `ordem` | Sequência no laudo |
+| `idempotency_key` | Cunhada pelo aparelho junto com a foto (um uuid por arquivo). Opcional. Duas garantias de unicidade onde ela existe: `evidencias_idempotencia` (004: por município e chave) e `evidencias_idempotencia_por_ocorrencia` (052, V2-F02-E07: por município, ocorrência e chave, a unicidade por ocorrência declarada em vez de só herdada). A API responde 409 `chave_ja_usada_em_outro_registro` quando a chave já pertence a OUTRA ocorrência do município, em vez de devolver a evidência da primeira |
 
 ---
 
