@@ -83,6 +83,32 @@ Para publicar, ver **[LOJAS.md](./LOJAS.md)**: ele cobre Play Console e App
 Store Connect passo a passo, com os textos da ficha prontos e o formulário de
 segurança de dados respondido linha a linha.
 
+### Arquivo do Firebase (`google-services.json`)
+
+Fica fora do git desde 26/10/2026 (regra do Rafael: nenhuma chave mora no
+código), e o teste `scripts/sem-credencial-no-git.test.mjs` reprova se ele
+voltar ao índice. O `app.config.ts` lê o caminho de `GOOGLE_SERVICES_JSON`:
+
+- **build na nuvem (EAS):** uma vez por projeto, suba o arquivo como variável
+  de ambiente do tipo arquivo, que o worker recebe como caminho:
+
+  ```bash
+  eas env:create --name GOOGLE_SERVICES_JSON --type file --visibility secret \
+    --value ./google-services.json --environment production
+  ```
+
+  repetindo com `--environment preview` e `development` para os outros perfis;
+- **na sua máquina:** a cópia mora fora do repositório (no Windows do Rafael,
+  `C:\Users\Rfasg\dc360-segredos\google-services.json`). Aponte
+  `GOOGLE_SERVICES_JSON` para ela no `.env`, ou copie para
+  `apps/campo/google-services.json`, que o `.gitignore` ignora.
+
+A chave que ficou no histórico do git (de 09/09 a 26/10/2026) é girada no
+Google Cloud, não apagada do histórico: criar uma chave nova restrita ao pacote
+`com.solerte.dc360.campo` e às APIs que o aplicativo usa, baixar o
+`google-services.json` novo e apagar a antiga (H33 de
+`docs/roadmap-v2/pendencias-humanas.md`).
+
 ## O que conferir no aparelho, nesta ordem
 
 Cada item depende do anterior, e o último é o que decide se o produto funciona

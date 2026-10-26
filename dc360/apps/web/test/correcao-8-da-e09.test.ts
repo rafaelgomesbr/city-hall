@@ -385,8 +385,9 @@ describe("Os achados estão ligados ao Modal", () => {
 
   it("Esc e Tab têm UM caminho só, para o painel e para o documento, e o aoFechar do ouvinte do documento não fica velho", () => {
     expect(modal).toContain("function tratarTecla(");
-    expect(modal).toContain("aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}");
-    expect(modal).toContain("aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),");
+    // `fecharComEscape` (H05, V2-F00-POS) entra pelos DOIS caminhos: a janela que recusa o Esc recusa também no documento.
+    expect(modal).toContain("aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar, fecharComEscape)}");
+    expect(modal).toContain("aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current, fecharComEscapeAtual.current),");
     expect(modal).toContain("aoFecharAtual.current = aoFechar;");
   });
 

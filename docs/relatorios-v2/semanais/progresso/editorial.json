@@ -1,6 +1,6 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "Em 26/10 o Rafael aprovou o G00 e a fase 0 entrou na master (02e9c26e). A master foi trazida pelos quatro ramos da V2: a fase 1 está em validação independente, sem veredito ainda, e as fases 2, 3 e 4 seguem em paralelo nos seus ramos.",
+  "lead": "Em 26/10 o Rafael respondeu 19 decisões e aprovou o G00: a fase 0 entrou na master (02e9c26e), com a produção migrada antes e o primeiro Verificar verde. A fase 1 está em validação independente, sem veredito ainda, e as fases 2, 3 e 4 seguem em paralelo nos seus ramos.",
   "visaoGeral": [
     {
       "data": "02/10",
@@ -46,8 +46,8 @@
     }
   ],
   "aSeguir": {
-    "titulo": "Validação da fase 1 e decisão da H106",
-    "texto": "O gatekeeper valida a fase 1 numa sessão nova. O G01 depende desse veredito e da decisão da H106 (a imagem do PostGIS no CI). As fases 2, 3 e 4 seguem em paralelo, e as ADRs 0009 e 0010 esperam o seu aceite."
+    "titulo": "Validação da fase 1, decisão da H106 e consertos decididos",
+    "texto": "O gatekeeper valida a fase 1 numa sessão nova. O G01 depende desse veredito e da decisão da H106 (a imagem do PostGIS no CI). Os consertos que o Rafael decidiu em 26/10 entram no lote pós-G00 da fase 0, as fases 2, 3 e 4 seguem em paralelo, e as ADRs 0009 e 0010 esperam o aceite."
   },
   "imagens": [
     {
@@ -103,13 +103,18 @@
     },
     {
       "quem": "Rafael",
-      "titulo": "Demais decisões",
-      "texto": "Há decisões com marco (antes do G03 e do G04, por exemplo) e outras que podem esperar, todas na página de decisões."
+      "titulo": "H33, H04, H23 e H02",
+      "texto": "Quando girar a chave do Firebase, se um agente anexa foto à ocorrência de outra equipe, prazos de dados pessoais com o jurídico e o e-mail de recuperação quando houver domínio."
     },
     {
       "quem": "Rafael",
       "titulo": "Prazo",
       "texto": "Decidir como tratar a meta de 31/12: ritmo, gates em lote ou escopo (ver a seção de prazo)."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Demais decisões",
+      "texto": "Há decisões com marco (antes do G03 e do G04, por exemplo) e outras que podem esperar, todas na página de decisões."
     }
   ]
 }

@@ -277,6 +277,26 @@ test("conferir: CONCLUÍDA COM RISCO ACEITO exige RISCO-ACEITO.md além do PASS"
   }
 });
 
+test("conferir: ACEITA (H84) exige VEREDITO.md que registre ACEITA, e ACEITA não vale como PASS", () => {
+  const copia = copiarFixture();
+  const vereditoDa = "docs/evidencias-v2/G00/V2-F00-E01/VEREDITO.md";
+  try {
+    trocarNoArquivo(copia.raiz, STATUS, "| V2-F00-E01 | Religar a vigencia na escrita | S | P0 | EM ANDAMENTO |", "| V2-F00-E01 | Religar a vigencia na escrita | S | P0 | ACEITA |");
+    const opcoes = () => ({ raiz: copia.raiz, arquivoEstado: gravarEstado(copia.raiz, copia.pasta), commitExiste: todosExistem });
+
+    assert.deepEqual(codigos(conferir(opcoes())), ["sem-aceite"], "sem VEREDITO.md");
+    escrever(copia.raiz, vereditoDa, "# Veredito\nveredito: PASS\n");
+    assert.deepEqual(codigos(conferir(opcoes())), ["sem-aceite"], "PASS pede VALIDADA, não ACEITA");
+    escrever(copia.raiz, vereditoDa, "# Veredito\nveredito: ACEITA\n");
+    assert.deepEqual(conferir(opcoes()), []);
+
+    trocarNoArquivo(copia.raiz, STATUS, "| S | P0 | ACEITA |", "| S | P0 | VALIDADA |");
+    assert.deepEqual(codigos(conferir(opcoes())), ["veredito-sem-pass"], "ACEITA não aprova uma VALIDADA");
+  } finally {
+    copia.limpar();
+  }
+});
+
 test("conferir (d): IMPLEMENTADA exige SHA existente citado na observação", () => {
   const copia = copiarFixture();
   try {
@@ -342,21 +362,21 @@ test("repositório real: o estado gerado passa no conferir logo em seguida, com 
   }
 });
 
-test("repositório real: hoje a F00 é a fase atual e as contagens de status somam as 25 etapas", () => {
+test("repositório real: com o G00 aprovado (26/10/2026) a F01 é a fase atual e as contagens somam as 22 etapas", () => {
   const status = lerStatusDoRepositorio(RAIZ_REAL);
   const atual = faseAtual(status);
-  // Só vale enquanto o G00 não for aprovado; quando for, este teste é o primeiro a avisar que o estado andou.
-  assert.equal(atual.fase, "F00");
+  // Até 26/10/2026 este teste cravava a F00; com o G00 APROVADO ele foi o primeiro a avisar que o estado andou.
+  // Quando o G01 for aprovado, é ele de novo quem avisa.
+  assert.equal(atual.fase, "F01");
   const t = gerarEstado(RAIZ_REAL);
-  assert.match(t, /Etapas da F00 \(25\)/);
-  // O status de cada etapa muda a cada rodada de validação e de correção, de propósito (2026-10-13:
-  // cravar "EM ANDAMENTO 25" quebrou o CI do registro da rodada 1). O que não pode mudar é a soma.
-  const contagens = /## Etapas da F00 \(25\)\r?\n- (.+)/.exec(t);
+  assert.match(t, /Último gate aprovado: G00 \(F00\)/);
+  assert.match(t, /Etapas da F01 \(22\)/);
+  // O status de cada etapa muda a cada rodada, de propósito; o que não pode mudar é a soma.
+  const contagens = /## Etapas da F01 \(22\)\r?\n- (.+)/.exec(t);
   assert.ok(contagens, "linha de contagens por status ausente");
-  const soma = [...contagens[1].matchAll(/(\d+)(?:,|$)/g)].reduce((s, m) => s + Number(m[1]), 0);
-  assert.equal(soma, 25, `contagens por status não somam 25: ${contagens[1]}`);
-  assert.match(t, /Próxima etapa acionável na ordem da tabela: (nenhuma|V2-F00-E\d\d \([A-ZÀ-Ú ]+\))/);
-  assert.doesNotMatch(t, /CP-03 ABERTO/); // decidido por Rafael em 2026-10-07
+  const soma = [...contagens[1].matchAll(/(\d+)(?:,|$)/g)].reduce((n, m) => n + Number(m[1]), 0);
+  assert.equal(soma, 22, `contagens por status não somam 22: ${contagens[1]}`);
+  assert.match(t, /Próxima etapa acionável na ordem da tabela: (nenhuma|V2-F01-E\d\d \([A-ZÀ-Ú ]+\))/);
 });
 
 test("CLI: --saida grava, --conferir --saida confere, e o arquivo editado à mão é pego", () => {

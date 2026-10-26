@@ -1,0 +1,897 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/apps/web
+
+ ✓ test/design-system.test.ts (12 tests) 414ms
+ ✓ test/acessibilidade.test.ts (21 tests) 790ms
+   ✓ Troca de tela > toda rota do painel tem título próprio  593ms
+ ✓ test/qr.test.ts (11 tests) 989ms
+ ✓ test/pico-lista-e-mapa.test.ts (17 tests) 1329ms
+   ✓ O prazo mostra a data, e nao so a contagem regressiva > existe um componente que diz QUANDO vence  857ms
+   ✓ O filtro de atrasadas e do servidor > o filtro, a pagina e o tamanho da pagina viajam na consulta  351ms
+stderr | test/menu-mais.test.ts > A tela atual dentro do menu > com a tela atual no menu, o botão Mais leva a marca e o texto escondido que diz isso
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A tela atual dentro do menu > com a tela atual na barra, o botão Mais não leva marca nem texto escondido
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > fechado: o botão diz aria-expanded=false, não aponta para um menu que não existe e não há menu
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > aberto: o botão diz aria-expanded=true e controla o menu pelo id, que existe
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > o botão Mais é o último ladrilho da barra, antes do menu
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > aberto: cada destino que saiu da barra está no menu, uma vez só, e os da barra não se repetem nele
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > aberto: Tema e Sair moram no menu, e o tema oferece o que ainda não está ligado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > aberto: os grupos têm nome para o leitor de tela e o destino atual do menu leva aria-current
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at div
+    at div
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/menu-mais.test.ts > A marcação da barra e do menu > o agente, que não precisa de menu para destino, ainda tem o Mais para o Tema e o Sair
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at NavLinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10580:21)
+    at BarraDoCelular (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\BarraDoCelular.tsx:9:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/menu-mais.test.ts (27 tests) 279ms
+ ✓ test/ler-fonte.test.ts (7 tests) 107ms
+ ✓ test/trilha-detalhe.test.ts (15 tests) 76ms
+ ✓ test/portoes-de-componente.test.ts (11 tests) 1011ms
+   ✓ Portões de componente > o protocolo recém gerado chega à tela, e não só ao aviso que some  443ms
+ ✓ test/formularios.test.ts (9 tests) 25ms
+ ✓ test/correcao-8-da-e09.test.ts (33 tests) 54ms
+ ✓ test/busca-registros.test.ts (14 tests) 30ms
+ ✓ test/oficio.test.ts (13 tests) 33ms
+ ✓ test/seo.test.ts (27 tests) 67ms
+ ✓ test/busca-global.test.ts (33 tests) 42ms
+ ✓ test/recuperar-senha.test.ts (47 tests) 37ms
+stderr | test/quem-esta-em-campo.test.ts > Quem está em campo, no modo de demonstração
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/oficio-so-para-quem-consulta.test.ts > Ofício no modo de demonstração segue a mesma regra da API
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/devolucao.test.ts > A devolução na demonstração, contra o banco
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/tipo-a-classificar.test.ts > O modo de demonstração se comporta como o servidor
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/sino.test.ts > O painel desenhado > cada aviso leva à ocorrência dele
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > o não lido é dito com palavra, e não só com a faixa colorida
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > o estado vazio diz o que apareceria ali
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > quando o sino conta mais do que a lista mostra, ele diz isso
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > a falha da consulta não apaga a lista que já estava na tela
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/busca-pontuador.test.ts (20 tests) 56ms
+ ✓ test/sino.test.ts (28 tests) 318ms
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > mostra protocolo, tipo, data e situação, e leva ao outro chamado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\comuns.tsx:373:19)
+    at CartaoVerTambem (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Ocorrencia.tsx:1347:28)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > o estado vazio diz o que foi procurado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > consulta que falhou não vira lista vazia
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\componentes\comuns.tsx:373:19)
+    at CartaoVerTambem (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Ocorrencia.tsx:1347:28)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/ocorrencia-ver-tambem.test.ts (9 tests) 176ms
+ ✓ test/correcao-5-da-e09.test.ts (11 tests) 25ms
+ ✓ test/mapa-e-coordenada.test.ts (31 tests) 915ms
+   ✓ Nem Geocoding, nem Places, nem biblioteca que as traga > nenhum arquivo do painel chama as duas APIs cobradas  476ms
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz que a sessão expirou quando chegou aqui por isso, e não diz nada quando não
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz a frase certa para cada motivo, com ícone e texto, e só a de conta desativada manda procurar a coordenação
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8d79f1562a162af3\dc360\apps\web\src\estado\sessao.tsx:15:27)
+
+stderr | test/busca-nos-dois-modos.test.ts > A lista filtrada por texto, nos dois modos
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8d79f1562a162af3/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/sessao-e-entrada.test.ts (31 tests) 407ms
+ ✓ test/pacote-de-saida.test.ts (7 tests) 31ms
+ ✓ test/glifos-de-severidade.test.ts (21 tests) 27ms
+ ✓ test/toast.test.ts (17 tests) 33ms
+ ✓ test/correcao-4-da-e09.test.ts (19 tests) 26ms
+ ✓ test/orgaos.test.ts (15 tests) 45ms
+ ✓ test/modal.test.ts (30 tests) 26ms
+ ✓ test/correcao-6-da-e09.test.ts (24 tests) 29ms
+ ✓ test/coordenada-corrigida.test.ts (12 tests) 21ms
+ ✓ test/link-encurtado.test.ts (20 tests) 28ms
+ ✓ test/recuperar-senha-e-sessao.test.ts (3 tests) 17ms
+ ✓ test/ocorrencia-encerramento.test.ts (13 tests) 28ms
+ ✓ test/sessoes-e-senha-temporaria.test.ts (18 tests) 19ms
+ ✓ test/correcao-7-da-e09.test.ts (14 tests) 17ms
+ ✓ test/foco.test.ts (15 tests) 14ms
+ ✓ test/campo.test.ts (12 tests) 14ms
+ ✓ test/seguranca-da-conta.test.ts (8 tests) 15ms
+ ✓ test/duplicidade-sem-rede.test.ts (3 tests) 16ms
+ ✓ test/modo-de-demonstracao.test.ts (6 tests) 9ms
+ ✓ test/janela-da-senha-temporaria.test.ts (10 tests) 11ms
+ ✓ test/correcao-8b-da-e09.test.ts (8 tests) 10ms
+ ✓ test/senha-provisoria.test.ts (4 tests) 11ms
+ ✓ test/lista-sem-o-que-so-o-dossie-entrega.test.ts (4 tests) 7ms
+ ✓ test/minha-conta-estreita.test.ts (6 tests) 6ms
+ ✓ test/usuarios-regras.test.ts (5 tests) 8ms
+ ✓ test/paridade-dos-modos.test.ts (10 tests) 9ms
+ ✓ test/semente-e-confirmacoes.test.ts (5 tests) 9252ms
+ ✓ test/quem-esta-em-campo.test.ts (4 tests) 9285ms
+ ✓ test/oficio-so-para-quem-consulta.test.ts (4 tests) 9277ms
+ ✓ test/devolucao.test.ts (40 tests) 9335ms
+ ✓ test/tipo-a-classificar.test.ts (19 tests) 9469ms
+ ✓ test/busca-nos-dois-modos.test.ts (12 tests) 9073ms
+
+ Test Files  52 passed (52)
+      Tests  815 passed (815)
+   Start at  14:33:34
+   Duration  15.00s (transform 17.20s, setup 0ms, collect 67.00s, tests 63.35s, environment 14ms, prepare 14.78s)
+
+codigo 0

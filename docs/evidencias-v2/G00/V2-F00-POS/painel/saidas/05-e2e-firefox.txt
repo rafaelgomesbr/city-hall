@@ -1,0 +1,549 @@
+
+== Subindo API na 3691 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:3691 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.7 [32mbuilding client environment for production...[36m[39m
+transforming...
+[33m../../node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../../node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.[39m
+[33m../../node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../../node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[32m✓[39m 279 modules transformed.
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                                  [39m[1m[2m    3.60 kB[22m[1m[22m[2m │ gzip:     1.49 kB[22m
+[2mdist/[22m[32massets/postgres-CkP7QCDB.data               [39m[1m[2m5,401.75 kB[22m[1m[22m
+[2mdist/[22m[32massets/postgres-CyuUVpXN.wasm               [39m[1m[2m8,090.73 kB[22m[1m[22m[2m │ gzip: 2,782.95 kB[22m
+[2mdist/[22m[35massets/index-ltWYiDfb.css                   [39m[1m[2m   44.84 kB[22m[1m[22m[2m │ gzip:     8.16 kB[22m
+[2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m    0.03 kB[22m[1m[22m[2m │ gzip:     0.05 kB[22m
+[2mdist/[22m[36massets/nodefs-D5bBXDMp.js                   [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:     0.29 kB[22m
+[2mdist/[22m[36massets/opfs-ahp-DTDZeBxV.js                 [39m[1m[2m   10.01 kB[22m[1m[22m[2m │ gzip:     3.04 kB[22m
+[2mdist/[22m[36massets/index-ByVCF_O6.js                    [39m[1m[33m1,712.37 kB[39m[22m[2m │ gzip:   453.88 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 7.05s[39m
+
+== Servindo o painel na 4691 ==
+Painel de pé.
+
+== Suíte principal PULADA (--so-layout), em firefox ==
+
+== Geometria da tela estreita, em firefox ==
+
+== 1. Preparo: pessoa de nome longo, criada pela API ==
+  OK   a administradora entra pela API
+  OK   a pessoa de nome longo foi cadastrada
+  OK   a coordenadora de teste foi cadastrada
+
+== 2. As janelas de confirmação cabem, do celular pequeno à mesa ==
+  OK   "Encerrar sessões" a 320 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 390 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 1280 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 320 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 390 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 1280 px: o botao com o nome inteiro cabe na janela
+
+== 3. A barra de navegação não corta os rótulos e não rola (H08) ==
+  OK   a 320 px a barra tem os destinos principais e o Mais, nessa ordem
+  OK   a 320 px todo ladrilho está inteiro dentro da tela
+  OK   a 320 px o rótulo de cada ladrilho cabe no próprio botão
+  OK   a 320 px todo item tem pelo menos 44 px de toque
+  OK   a 320 px a barra não rola na horizontal (nada escondido para a direita)
+  OK   a 320 px a página não ganhou rolagem horizontal
+  OK   a 360 px a barra tem os destinos principais e o Mais, nessa ordem
+  OK   a 360 px todo ladrilho está inteiro dentro da tela
+  OK   a 360 px o rótulo de cada ladrilho cabe no próprio botão
+  OK   a 360 px todo item tem pelo menos 44 px de toque
+  OK   a 360 px a barra não rola na horizontal (nada escondido para a direita)
+  OK   a 360 px a página não ganhou rolagem horizontal
+  OK   a 361 px a barra tem os destinos principais e o Mais, nessa ordem
+  OK   a 361 px todo ladrilho está inteiro dentro da tela
+  OK   a 361 px o rótulo de cada ladrilho cabe no próprio botão
+  OK   a 361 px todo item tem pelo menos 44 px de toque
+  OK   a 361 px a barra não rola na horizontal (nada escondido para a direita)
+  OK   a 361 px a página não ganhou rolagem horizontal
+  OK   a 390 px a barra tem os destinos principais e o Mais, nessa ordem
+  OK   a 390 px todo ladrilho está inteiro dentro da tela
+  OK   a 390 px o rótulo de cada ladrilho cabe no próprio botão
+  OK   a 390 px todo item tem pelo menos 44 px de toque
+  OK   a 390 px a barra não rola na horizontal (nada escondido para a direita)
+  OK   a 390 px a página não ganhou rolagem horizontal
+  OK   a 768 px a barra tem os destinos principais e o Mais, nessa ordem
+  OK   a 768 px todo ladrilho está inteiro dentro da tela
+  OK   a 768 px o rótulo de cada ladrilho cabe no próprio botão
+  OK   a 768 px todo item tem pelo menos 44 px de toque
+  OK   a 768 px a barra não rola na horizontal (nada escondido para a direita)
+  OK   a 768 px a página não ganhou rolagem horizontal
+
+== 3b. O menu Mais: abre, mostra o resto, fecha por Esc, fora e ao escolher (H08) ==
+  OK   a 320 px o Mais começa fechado, sem menu na página
+  OK   a 320 px aberto, o Mais diz aria-expanded=true e aponta o menu por aria-controls
+  OK   a 320 px o menu tem exatamente o que saiu da barra, mais o Tema e o Sair
+  OK   a 320 px o menu está inteiro dentro da tela e acima da barra, sem rolagem horizontal da página
+  OK   a 320 px todo item do menu tem pelo menos 44 px de toque, texto inteiro e recebe o toque
+  OK   a 320 px ao abrir, o foco entra no menu
+  OK   a 320 px o Esc fecha o menu, o botão volta a aria-expanded=false e leva o foco
+  OK   a 320 px tocar fora do menu o fecha
+  OK   a 320 px tocar o Mais de novo fecha o menu
+  OK   a 320 px o Tab que sai da barra fecha o menu (em 9 Tab, sem armadilha de foco)
+  OK   a 320 px escolher Usuários leva à tela, fecha o menu, marca o Mais e leva o foco ao conteúdo
+  OK   a 320 px reaberto em Usuários, o item da tela atual leva aria-current
+  OK   a 390 px o Mais começa fechado, sem menu na página
+  OK   a 390 px aberto, o Mais diz aria-expanded=true e aponta o menu por aria-controls
+  OK   a 390 px o menu tem exatamente o que saiu da barra, mais o Tema e o Sair
+  OK   a 390 px o menu está inteiro dentro da tela e acima da barra, sem rolagem horizontal da página
+  OK   a 390 px todo item do menu tem pelo menos 44 px de toque, texto inteiro e recebe o toque
+  OK   a 390 px ao abrir, o foco entra no menu
+  OK   a 390 px o Esc fecha o menu, o botão volta a aria-expanded=false e leva o foco
+  OK   a 390 px tocar fora do menu o fecha
+  OK   a 390 px tocar o Mais de novo fecha o menu
+  OK   a 390 px o Tab que sai da barra fecha o menu (em 8 Tab, sem armadilha de foco)
+  OK   a 390 px escolher Usuários leva à tela, fecha o menu, marca o Mais e leva o foco ao conteúdo
+  OK   a 390 px reaberto em Usuários, o item da tela atual leva aria-current
+  OK   a 768 px o Mais começa fechado, sem menu na página
+  OK   a 768 px aberto, o Mais diz aria-expanded=true e aponta o menu por aria-controls
+  OK   a 768 px o menu tem exatamente o que saiu da barra, mais o Tema e o Sair
+  OK   a 768 px o menu está inteiro dentro da tela e acima da barra, sem rolagem horizontal da página
+  OK   a 768 px todo item do menu tem pelo menos 44 px de toque, texto inteiro e recebe o toque
+  OK   a 768 px ao abrir, o foco entra no menu
+  OK   a 768 px o Esc fecha o menu, o botão volta a aria-expanded=false e leva o foco
+  OK   a 768 px tocar fora do menu o fecha
+  OK   a 768 px tocar o Mais de novo fecha o menu
+  OK   a 768 px o Tab que sai da barra fecha o menu (em 7 Tab, sem armadilha de foco)
+  OK   a 768 px escolher Usuários leva à tela, fecha o menu, marca o Mais e leva o foco ao conteúdo
+  OK   a 768 px reaberto em Usuários, o item da tela atual leva aria-current
+
+== 3c. Girar o aparelho com o menu aberto, e a lateral de mesa sem Mais ==
+  OK   ao passar do celular para a mesa com o menu aberto, ele some e a lateral volta inteira
+  OK   e de volta ao celular o menu começa fechado
+  OK   a 390 px, em Organização, o botão Mais leva a marca de tela atual e está inteiro à vista
+  OK   o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada
+  OK   a 1280 px a barra é a lateral e não o pé da tela
+
+== 4. O painel pede só o que o papel pode ver ==
+  OK   o operador abre /painel sem pedir as devolvidas (que ele não pode ver)
+  OK   o operador em /painel não lê a frase de que a consulta falhou
+  OK   a coordenadora abre /painel e pede as devolvidas, com 200
+  OK   o operador abre /ocorrencias sem pedir as devolvidas (que ele não pode ver)
+  OK   o operador em /ocorrencias não lê a frase de que a consulta falhou
+  OK   a coordenadora abre /ocorrencias e pede as devolvidas, com 200
+
+== 5. Minha conta cabe, do celular pequeno à mesa (V2-F00-E09, correção 2) ==
+  OK   a coordenadora abre uma sessão a mais pela API
+  OK   Minha conta lista pelo menos duas sessões e mostra o botão de encerrar as outras
+  OK   Minha conta a 320 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 390 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 768 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 1280 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+
+== 6. Usuários e a janela da senha temporária a 320 e 390 px ==
+  OK   Usuários a 320 px: nada fora do lugar fora da tabela que rola
+  OK   Usuários a 390 px: nada fora do lugar fora da tabela que rola
+  OK   Usuários a 768 px: nada fora do lugar fora da tabela que rola
+  OK   a janela da senha temporária a 320 px: nada fora do lugar
+  OK   a janela da senha temporária a 390 px: nada fora do lugar
+
+== 7. Depois de encerrar as outras sessões, o foco não cai em BODY (WCAG 2.4.3) ==
+  OK   depois de encerrar as outras sessões o foco continua num elemento que existe, e não em BODY
+  OK   e esse elemento é a confirmação (quem usa leitor de tela ouve o que aconteceu)
+  OK   a confirmação é o próprio aviso (tabindex -1), sem papel de região viva, e não há região viva em volta nem dentro
+
+== 8. O aviso passageiro não cobre a janela da senha temporária (V2-F00-E09, correção 4) ==
+  OK   a 320 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 320 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 320 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 320 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 320 px, com a janela da senha temporária aberta, não há aviso passageiro na página para receber o toque
+  OK   a 320 px, o Esc não fecha a janela da senha temporária (foco dentro dela)
+  OK   a 320 px, o Esc não fecha a janela da senha temporária (foco fora dela, no corpo da página)
+  OK   a 320 px, depois do Esc a senha continua na tela, com os dois botões
+  OK   a 320 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 320 px, o Fechar do aviso responde e o aviso sai da tela
+  OK   a 390 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 390 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 390 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 390 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 390 px, com a janela da senha temporária aberta, não há aviso passageiro na página para receber o toque
+  OK   a 390 px, o Esc não fecha a janela da senha temporária (foco dentro dela)
+  OK   a 390 px, o Esc não fecha a janela da senha temporária (foco fora dela, no corpo da página)
+  OK   a 390 px, depois do Esc a senha continua na tela, com os dois botões
+  OK   a 390 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 390 px, o Fechar do aviso responde e o aviso sai da tela
+  OK   a 1280 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 1280 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 1280 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 1280 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 1280 px, com a janela da senha temporária aberta, não há aviso passageiro na página para receber o toque
+  OK   a 1280 px, o Esc não fecha a janela da senha temporária (foco dentro dela)
+  OK   a 1280 px, o Esc não fecha a janela da senha temporária (foco fora dela, no corpo da página)
+  OK   a 1280 px, depois do Esc a senha continua na tela, com os dois botões
+  OK   a 1280 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 1280 px, o Fechar do aviso responde e o aviso sai da tela
+
+== 9. O email da lista de usuários não quebra no meio da palavra (V2-F00-E09, correção 4) ==
+  OK   a 1440 px a lista mostra pelo menos 5 emails para medir
+  OK   a 1440 px nenhum email quebra no meio da palavra
+  OK   a 1440 px nenhum email passa da própria célula
+  OK   a 1280 px a lista mostra pelo menos 5 emails para medir
+  OK   a 1280 px nenhum email quebra no meio da palavra
+  OK   a 1280 px nenhum email passa da própria célula
+  OK   a 768 px a lista mostra pelo menos 5 emails para medir
+  OK   a 768 px nenhum email quebra no meio da palavra
+  OK   a 768 px nenhum email passa da própria célula
+  OK   a 390 px a lista mostra pelo menos 5 emails para medir
+  OK   a 390 px nenhum email quebra no meio da palavra
+  OK   a 390 px nenhum email passa da própria célula
+  OK   a 320 px a lista mostra pelo menos 5 emails para medir
+  OK   a 320 px nenhum email quebra no meio da palavra
+  OK   a 320 px nenhum email passa da própria célula
+
+== 10. A senha atual errada diz o que fazer, com acento, no campo certo (V2-F00-E09, correção 4) ==
+  OK   Minha conta a 1280 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 1280 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 1280 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 1280 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 1280 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 390 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 390 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 390 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 390 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 390 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 320 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 320 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 320 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 320 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 320 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 390x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta a 360x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta a 320x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta, enviando com Espaço: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo
+  OK   Minha conta, enviando com Enter: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo
+  OK   Minha conta: depois da troca certa o foco vai à confirmação (e não a BODY)
+  OK   Minha conta: a senha errada logo depois de uma troca certa tira a confirmação verde da tela
+  OK   Minha conta: e o foco vai ao campo da senha atual
+  OK   a administradora redefine a senha da pessoa de teste (200 com senha temporária)
+  OK   "Defina a sua senha" a 390 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 390 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 390 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 390 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha" a 1280 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 1280 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 1280 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 1280 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha" a 320 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 320 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 320 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 320 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha", enviando com Espaço: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo
+  OK   "Defina a sua senha", enviando com Enter: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo
+
+== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==
+  OK   Joana Semponto foi cadastrada para a medida
+  OK   Ana Subdominios foi cadastrada para a medida
+  OK   o órgão de teste foi cadastrado
+  OK   a 1280 px, com um email de parte comprida na lista, a tabela não rola
+  OK   a 1280 px, todos os botões de ação continuam dentro da tabela
+  OK   a 1280 px, o email de subdomínios quebra só depois do @ e dos pontos
+  OK   a 1440 px, com um email de parte comprida na lista, a tabela não rola
+  OK   a 1440 px, todos os botões de ação continuam dentro da tabela
+  OK   a 1440 px, o email de subdomínios quebra só depois do @ e dos pontos
+  OK   Órgãos a 1440 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 1440 px: há telefone para medir
+  OK   Órgãos a 1440 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 1280 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 1280 px: há telefone para medir
+  OK   Órgãos a 1280 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 768 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 768 px: há telefone para medir
+  OK   Órgãos a 768 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 390 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 390 px: há telefone para medir
+  OK   Órgãos a 390 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 320 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 320 px: há telefone para medir
+  OK   Órgãos a 320 px: nenhum telefone é partido em duas linhas
+
+== 12. O email nas janelas do painel não quebra no meio da palavra (V2-F00-E09, correção 5) ==
+  OK   a 320 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 320 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 320 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 320 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 320 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 320 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 320 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 320 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 360 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 360 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 360 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 360 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 360 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 360 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 360 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 360 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 390 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 390 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 390 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 390 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 390 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 390 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 390 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 390 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 768 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 768 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 768 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 768 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 768 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 768 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 768 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 768 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 320 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 320 px, a linha da tentativa de envio não dá rolagem horizontal à página
+  OK   a 360 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 360 px, a linha da tentativa de envio não dá rolagem horizontal à página
+  OK   a 390 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 390 px, a linha da tentativa de envio não dá rolagem horizontal à página
+
+== 13. O campo focado depois do erro fica inteiro entre o topo fixo e a barra do pé, e o ofício não sai do cartão (V2-F00-E09, correção 6) ==
+  OK   Minha conta a 640x450 (zoom de 200 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 640x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 740x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 601x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 700x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 768x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 900x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1024x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1280x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 390x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 360x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 390x700, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 640x450 (zoom de 200 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 768x600, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Nova ocorrência a 320x640, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 390x844, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x450 (zoom de 200 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 320x256 (zoom de 400 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 740x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 768x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 1280x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   há um ofício emitido na ocorrência da Equipe Alfa para medir
+  OK   Ocorrência a 320 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 320 px, a linha da tentativa fica dentro do cartão
+  OK   com uma tentativa só, o botão diz "Ver a tentativa" e "Esconder a tentativa" (sem "as 1")
+  OK   e a explicação concorda no singular ("A tentativa ficou registrada")
+  OK   Ocorrência a 360 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 360 px, a linha da tentativa fica dentro do cartão
+  OK   "Defina a sua senha" a 320x256 (zoom de 400 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 640x450 (zoom de 200 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 390x844: a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   Usuários a 320x256 (zoom de 400 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 320x256 (zoom de 400 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 640x450 (zoom de 200 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 640x450 (zoom de 200 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 390x844, cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 390x844, "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Quero conhecer a 320x256 (zoom de 400 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 640x450 (zoom de 200 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 390x844, sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Tab em /ocorrencias/nova a 390x844: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x640: as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x640: as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x640: as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x640: as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento): as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento): as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento): as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento): as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x256 (zoom de 400 por cento): as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x256 (zoom de 400 por cento): as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x256 (zoom de 400 por cento): as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x256 (zoom de 400 por cento): as 32 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x400: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x400: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x400: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x400: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 740x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 740x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 740x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 740x360: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x844, com o quadro lento: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844, com o quadro lento: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844, com o quadro lento: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844, com o quadro lento: as 31 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento), com o quadro lento: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento), com o quadro lento: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento), com o quadro lento: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento), com o quadro lento: as 30 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   a 390 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 1280 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   a 360 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   o agente de campo de teste foi cadastrado (para medir "Meu trabalho")
+  OK   a 320 px, no tema claro, nenhuma das 13 telas logadas rola na horizontal
+  OK   a 320 px, o texto de exemplo do filtro de Ocorrências ("Protocolo, endereço ou relato") cabe inteiro no campo
+  OK   a 320 px, no tema escuro, nenhuma das 13 telas logadas rola na horizontal
+
+== 14. A confirmação das sessões e o foco da janela de confirmação ficam à vista (V2-F00-E09, correção 7) ==
+  OK   Minha conta a 360x640, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 360x640, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 360x640, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 390x664, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 390x664, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 390x664, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x667, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x667, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x667, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x553, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x553, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 375x553, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 320x568, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 320x568, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 320x568, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 640x450 (zoom de 200 por cento), depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 640x450 (zoom de 200 por cento), depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 640x450 (zoom de 200 por cento), depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 1024x600, depois de encerrar as outras sessões por clique: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 1024x600, depois de encerrar as outras sessões por toque: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Minha conta a 1024x600, depois de encerrar as outras sessões por teclado: a frase de confirmação, que tem o foco, fica inteira à vista
+  OK   Usuários a 320x256 (zoom de 400 por cento), a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 320x256 (zoom de 400 por cento), a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 320x450, a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 320x450, a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 390x450, a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 390x450, a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 640x300, a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 640x300, a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 568x320, a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 568x320, a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 640x450 (zoom de 200 por cento), a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 640x450 (zoom de 200 por cento), a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 1280x720, a janela "Redefinir senha" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Usuários a 1280x720, a janela "Encerrar sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Minha conta a 320x256 (zoom de 400 por cento), a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Minha conta a 568x320, a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela
+  OK   Minha conta a 640x300, a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela
+
+== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco (V2-F00-E09, correção 8) ==
+  OK   Usuários, rotação do celular com a janela "Redefinir senha" aberta (320x568 para 568x320): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, rotação de volta com a janela "Redefinir senha" aberta (568x320 para 320x568): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, rotação de um celular maior com a janela "Redefinir senha" aberta (390x844 para 844x390): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 400 por cento com a janela "Redefinir senha" aberta (1280x1024 para 320x256): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 por cento com a janela "Redefinir senha" aberta (1280x720 para 640x360): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 400 por cento, de uma tela baixa com a janela "Redefinir senha" aberta (1280x720 para 320x180): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 e depois de 400 por cento com a janela "Redefinir senha" aberta (1280x1024 para 640x512): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 e depois de 400 por cento com a janela "Redefinir senha" aberta (1280x1024 para 320x256): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom que volta ao normal com a janela "Redefinir senha" aberta (320x256 para 1280x720): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, rotação do celular com a janela "Encerrar sessões" aberta (320x568 para 568x320): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, rotação de volta com a janela "Encerrar sessões" aberta (568x320 para 320x568): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, rotação de um celular maior com a janela "Encerrar sessões" aberta (390x844 para 844x390): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 400 por cento com a janela "Encerrar sessões" aberta (1280x1024 para 320x256): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 por cento com a janela "Encerrar sessões" aberta (1280x720 para 640x360): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 400 por cento, de uma tela baixa com a janela "Encerrar sessões" aberta (1280x720 para 320x180): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 e depois de 400 por cento com a janela "Encerrar sessões" aberta (1280x1024 para 640x512): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom de 200 e depois de 400 por cento com a janela "Encerrar sessões" aberta (1280x1024 para 320x256): o foco em "Cancelar" continua à vista e o título também
+  OK   Usuários, zoom que volta ao normal com a janela "Encerrar sessões" aberta (320x256 para 1280x720): o foco em "Cancelar" continua à vista e o título também
+  OK   Minha conta, rotação do celular com a janela "Encerrar minhas outras sessões" aberta (320x568 para 568x320): o foco em "Cancelar" continua à vista e o título também
+  OK   Minha conta, zoom de 400 por cento com a janela "Encerrar minhas outras sessões" aberta (1280x1024 para 320x256): o foco em "Cancelar" continua à vista e o título também
+  OK   Minha conta, zoom de 400 por cento, de uma tela baixa com a janela "Encerrar minhas outras sessões" aberta (1280x720 para 320x180): o foco em "Cancelar" continua à vista e o título também
+  OK   a 1280x720, depois de um clique no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista
+  OK   a 1280x720, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista
+  OK   a 1280x720, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela
+  OK   a 1280x720, o Esc que chega ao documento fecha a janela
+  OK   a 390x844, depois de um clique no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista
+  OK   a 390x844, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista
+  OK   a 390x844, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela
+  OK   a 390x844, o Esc que chega ao documento fecha a janela
+  OK   a 320x568, depois de um toque no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista
+  OK   a 320x568, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista
+  OK   a 320x568, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela
+  OK   a 320x568, o Esc que chega ao documento fecha a janela
+  OK   a 568x320, depois de um clique no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista
+  OK   a 568x320, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista
+  OK   a 568x320, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela
+  OK   a 568x320, o Esc que chega ao documento fecha a janela
+  OK   a 1280x720, "Redefinir senha": depois do erro do servidor (na hora), o foco está num controle da janela, à vista
+  OK   a 1280x720, "Redefinir senha": depois do erro, o Esc fecha a janela
+  OK   a 1280x720, "Encerrar sessões": depois do erro do servidor (na hora), o foco está num controle da janela, à vista
+  OK   a 1280x720, "Encerrar sessões": depois do erro, o Esc fecha a janela
+  OK   a 1280x720, "Redefinir senha": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 1280x720, "Redefinir senha": enquanto grava, o Esc não fecha a janela
+  OK   a 1280x720, "Redefinir senha": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 1280x720, "Redefinir senha": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 1280x720, "Redefinir senha": depois do erro, o Esc fecha a janela
+  OK   a 1280x720, "Encerrar sessões": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 1280x720, "Encerrar sessões": enquanto grava, o Esc não fecha a janela
+  OK   a 1280x720, "Encerrar sessões": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 1280x720, "Encerrar sessões": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 1280x720, "Encerrar sessões": depois do erro, o Esc fecha a janela
+  OK   a 390x844, "Redefinir senha": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 390x844, "Redefinir senha": enquanto grava, o Esc não fecha a janela
+  OK   a 390x844, "Redefinir senha": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 390x844, "Redefinir senha": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 390x844, "Redefinir senha": depois do erro, o Esc fecha a janela
+  OK   a 390x844, "Encerrar sessões": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 390x844, "Encerrar sessões": enquanto grava, o Esc não fecha a janela
+  OK   a 390x844, "Encerrar sessões": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 390x844, "Encerrar sessões": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 390x844, "Encerrar sessões": depois do erro, o Esc fecha a janela
+  OK   a 320x568, "Redefinir senha": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 320x568, "Redefinir senha": enquanto grava, o Esc não fecha a janela
+  OK   a 320x568, "Redefinir senha": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 320x568, "Redefinir senha": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 320x568, "Redefinir senha": depois do erro, o Esc fecha a janela
+  OK   a 320x568, "Encerrar sessões": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 320x568, "Encerrar sessões": enquanto grava, o Esc não fecha a janela
+  OK   a 320x568, "Encerrar sessões": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 320x568, "Encerrar sessões": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 320x568, "Encerrar sessões": depois do erro, o Esc fecha a janela
+  OK   a 568x320, "Redefinir senha": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 568x320, "Redefinir senha": enquanto grava, o Esc não fecha a janela
+  OK   a 568x320, "Redefinir senha": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 568x320, "Redefinir senha": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 568x320, "Redefinir senha": depois do erro, o Esc fecha a janela
+  OK   a 568x320, "Encerrar sessões": enquanto grava (botões travados), o foco continua dentro da janela
+  OK   a 568x320, "Encerrar sessões": enquanto grava, o Esc não fecha a janela
+  OK   a 568x320, "Encerrar sessões": enquanto grava, o clique no fundo não fecha a janela
+  OK   a 568x320, "Encerrar sessões": depois do erro do servidor (com demora), o foco está num controle da janela, à vista
+  OK   a 568x320, "Encerrar sessões": depois do erro, o Esc fecha a janela
+
+====================================================
+Passou: 456   Falhou: 0
+Zero erro de console.
+
+TUDO CERTO: o caminho de produção passou de ponta a ponta.

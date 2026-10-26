@@ -25,7 +25,7 @@
     "passos": [
       {
         "rotulo": "G00",
-        "texto": "G00 aprovado e fase 0 na master (02e9c26e) em 26/10; primeiro Verificar em master verde",
+        "texto": "G00 aprovado e fase 0 na master (02e9c26e) em 26/10; produção migrada até a 051; primeiro Verificar em master verde",
         "estado": "feito"
       },
       {
@@ -54,7 +54,7 @@
         "estado": "andamento"
       }
     ],
-    "fora": "Em paralelo, sem travar este caminho: o lote pós-G00 da F00 (os consertos das suas decisões de 26/10), o repositório privado com CI local (D-33) e as chaves fora do código."
+    "fora": "Em paralelo, sem travar este caminho: o lote pós-G00 da F00 no ramo v2/f00-pos (Esc, aviso e menu Mais já feitos; a escrita depois de desativar e o teto de fotos por pessoa ainda no ramo trab/f00pos-api), o CI local no lugar do GitHub Actions (D-33) e o repositório privado depois que ele provar que funciona."
   },
   "decisoes": [
     {
@@ -857,11 +857,71 @@
       "quem": "Rafael",
       "ler": "CLAUDE.md",
       "curto": "Frase da master no CLAUDE.md"
+    },
+    {
+      "codigo": "H33",
+      "grupo": "prazo",
+      "etapa": "E16 e E19",
+      "titulo": "Quando restringir ou girar a chave do Firebase?",
+      "hoje": "Em 26/10 o google-services.json saiu do git (f87082e8, ramo v2/f00-pos) e chega ao build pelo EAS. A chave antiga continua no histórico do git e continua valendo. O repositório ficou público só 2 dias. Você decidiu deixar a chave lá e girar depois (\"deixa a chave lá depois fazemos isso\").",
+      "pergunta": "Quando restringir ou girar a chave no Google Cloud?",
+      "opcoes": [
+        {
+          "rotulo": "Restringir a chave ao pacote do aplicativo e às APIs que ele usa",
+          "efeito": "No console do Google Cloud: APIs e serviços, Credenciais. Outra pessoa não consegue gastar a cota com essa chave."
+        },
+        {
+          "rotulo": "Deixar para depois, como combinado",
+          "efeito": "Se a chave estiver sem restrição, outra pessoa pode usar e gastar a cota."
+        }
+      ],
+      "tambem": "A regra do repositório é que qualquer chave no código tem que sair, feito do jeito certo (26/10).",
+      "quem": "Rafael",
+      "ler": "dc360/apps/campo/google-services.json",
+      "curto": "Chave do Firebase"
+    },
+    {
+      "codigo": "H02",
+      "grupo": "pode-esperar",
+      "etapa": "E10 (CP-19)",
+      "titulo": "Que provedor de e-mail liga a recuperação de senha em produção?",
+      "hoje": "Você disse em 26/10 que ainda não há domínio, então não dá para escolher provedor; fica pendente por mais tempo. A produção segue com a recuperação de senha desligada (RECUPERACAO_ATIVA=nao).",
+      "pergunta": "Qual provedor, domínio e contrato, e onde o dado fica guardado?",
+      "opcoes": [
+        {
+          "rotulo": "Decidir quando houver domínio",
+          "efeito": "É o combinado de hoje. A recuperação segue desligada em produção."
+        },
+        {
+          "rotulo": "Escolher o domínio agora",
+          "efeito": "Destrava o provedor de e-mail, o endereço próprio do painel e o SPF e DKIM (H45)."
+        }
+      ],
+      "quem": "Rafael, e jurídico no contrato",
+      "ler": "STATUS.md, seção 7, linha CP-19",
+      "curto": "E-mail de recuperação"
+    },
+    {
+      "codigo": "H23",
+      "grupo": "pode-esperar",
+      "etapa": "E09, E10 e E15",
+      "titulo": "Prazos e bases legais de dados pessoais",
+      "hoje": "Em 26/10 você escolheu definir com o jurídico e o DPO (A); aguarda o jurídico. Falta definir por quanto tempo se guarda o IP e o user-agent das sessões, qual a base legal do e-mail de recuperação e do dado de coleta, e escrever o aviso de privacidade.",
+      "pergunta": "O que o jurídico e o encarregado de dados (DPO) definem?",
+      "opcoes": [
+        {
+          "rotulo": "Definir com o jurídico e o DPO",
+          "efeito": "Prazo de retenção, base legal e aviso de privacidade ficam fixados (CP-10 e CP-11)."
+        }
+      ],
+      "quem": "Rafael, com o jurídico e o DPO",
+      "ler": "STATUS.md, CP-10 e CP-11",
+      "curto": "Dados pessoais e LGPD"
     }
   ],
   "decididasSecao": {
     "titulo": "Já decididas",
-    "lead": "Registro das respostas que você deu em 26/10 pela página (relatório gerado às 11:23, posição de 25/10), mais o que o STATUS registra como consequência. Não há o que responder aqui. A H02 ficou adiada. Nas seis leituras de frases (H10, H11, H12, H15, H16 e H82) você escreveu que o Claude tem competência para testar isso com e2e e verificar com agentes se o texto se comporta bem: a leitura passa a ser feita assim, no lugar da leitura humana. A H21, leitor de tela real, não muda."
+    "lead": "Registro das respostas que você deu em 26/10 pela página (relatório gerado às 11:23, posição de 25/10), mais o que o STATUS registra como consequência. Não há o que responder aqui. Quatro itens seguem abertos como cartão, porque o documento ainda os lista: H33, H04 (a metade da foto entre equipes), H02 e H23. Nas seis leituras de frases (H10, H11, H12, H15, H16 e H82) você escreveu que o Claude tem competência para testar isso com e2e e verificar com agentes se o texto se comporta bem: a leitura passa a ser feita assim (D-34), no lugar da leitura humana. A H21, leitor de tela real, não muda."
   },
   "decididas": [
     {
@@ -870,39 +930,31 @@
       "etapa": "G00",
       "estado": "decidida",
       "resposta": "A: aprovar e fazer o merge em master.",
-      "depois": "Feito em 26/10: F00 na master em 02e9c26e por commit de merge, GATE.md escrito e primeiro Verificar em master verde (run 40348185180, 10 jobs)."
+      "depois": "Merge em master 02e9c26e por commit de merge; produção migrada (043 a 051), API e console na Fly e painel na Vercel antes do push; primeiro Verificar em master verde (run 40348185180). Registro em docs/evidencias-v2/G00/GATE.md."
     },
     {
       "codigo": "H44",
       "curto": "Tipo de merge da master",
       "etapa": "F01-E01 e G00",
       "estado": "decidida",
-      "resposta": "A: merge da F00 primeiro, regra da master depois, trocando \"só squash\" por \"commit de merge\".",
-      "depois": "O merge da F00 foi feito. Importar a regra de proteção no GitHub segue na H56."
+      "resposta": "A: merge da F00 primeiro, regra da master depois.",
+      "depois": "Merge da F00 feito. Com o repositório privado no plano gratuito (H33), o ruleset deixa de existir e a regra da master vira gancho local (D-33, no lote pós-G00)."
     },
     {
       "codigo": "H84",
       "curto": "Status da E09",
       "etapa": "E09 e G00",
       "estado": "decidida",
-      "resposta": "B: a política ganha um status próprio, ACEITA, para a E09.",
-      "depois": "Até o lote pós-G00 implementar isso, o STATUS mostra a E09 como IMPLEMENTADA. Entra no lote pós-G00 da F00, validado como qualquer etapa."
-    },
-    {
-      "codigo": "H33",
-      "curto": "Chave do Firebase e repositório",
-      "etapa": "E16 e E19",
-      "estado": "decidida",
-      "resposta": "Outra decisão: o repositório volta a privado e o GitHub Actions deixa de ser usado, tudo por script local. No chat você acrescentou que o repositório ficou público só 2 dias e que qualquer chave no código tem que sair, feito do jeito certo.",
-      "depois": "O STATUS lista como próximos passos o repositório privado com CI local (D-33) e as chaves fora do código. A restrição da chave no Google Cloud segue na H67."
+      "resposta": "B: a política ganha um status próprio, ACEITA.",
+      "depois": "A política ganhou o status ACEITA (seção 6 de 28, gerar-estado) e a E09 passou a ACEITA (b5a37f56, ramo v2/f00-pos)."
     },
     {
       "codigo": "H01",
       "curto": "Saída a campo no aplicativo",
       "etapa": "E24 (CP-02)",
       "estado": "decidida",
-      "resposta": "A: confirmar a D-25, a saída a campo entra no aplicativo.",
-      "depois": "As frases do painel e da apresentação passam a ser verdade quando ela entrar. Até lá nenhuma demonstração a município a mostra como funcionando (H17)."
+      "resposta": "A: confirmar a D-25, a saída a campo entra no aplicativo do agente.",
+      "depois": "Até lá nenhuma demonstração a município a mostra como funcionando (H17)."
     },
     {
       "codigo": "H30",
@@ -910,7 +962,7 @@
       "etapa": "E24",
       "estado": "decidida",
       "resposta": "A: a frase fica.",
-      "depois": "Só é verdade depois que a saída a campo entrar no aplicativo (H01)."
+      "depois": "Ela vira verdade quando a saída a campo entrar no aplicativo (H01)."
     },
     {
       "codigo": "H04",
@@ -918,46 +970,39 @@
       "etapa": "E06",
       "estado": "decidida",
       "resposta": "B: definir o teto de reservas de envio por pessoa.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa. A pergunta da foto entre equipes segue aberta, no cartão H04 acima."
+      "depois": "Em implementação no lote pós-G00 (ramo trab/f00pos-api). A pergunta da foto entre equipes segue aberta, no cartão H04."
     },
     {
       "codigo": "H24",
       "curto": "Pacotes do Expo",
       "etapa": "E19",
       "estado": "decidida",
-      "resposta": "A: confirmar a subida dos pacotes; ficam como estão."
+      "resposta": "A: confirmar a subida dos pacotes.",
+      "depois": "A deriva de patch do Expo segue pelo mesmo tratamento."
     },
     {
       "codigo": "H37",
       "curto": "Migração do zod 3 para o zod 4",
       "etapa": "E19",
       "estado": "decidida",
-      "resposta": "Outra decisão: \"verificar a opção mais recomendada\". O STATUS registra que isso é confirmar a migração para o zod 4, porque sem ela o auditar não fecha em zero.",
-      "depois": "Fica a exceção estreita do zod 3 que o @expo/cli carrega (dono Rafael, prazo 05/01/2027). Ler a lista de exceções é a H79."
+      "resposta": "Outra decisão: \"verificar a opção mais recomendada\".",
+      "depois": "O registro entende isso como confirmar a migração para o zod 4, porque sem ela o auditar não fecha em zero. A exceção estreita do zod 3 do @expo/cli continua na H79."
     },
     {
       "codigo": "H43",
       "curto": "Registro de consulta",
       "etapa": "E22",
       "estado": "decidida",
-      "resposta": "A: mudar o documento; o código fica.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
-    },
-    {
-      "codigo": "H02",
-      "curto": "E-mail de recuperação de senha",
-      "etapa": "E10 (CP-19)",
-      "estado": "adiada",
-      "resposta": "Outra decisão: ainda sem domínio, então sem provedor; fica pendente por mais tempo.",
-      "depois": "A produção segue com a recuperação desligada (RECUPERACAO_ATIVA=nao). A escolha do domínio está na H45."
+      "resposta": "A: muda o documento; o código continua gravando a leitura sob suspensão.",
+      "depois": "SAIDA-DE-MUNICIPIO.md registra a decisão (59217dbd, ramo v2/f00-pos)."
     },
     {
       "codigo": "H06",
       "curto": "Senha do administrador único",
       "etapa": "E10",
       "estado": "decidida",
-      "resposta": "B: criar um caminho de suporte para o administrador único recuperar a senha.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
+      "resposta": "B: caminho de suporte no console para o administrador único.",
+      "depois": "Implementação no lote pós-G00."
     },
     {
       "codigo": "H05",
@@ -965,15 +1010,15 @@
       "etapa": "E09",
       "estado": "decidida",
       "resposta": "B: Esc não fecha a janela da senha temporária.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
+      "depois": "Feito no lote pós-G00 (ramo v2/f00-pos, 5edb3635)."
     },
     {
       "codigo": "H26",
       "curto": "Aviso cobre o botão da senha",
       "etapa": "E09",
       "estado": "decidida",
-      "resposta": "A: corrigir já o aviso que cobre o botão \"Já anotei a senha\".",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
+      "resposta": "A: corrigir já.",
+      "depois": "O aviso já esperava a janela fechar desde a correção 4 da E09; o lote pós-G00 acrescentou a prova (teste e e2e) em 5edb3635."
     },
     {
       "codigo": "H35",
@@ -981,7 +1026,7 @@
       "etapa": "E09",
       "estado": "delegada",
       "resposta": "Outra decisão: testar no emulador e decidir pela opção mais recomendada.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
+      "depois": "A medição entra no lote pós-G00."
     },
     {
       "codigo": "H07",
@@ -995,8 +1040,8 @@
       "curto": "Menu no celular",
       "etapa": "E13",
       "estado": "decidida",
-      "resposta": "A: menu \"Mais\" para os itens menos usados.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
+      "resposta": "A: menu \"Mais\" no celular.",
+      "depois": "Feito no lote pós-G00 (5edb3635)."
     },
     {
       "codigo": "H29",
@@ -1004,57 +1049,50 @@
       "etapa": "E04",
       "estado": "decidida",
       "resposta": "A: consertar agora.",
-      "depois": "Entra no lote pós-G00 da F00, validado como qualquer etapa."
-    },
-    {
-      "codigo": "H23",
-      "curto": "Prazos e bases legais de dados pessoais",
-      "etapa": "E09, E10 e E15",
-      "estado": "decidida",
-      "resposta": "A: definir com o jurídico e o DPO.",
-      "depois": "A definição em si continua com o jurídico e o DPO (CP-10 e CP-11)."
+      "depois": "Conserto no ramo trab/f00pos-api (migração 052), revisado por Opus; entra no lote pós-G00 depois do achado 1 da revisão."
     },
     {
       "codigo": "H10",
       "curto": "Frases de sessão",
       "etapa": "E05",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34): teste e2e com capturas e revisão por agentes.",
+      "depois": "A conferência por agentes entra no lote pós-G00."
     },
     {
       "codigo": "H11",
       "curto": "Frases da senha única",
       "etapa": "E09",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34), como a H10."
     },
     {
       "codigo": "H12",
       "curto": "Esqueceu a senha",
       "etapa": "E10",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34), como a H10."
     },
     {
       "codigo": "H15",
       "curto": "Sessão encerrada no aplicativo",
       "etapa": "E14",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34), como a H10."
     },
     {
       "codigo": "H16",
       "curto": "Envio em segundo plano",
       "etapa": "E06 e E16",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34), como a H10."
     },
     {
       "codigo": "H82",
       "curto": "Fluxo do painel",
       "etapa": "E09",
       "estado": "delegada",
-      "resposta": "Leitura delegada ao assistente: teste e2e com capturas e revisão por agentes."
+      "resposta": "Leitura delegada ao assistente (D-34), como a H10."
     }
   ],
   "conferencias": {
@@ -1449,7 +1487,7 @@
         "codigo": "H56",
         "tipo": "configurar",
         "etapa": "F01-E01 e E08",
-        "fazer": "Ruleset da master: importar .github/rulesets/master.json depois do merge da F00 (Settings, Rules, Rulesets, Import), conferir os checks (o job \"Imagens Docker (API e console)\" precisa ter rodado uma vez para o nome aparecer) e o aviso de bypass vazio. Provar a recusa: git push origin master e git push --force origin master recusados, PR de prova mesclado só por commit de merge, PR com check vermelho que não mescla. Decidir se Windows e plataformas entram na lista de checks.",
+        "fazer": "Atenção: pela H44, com o repositório privado no plano gratuito o ruleset deixa de existir e a regra da master vira gancho local (D-33); confirme antes de importar. Ruleset da master: importar .github/rulesets/master.json depois do merge da F00 (Settings, Rules, Rulesets, Import), conferir os checks (o job \"Imagens Docker (API e console)\" precisa ter rodado uma vez para o nome aparecer) e o aviso de bypass vazio. Provar a recusa: git push origin master e git push --force origin master recusados, PR de prova mesclado só por commit de merge, PR com check vermelho que não mescla. Decidir se Windows e plataformas entram na lista de checks.",
         "esperado": "Push direto e force push recusados; a saída guardada em docs/evidencias-v2/G01/V2-F01-E01/saidas/.",
         "ler": "docs/evidencias-v2/G01/V2-F01-E01/RESUMO.md",
         "curto": "Regra de proteção da master"

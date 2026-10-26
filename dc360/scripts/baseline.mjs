@@ -187,6 +187,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
   */
   "V2-F00-E21-correcao-3": 8,
+  /* V2-F00-POS (2026-10-26, regra do Rafael de tirar toda chave do código): 3 casos em
+     `sem-credencial-no-git.test.mjs` (índice do git sem credencial, o app.config lê o
+     Firebase da variável do EAS, e o teste morde em cada família de arquivo). */
+  "V2-F00-POS-credenciais": 3,
+  /* V2-F00-POS (2026-10-26, migração do G00 feita do Windows): 3 casos em
+     `migrar-producao.test.mjs` (senha do Gerenciador de Credenciais, guia de como guardar,
+     npm pelo shell) e 1 em `copiar-producao.test.mjs` (pg_dump do instalador padrão).
+     Os dois arquivos já existiam: fora da tabela de arquivos. */
+  "V2-F00-POS-producao-windows": 4,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -196,6 +205,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
   "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+  "V2-F00-POS-credenciais": "sem-credencial-no-git.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -630,6 +640,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
   // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
   "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
+  // V2-F00-POS, painel (H05, H26 e H08, decisões do Rafael de 2026-10-26): `menu-mais.test.ts` é novo, com 27 casos (quantos destinos cabem na barra por largura, quem fica na barra e quem vai para o menu Mais, a marcação com aria-expanded e aria-controls, o Esc, a folha só com tokens), e `janela-da-senha-temporaria.test.ts` é novo, com 10 (o Esc não fecha a janela da senha, o aviso espera a janela aberta). Os casos de `acessibilidade.test.ts`, `correcao-6-da-e09.test.ts` e `correcao-8-da-e09.test.ts` foram reescritos no lugar, sem caso novo. Nenhuma falha nova.
+  "V2-F00-POS-painel": { total: 37, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);

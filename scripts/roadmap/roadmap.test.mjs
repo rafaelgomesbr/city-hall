@@ -322,3 +322,17 @@ test("repositório real: V2-F00-E04, decisões e ADRs", () => {
   assert.ok(listarAdrs(RAIZ_REAL).length >= 8);
   assert.ok(GATE_APROVADO.has("APROVADO"));
 });
+
+test("lerVeredito: ACEITA (H84) é veredito próprio, nunca PASS, e só em maiúsculas", () => {
+  const tabela = (celula) => [
+    "| Rodada | Data | SHA validado | SHA do CI | Veredito |",
+    "| --- | --- | --- | --- | --- |",
+    `| 11 | 2026-10-25 | 7fdfcc1 | 7fdfcc1 | ${celula} |`,
+    "| 9 | 2026-10-24 | dda7557 | d4683cc | FAIL |",
+  ].join("\n");
+  assert.equal(lerVeredito(tabela("ACEITA (H36) mantida; rodada só mecânica")).veredito, "ACEITA");
+  assert.equal(lerVeredito(tabela("PASS; a dívida foi aceita pelo Rafael")).veredito, "PASS", "PASS ganha de ACEITA");
+  assert.equal(lerVeredito(tabela("a mudança foi aceita, sem rodada")).veredito, null, "aceita minúsculo não é veredito");
+  assert.equal(lerVeredito("Veredito: ACEITA").veredito, "ACEITA");
+  assert.equal(lerVeredito("Veredito: aceita\nVeredito: FAIL").veredito, "FAIL");
+});

@@ -131,7 +131,8 @@ no próprio código (dentro de `obterFicha`): usar
 
 **No Android, a biblioteca do Firebase (FCM) mantém identificadores próprios do
 aparelho e do aplicativo com o Google**, além da ficha. O projeto está declarado
-em `apps/campo/google-services.json` e ligado por
+no `google-services.json` (fora do git desde 26/10/2026; o build recebe o
+arquivo pela variável `GOOGLE_SERVICES_JSON`) e ligado por
 `apps/campo/app.config.ts#googleServicesFile`. É por isso que a categoria de
 identificadores de aparelho tem de ser marcada nas duas lojas.
 

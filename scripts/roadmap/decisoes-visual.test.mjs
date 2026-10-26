@@ -224,7 +224,7 @@ test("decisoes.json REAL: estrutura em ordem, texto aprovado na conferência e o
   assert.deepEqual(dados.decisoes.filter((d) => d.grupo === "agora").map((d) => d.codigo), ["H106", "H97", "H133"]);
   // Decididas em 26/10 não voltam como cartão para responder.
   const cartoes = new Set(codigosCobertos(dados));
-  for (const c of ["H09", "H44", "H84", "H33", "H01", "H30", "H24", "H37", "H43", "H06", "H05", "H26", "H35", "H07", "H08", "H29", "H23", "H10", "H11", "H12", "H15", "H16", "H82"]) {
+  for (const c of ["H09", "H44", "H84", "H01", "H30", "H24", "H37", "H43", "H06", "H05", "H26", "H35", "H07", "H08", "H29", "H10", "H11", "H12", "H15", "H16", "H82"]) {
     assert.ok(!cartoes.has(c), `${c} foi decidida em 26/10 e não pode ter cartão`);
     assert.ok(codigosDecididos(dados).includes(c), `${c} precisa constar em Já decididas`);
   }

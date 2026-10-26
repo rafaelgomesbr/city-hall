@@ -146,6 +146,17 @@ export function IconeLua({ tamanho = 18, titulo }: Props) {
   );
 }
 
+export function IconeReticencias({ tamanho = 18, titulo }: Props) {
+  return (
+    <svg {...base(tamanho, titulo)}>
+      {titulo && <title>{titulo}</title>}
+      <circle cx="5.5" cy="12" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="18.5" cy="12" r="1.4" />
+    </svg>
+  );
+}
+
 export function IconeSair({ tamanho = 18, titulo }: Props) {
   return (
     <svg {...base(tamanho, titulo)}>

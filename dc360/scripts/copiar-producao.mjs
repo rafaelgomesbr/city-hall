@@ -160,13 +160,17 @@ export function clienteServe(versaoDoCliente, versaoMaiorDoServidor = VERSAO_MAI
 }
 
 /**
- * Acha o `pg_dump`: no PATH, ou nos caminhos do Homebrew para quem instalou o
- * `libpq` e não mexeu no PATH (o Homebrew não o linka, de propósito).
+ * Acha o `pg_dump`: no PATH, nos caminhos do Homebrew para quem instalou o
+ * `libpq` e não mexeu no PATH (o Homebrew não o linka, de propósito), ou nos
+ * do instalador padrão do Windows, que também não mexe no PATH. O mais novo
+ * primeiro, porque cliente mais novo que o servidor serve.
  */
 export function localizarPgDump({ candidatos = [
   "pg_dump",
   "/opt/homebrew/opt/libpq/bin/pg_dump",
   "/usr/local/opt/libpq/bin/pg_dump",
+  "C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe",
+  "C:\\Program Files\\PostgreSQL\\17\\bin\\pg_dump.exe",
 ], executar = (caminho) => execFileSync(caminho, ["--version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }) } = {}) {
   for (const caminho of candidatos) {
     try {
