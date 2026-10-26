@@ -1,0 +1,50 @@
+=== MUTACAO: painel: /saida/pacote.zip vira /pacote.zip
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o caminho existe na API
+AssertionError: o cliente chama rota que o servidor não registra: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: campo api.ts: /aparelhos vira /aparelho
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o caminho existe na API
+AssertionError: o cliente chama rota que o servidor não registra: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: transporte.ts: vistoria enviada com GET
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o método bate com o da rota
+AssertionError: o cliente chama a rota com outro método: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: mapa.ts: /configuracao vira /configuracoes
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o caminho existe na API
+AssertionError: o cliente chama rota que o servidor não registra: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: rota.ts: /rota vira /rota/calcular
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o caminho existe na API
+AssertionError: o cliente chama rota que o servidor não registra: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: console: /operadores vira /operador
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o caminho existe na API
+AssertionError: o cliente chama rota que o servidor não registra: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: painel: corpo do entrar ganha chave que o esquema nao conhece
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o corpo e a consulta casam com o esquema do registro
+AssertionError: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: campo: /auth/renovar manda renovar em vez de renovacao
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o corpo e a consulta casam com o esquema do registro
+AssertionError: expected [ …(2) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+=== MUTACAO: campo: fetch solto em token.ts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > nenhum arquivo de cliente usa rede sem estar na lista lida pelo contrato
+AssertionError: chamada de rede fora de `chamar`/base e fora dos arquivos declarados: expected [ Array(1) ] to deeply equal []
+      Tests  1 failed | 81 passed (82)
+ M apps/api/test/contrato-do-painel.test.ts
+ M apps/api/test/superficie-registrada.ts
+ M apps/api/test/superficie.test.ts
+?? apps/api/test/apoio/
+?? apps/api/test/contrato-cliente-rota.test.ts

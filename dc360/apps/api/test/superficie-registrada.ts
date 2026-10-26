@@ -1,8 +1,11 @@
-import type { FastifyInstance } from "fastify";
 import { semPrefixoDeVersao } from "../src/versao-v1.js";
+import { rotasRegistradas, type Rota } from "./apoio/rotas.js";
+
+/** A leitura da árvore mora em `apoio/rotas.ts` (V2-F02-E05); reexportada para quem já importava daqui. */
+export { rotasRegistradas, type Rota };
 
 /**
- * O que a API registrou de verdade, lido do servidor montado.
+ * A lista de isenções de token, mais a leitura das rotas registradas.
  *
  * Mora fora de `superficie.test.ts` desde a V2-F00-E23 porque o contrato do
  * painel (`contrato-do-painel.test.ts`) precisa da MESMA leitura da árvore e da
@@ -78,54 +81,4 @@ export function ehSemToken(chave: string): boolean {
   return (
     SEM_TOKEN.has(`${metodo ?? ""} ${semPrefixoDeVersao(caminho ?? "")}`) || SEM_TOKEN.has(chave)
   );
-}
-
-export type Rota = { metodo: string; caminho: string };
-
-/**
- * Lê a árvore de rotas do próprio Fastify.
- *
- * `printRoutes` é a única forma pública de enumerar o que foi registrado, e é
- * justamente por vir do servidor montado que ela não pode ficar desatualizada.
- */
-export function rotasRegistradas(instancia: FastifyInstance): Rota[] {
-  const arvore = instancia.printRoutes({ commonPrefix: false });
-  const rotas: Rota[] = [];
-
-  /*
-    O caminho de verdade é a CONCATENAÇÃO da árvore, e não o texto de uma
-    linha.
-
-    `printRoutes` desenha uma árvore em que cada linha traz só o próprio
-    segmento. A versão anterior deste parser tomava o segmento como se fosse o
-    caminho inteiro, e o resultado era pedir `GET :id` e `POST /triagem`, que
-    não existem: DEZESSETE rotas do produto respondiam 404, e o portão aceitava
-    404 como prova de que estavam protegidas.
-
-    Ou seja: o portão que existe para garantir que nenhuma rota responde sem
-    token estava, para a maioria delas, verificando endereço nenhum. Isso só
-    apareceu quando a régua foi apertada para exigir 401.
-
-    A profundidade sai do prefixo de desenho, contado em blocos de quatro
-    caracteres, que é como o Fastify indenta.
-  */
-  const pilha: string[] = [];
-
-  for (const linha of arvore.split("\n")) {
-    const casou = /^([\s│├└─]*)(\S+)\s+\((.+?)\)\s*$/.exec(linha);
-    if (!casou) continue;
-
-    const profundidade = Math.floor(casou[1]!.length / 4);
-    const segmento = casou[2]!;
-
-    pilha.length = profundidade;
-    pilha[profundidade] = segmento;
-    const caminho = pilha.slice(0, profundidade + 1).join("");
-
-    for (const metodo of casou[3]!.split(",").map((m) => m.trim())) {
-      if (metodo === "HEAD" || metodo === "OPTIONS") continue;
-      rotas.push({ metodo, caminho });
-    }
-  }
-  return rotas;
 }

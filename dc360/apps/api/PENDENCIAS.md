@@ -519,9 +519,12 @@ fica em aberto:
    a data na E08.
 2. **`Deprecation` sai com o valor `true`**, a forma do rascunho que o RFC 9745
    substituiu por uma data. A data de início da depreciação é decisão da E08.
-3. **O painel, o campo e o console ainda falam o caminho sem prefixo.** Migrá-los
-   para `/v1` é a V2-F02-E02; até lá o espelho é o caminho vivo dos três, e o
-   cabeçalho de depreciação já aparece nas respostas que eles recebem.
+3. **O painel, o campo e o console já falam `/v1` (V2-F02-E02).** O espelho sem
+   prefixo ficou só para o aplicativo de campo já instalado nos aparelhos, e a
+   V2-F02-E05 trava isso: `apps/api/test/contrato-cliente-rota.test.ts` lê os três
+   clientes como texto e reprova chamada que não case com uma rota `/v1` do
+   servidor montado (caminho, método, corpo e consulta contra o esquema do
+   registro) ou `fetch` solto fora da base e das duas URLs assinadas.
 4. **A medição do uso do espelho existe (V2-F02-E08), mas ninguém a lê ainda.**
    Cada pedido ao espelho gera uma linha de log `info` (`evento: "uso_do_espelho"`,
    método, modelo da rota e versão). O que falta é a OPERAÇÃO reter esse log e
@@ -634,3 +637,47 @@ F17-E08), e o que ainda não está coberto:
    encaminhamento nascem com o padrão acima nas etapas deles. Não existe
    cabeçalho `Idempotency-Key` genérico (fora do escopo; só se surgir
    necessidade).
+
+## O contrato cliente x rota é estático, e o que ele não vê (V2-F02-E05)
+
+`apps/api/test/contrato-cliente-rota.test.ts` lê o painel, o aplicativo de campo
+(com a fila offline de `packages/campo`) e o console como TEXTO e confronta cada
+chamada com as rotas `/v1` do servidor montado. É estático, e por isso tem
+limites que ficam escritos aqui em vez de na memória de quem passa.
+
+1. **O corpo e a consulta só são conferidos quando o texto os mostra.** Corpo
+   escrito como literal (`corpo: { email, senha }`) é confrontado com o esquema do
+   registro (nenhuma chave que o esquema não conheça, todas as obrigatórias);
+   corpo que vem de variável (`corpo: dados`) ou de expressão, e consulta montada
+   em tempo de execução (`?${p.toString()}`), ficam como `nao-lido` no relatório
+   da evidência. Nesses casos quem garante as chaves é o tipo do parâmetro (o
+   `typecheck` do painel e do campo, com os tipos do pacote compartilhado), e não
+   este teste. Fechar de verdade é o pacote `cliente-api` gerado do contrato
+   (V2-F08-E04).
+2. **Os esquemas que não são objeto simples não são lidos.** União e união
+   discriminada devolvem `esquema-ilegivel`. Hoje nenhuma rota chamada por
+   cliente cai nesse caso (a evidência mostra a contagem).
+3. **O console é lido de dois textos, não do servidor montado.** O script do
+   console (`JS_DO_CONSOLE`) é confrontado com as rotas lidas do texto de
+   `apps/console/src/servidor.ts` (`rotas.<verbo>(`), porque montar o console aqui
+   exigiria o banco e a semente do dono, que moram no apoio de teste do console.
+   A leitura reprova se o número de `rotas.<verbo>` do arquivo não bater com o
+   de rotas lidas. O console também não tem registro de contrato: lá só se
+   confere caminho e método, nunca o corpo.
+4. **Um cliente novo precisa ser declarado.** A varredura reprova `fetch(`,
+   `XMLHttpRequest`, `sendBeacon` ou `axios` em qualquer arquivo de código de
+   `apps/web/src`, `apps/campo/src`, `packages/campo/src` e `apps/console/src` que
+   não esteja na lista de `CLIENTES` do teste. Os apps novos do portal e do
+   cidadão (V2-F11, V2-F17) entram nessa lista com o ajudante
+   `apoio/extrair-chamadas.ts`. As duas URLs assinadas (a foto de perfil em
+   `foto-do-agente.ts` e a evidência em `transporte.ts`) estão declaradas, cada
+   uma com a razão.
+5. **A resposta não é conferida aqui.** O formato da resposta é dos
+   `contrato-*-respostas.test.ts`; este teste não olha o que a API devolve.
+6. **O relatório de rotas sem cliente espera revisão humana.** São rotas `/v1`
+   que nem o painel nem o campo chamam. Na medição desta etapa são nove: a
+   versão mínima do aplicativo, `GET /auth/eu`, a validação pública de documento,
+   a URL assinada de uma evidência, `GET /saida-a-campo/minha`, a revogação de
+   aparelho e as três escritas da saída a campo (declarar, prorrogar e retorno).
+   O teste não reprova por elas; o Rafael marca as que deveriam ter cliente
+   (lista na evidência da V2-F02-E05).

@@ -4,7 +4,8 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { ehSemToken, rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
+import { rotasRegistradas } from "./apoio/rotas.js";
+import { ehSemToken, SEM_TOKEN } from "./superficie-registrada.js";
 
 /**
  * A superfície da API, descoberta e não listada.
@@ -17,8 +18,9 @@ import { ehSemToken, rotasRegistradas, SEM_TOKEN } from "./superficie-registrada
  * Em vez de manter uma lista de rotas que precisam de token (que ficaria
  * desatualizada na primeira pressa), o teste enumera as rotas de verdade e
  * exige token de TODAS, com uma isenção explícita e curta. A lista de isenções
- * (`SEM_TOKEN`) e a leitura da árvore (`rotasRegistradas`) moram em
- * `superficie-registrada.ts`, que o contrato do painel também usa.
+ * (`SEM_TOKEN`) mora em `superficie-registrada.ts` e a leitura da árvore
+ * (`rotasRegistradas`) em `apoio/rotas.ts`, que o contrato do painel e o
+ * contrato de cliente x rota também usam.
  */
 
 let mem: BancoEmMemoria;
