@@ -73,6 +73,12 @@ condition = "AND"
 targetRules = ["jwt"]
 paths = ['''^dc360/apps/api/test/reportador-de-erros\.test\.ts$''']
 
+[[allowlists]]
+description = "Versão de build inventada ('painel/a1b2c3d') passada ao auxiliar de cabeçalhos do teste do controle de versão do aplicativo (V2-F02-E06): a linha com o nome da variável de teste e o identificador de build casa com a regra genérica de chave de API, mas não é segredo. O token de verdade é emitido em memória pelo próprio teste."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^dc360/apps/api/test/versao-do-aplicativo\.test\.ts$''']
+
 # ---------------------------------------------------------------------------
 # 2. Evidência da G00 (arquivos congelados): saída de teste e sonda
 # ---------------------------------------------------------------------------
