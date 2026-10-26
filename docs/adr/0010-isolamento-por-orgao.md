@@ -3,10 +3,10 @@
 - **Data da decisão:** 26/10/2026 (registro escrito, V2-F04-E01). As decisões de
   origem são a D-08, a D-18, a D-23 e a D-24 do Rafael
   (`docs/roadmap-v2/01-decisoes-e-principios.md`).
-- **Situação:** PROPOSTA, correção 1 aplicada (primeira rodada da segunda
-  leitura de segurança). Aceite pendente do Rafael (H116), que depende do aceite
-  da ADR 0009 (H97), e nova rodada da segunda leitura sobre esta redação antes
-  do aceite. Até o aceite, o código da F04 segue esta proposta como premissa
+- **Situação:** PROPOSTA, correções 1 e 2 aplicadas (primeira e segunda
+  rodadas da segunda leitura de segurança). Aceite pendente do Rafael (H116),
+  que depende do aceite da ADR 0009 (H97), e nova rodada da segunda leitura
+  sobre esta redação antes do aceite. Até o aceite, o código da F04 segue esta proposta como premissa
   (plano de execução da F04, seção 1, E01). Nenhum usuário de órgão com dado
   real entra no sistema antes do G04.
 - **Depende de:** ADR 0001, ADR 0002, ADR 0009 (proposta)
@@ -171,6 +171,38 @@ acrescenta:
   verificação das funções privilegiadas chamando cada uma sob ator de órgão
   (decisão 15).
 
+### O que a segunda rodada mudou (correção 2)
+
+A segunda rodada da mesma leitura, sobre a correção 1, deu sete dos nove
+achados por fechados, dois por parciais, e trouxe dois pontos novos que
+bloqueiam e duas dívidas. A tabela item a item está em
+`docs/evidencias-v2/G04/V2-F04-E01/correcao-2/RESUMO.md`. Esta redação
+acrescenta:
+
+- **o órgão toma N1 por uma função estreita** (decisão 14, item 2a): o
+  Postgres aplica ao `SELECT ... FOR SHARE` o `USING` das policies de UPDATE,
+  e a classe C nega UPDATE ao órgão, então a guarda direta da correção 1
+  devolvia zero linhas ao ator de órgão. A guarda passa a ser
+  `travar_municipio_para_escrita()`, SECURITY DEFINER sem parâmetro, que só
+  trava em `FOR SHARE` a linha do município do contexto, não devolve dado e
+  não escreve; o UPDATE de `organizacoes` continua negado ao órgão. A regra
+  foi demonstrada num Postgres 16 descartável (evidência da correção 2);
+- **cada transição tem o seu evento e a sua versão do dossiê** (decisão 17,
+  item 2, refeito): o evento `enviado` e o `reenviado` nascem da transição, e
+  não mais da inserção do dossiê; cada fato gerado leva o número do fato da
+  linha (`fato_seq`), e a conferência adiada compara cada transição com o seu
+  evento, em vez de contar; a versão do dossiê só confirma se exatamente um
+  evento gerado a declarar;
+- **a chave `encaminhamento_evento:` é reservada** (decisão 17, itens 3 e 4):
+  INSERT direto em `avisos` com a referência ao evento ou com o prefixo é
+  recusado, o aviso gerado é coerente por CHECK, e o gerador nunca usa `ON
+  CONFLICT DO NOTHING` nessa chave;
+- **consistência**: o negativo do UPDATE sem efeito passa a ser "sem mudança
+  no estado nem nas colunas mapeadas"; a criação deixa de emitir ofício na
+  mesma transação (decisão 14, item 5); o 429 entra na comparação de status,
+  corpo e cabeçalhos (decisão 13, item 2); a proibição geral do 403 remete à
+  exceção da decisão 13.
+
 ## Decisão
 
 **O tenant continua sendo só o município. Dentro dele, o usuário de órgão alcança
@@ -294,7 +326,7 @@ decisão 7. `TO dc360_app` para não alcançar as policies do console
 | Classe | Tabelas (lista inicial; a E06 fecha a lista nominal) | O que o ator de órgão faz |
 | --- | --- | --- |
 | B, a conta própria | `usuarios`, `sessoes`, `orgao_vinculos` e as tabelas da conta que a 059 da F03 deixa com grant ao `dc360_app`; `avisos_do_orgao_lidos` (E11) | lê só as linhas da própria conta (`app_ator_id()`); escreve só o que a matriz de escrita abaixo lista |
-| C, leitura do catálogo | `orgaos`, `categorias_de_demanda`, `organizacoes` (`id = app_organizacao_atual()`), `orgao_competencias` (E15) | lê; nunca escreve |
+| C, leitura do catálogo | `orgaos`, `categorias_de_demanda`, `organizacoes` (`id = app_organizacao_atual()`), `orgao_competencias` (E15) | lê; nunca escreve; nem trava linha por comando (a trava por `FOR SHARE` passa pela policy de UPDATE): a guarda N1 da linha do município é tomada só pela função da decisão 14, item 2a |
 | D, todas as outras | `ocorrencias` e todas as filhas, `trilha_eventos` e `avisos` (correção 1: a antiga classe E), `equipes`, `exportacoes`, `trilha_administrativa`, `aparelhos`, `oficio_envios`, `oficio_aberturas`, `oficio_sequencias` e o resto | nada: `app_ator_tipo() IN ('servidor', 'sistema')` |
 | sem alcance | as tabelas sem nenhum grant ao `dc360_app` (`pessoas`, `origens_de_conta`, as tabelas da pessoa da E11 e da E19, as do console) | nada, porque o papel de aplicação não as toca |
 | anterior ao município | `interesse_municipio` (011), e só ela | nada; ver abaixo |
@@ -739,7 +771,10 @@ E03), com teste que compara as duas:
   serve aquele documento ou deixa de existir, conforme o CP-22.
 - **Quem grava, e em que ordem (correção 1).** A E12 redefine `abrir_oficio`
   numa migração própria: (1) lê o envio pelo hash, sem trava; (2) toma a linha
-  do município do envio em `FOR SHARE` (N1, decisão 14); (3) relê o envio com
+  do município do envio em `FOR SHARE` (N1, decisão 14), direto, dentro da
+  própria função privilegiada, como o login da 050 (a função da guarda da
+  decisão 14, item 2a, não serve aqui: o link roda antes de existir contexto,
+  e o município sai do envio); (3) relê o envio com
   `FOR UPDATE` e confere que não mudou, respondendo como link desconhecido se
   ele sumiu (município eliminado entre a leitura e a trava); (4) grava a abertura
   com o resultado; (5) só com `entregue`, grava o evento `visualizado` de autor
@@ -785,11 +820,17 @@ cumprido:
    O que fica proibido é qualquer resposta que DEPENDA do recurso antes do
    passo 4, e qualquer resposta do passo 3 que varie conforme o id. **Teste da
    E08 e da E13**, para cada rota do órgão com corpo ou ação: com os três ids
-   (outro órgão, outro município, inexistente) e o id próprio, nos três casos
-   (leitor tentando a ação: 403; corpo inválido: 422; ação e corpo válidos:
-   404 para os três ids alheios), o status, o corpo e os cabeçalhos são
-   iguais entre os ids, fora os cabeçalhos que variam por requisição (data,
-   identificador da requisição), que o teste lista por nome.
+   (outro órgão, outro município, inexistente) e o id próprio, nos quatro
+   casos (leitor tentando a ação: 403; corpo inválido: 422; limite de taxa
+   esgotado: 429; ação e corpo válidos: 404 para os três ids alheios), o
+   status, o corpo e os cabeçalhos são iguais entre os ids, fora os
+   cabeçalhos que variam por requisição (data, identificador da requisição),
+   que o teste lista por nome. No 429 (correção 2), os cabeçalhos do limite
+   (espera para nova tentativa e os de cota, se houver) entram na comparação
+   e não na lista dos variáveis: o teste fixa o relógio para eles não
+   variarem com o tempo. O teste também confere que a contagem do limite
+   avança igual para id próprio e alheio (o pedido que termina em 404 conta
+   como o que termina em 200), para o 429 não chegar antes conforme o id.
 3. **Escrita não é oráculo.** As chaves estrangeiras do domínio são triplas
    (`organizacao_id`, encaminhamento, `orgao_id`): evento com encaminhamento de
    outro órgão e evento com encaminhamento inexistente violam a mesma chave do
@@ -829,7 +870,7 @@ acrescenta quatro níveis DEPOIS de N9:
 
 | Nível | O que se trava | Como |
 | --- | --- | --- |
-| N1 | a linha do município em `organizacoes` (o mesmo N1 da ADR 0009) | `FOR SHARE`, como o login (050), com releitura: `SELECT ... WHERE id = $1 AND eliminada_em IS NULL FOR SHARE`; zero linhas é recusa sem escrever |
+| N1 | a linha do município em `organizacoes` (o mesmo N1 da ADR 0009) | `FOR SHARE` com releitura, tomado pela função `travar_municipio_para_escrita()` (item 2a, correção 2), que faz `SELECT ... WHERE id = app_organizacao_atual() AND eliminada_em IS NULL FOR SHARE`; zero linhas é recusa sem escrever. Só `abrir_oficio`, que já é privilegiada e roda antes do contexto, faz esse SELECT direto (decisão 12) |
 | N10 | a linha do encaminhamento em `providencias` | UPDATE condicional que não muda coluna de chave (`WHERE id = $1 AND estado = $2`, com conferência de linhas afetadas) ou `SELECT ... FOR NO KEY UPDATE` antes; NUNCA `FOR UPDATE`; várias, em ordem crescente de id |
 | N11 | a linha da sequência de ofícios do município e do ano (`oficio_sequencias`) | `proximo_oficio` (017), dentro da transação que grava o ofício |
 | N12 | as linhas filhas do encaminhamento | INSERT em `encaminhamento_eventos`, `encaminhamento_dossies`, `oficios`, `oficio_envios` e `oficio_aberturas`; a única linha EXISTENTE travada neste nível é a do envio (`oficio_envios`, no link e no desfecho do envio), sempre antes dos INSERT do mesmo nível; fora isso, a única espera é a de índice único (`chave_de_criacao`, visualização por usuário e estado, um `visualizado` de link por envio, marco de lembrete, nível de escalonamento, um ofício por providência) |
@@ -839,15 +880,81 @@ acrescenta quatro níveis DEPOIS de N9:
 
 1. As regras 1, 2, 4 e 7 da ADR 0009 valem aqui sem mudança: nunca tomar nível
    menor do que um já seguro; gatilho só desce para níveis maiores; leitura sem
-   trava é livre; INSERT de linha nova não é trava de nível.
+   trava é livre; INSERT de linha nova não é trava de nível. Em N12 e N13 o
+   que conta para a ordem é a espera de índice único; uma inserção cuja chave
+   única contém o id de uma linha nascida na MESMA transação (a versão 1 do
+   dossiê, o aviso `encaminhamento_evento:<id>` de um evento novo) não espera
+   ninguém, porque nenhuma outra transação vê aquela linha antes da
+   confirmação, e por isso não é nível segurado (correção 2).
 2. **Todo caminho do encaminhamento toma N1 em `FOR SHARE` como a PRIMEIRA
-   trava da transação**, e não toma nenhum nível de N2 a N9. Isto revê a regra
-   da primeira redação ("não toma nenhum nível de N1 a N9"). `FOR SHARE` é
-   compatível com ele mesmo (encaminhamentos do mesmo município não se esperam
-   em N1) e conflita com o UPDATE da linha do município que a suspensão e a
-   eliminação fazem em N1. Vínculo, conta e pessoa continuam lidos sem trava
-   (regra 4 da ADR 0009), e o vínculo é reconferido dentro de cada comando por
-   `app_orgao_vigente()`.
+   trava da transação**, chamando `travar_municipio_para_escrita()` (item 2a)
+   como primeiro comando depois do contexto, e não toma nenhum nível de N2 a
+   N9. Isto revê a regra da primeira redação ("não toma nenhum nível de N1 a
+   N9"). `FOR SHARE` é compatível com ele mesmo (encaminhamentos do mesmo
+   município não se esperam em N1) e conflita com o UPDATE da linha do
+   município que a suspensão e a eliminação fazem em N1. Vínculo, conta e
+   pessoa continuam lidos sem trava (regra 4 da ADR 0009), e o vínculo é
+   reconferido dentro de cada comando por `app_orgao_vigente()`.
+
+   **2a. Como o ator de órgão toma N1 sem poder alterar o município (correção
+   2).** A guarda direta da correção 1 (`SELECT ... FOR SHARE` em
+   `organizacoes` pelo `dc360_app`) não funciona para o ator de órgão. A
+   regra do Postgres (documentação de `CREATE POLICY`, tabela das policies
+   aplicadas por tipo de comando, linha `SELECT FOR UPDATE/SHARE`): um
+   `SELECT` com cláusula de trava aplica à linha existente o `USING` das
+   policies de SELECT E o `USING` das policies de UPDATE, e a cláusula de
+   trava exige o privilégio de UPDATE. Isso vale para as quatro forças
+   (`FOR UPDATE`, `FOR NO KEY UPDATE`, `FOR SHARE`, `FOR KEY SHARE`): a policy
+   não enxerga a força pedida. Como a RESTRICTIVE de UPDATE da classe C nega
+   o ator de órgão, o `FOR SHARE` dele devolve zero linhas, em silêncio, e a
+   guarda recusaria toda operação legítima do órgão. Demonstrado num Postgres
+   16 descartável, com RLS forçada, as permissivas da 034 e a RESTRICTIVE da
+   classe C: leitura comum, uma linha; `FOR SHARE` e `FOR KEY SHARE`, zero;
+   UPDATE, zero (`docs/evidencias-v2/G04/V2-F04-E01/correcao-2/demo-for-share.txt`).
+
+   A forma escolhida é uma função privilegiada estreita, usada por TODO ator
+   (servidor, sistema e órgão), para haver um caminho só:
+
+   - assinatura completa `public.travar_municipio_para_escrita()`, `RETURNS
+     void`, sem parâmetro, `LANGUAGE plpgsql`, `SECURITY DEFINER`, `SET
+     search_path = public, pg_temp` e `SET row_security = off` (a lição da
+     038: dono sem `BYPASSRLS` vira erro, nunca zero linhas em silêncio);
+   - corpo de um comando só: `PERFORM 1 FROM organizacoes WHERE id =
+     app_organizacao_atual() AND eliminada_em IS NULL FOR SHARE`; sem linha
+     (município eliminado ou contexto ausente), erro de código próprio (a E02
+     escolhe o `DCnnn`), que a API traduz como a vigência traduz município
+     eliminado, igual para todo id. Não devolve dado, não escreve, não recebe
+     município: só alcança o do contexto, que vem do token;
+   - ACL exata: `EXECUTE` só ao `dc360_app`, retirado de `PUBLIC`, sem opção
+     de concessão; entra no catálogo da etapa que a cria (E02, `tenant:
+     contexto`) e recebe a declaração `trava` diante do ator de órgão
+     (decisão 15);
+   - o UPDATE de `organizacoes` continua negado ao órgão pela classe C: a
+     função dá ao órgão a trava compartilhada, e nada mais.
+
+   **Testes dos dois limites.** E02, sob Rita: a função trava a linha do
+   município A (uma segunda conexão com `SELECT ... FOR UPDATE NOWAIT` na
+   linha de A recebe 55P03) e não a de B (`NOWAIT` em B passa); nada é
+   escrito; ACL e corpo conferidos no catálogo. E05, sob Maria (Obras): a
+   função trava A (o mesmo `NOWAIT` em A recebe 55P03) e, com a trava na
+   mão, `UPDATE organizacoes` de Maria continua alcançando zero linhas e o
+   nome do município não muda; a função não trava B; recusa município
+   eliminado e contexto ausente; e o `SELECT ... FOR SHARE` direto de Maria
+   devolve zero linhas, guardado como teste de regressão da regra do
+   Postgres (se um dia passar, a classe C deixou de negar o UPDATE). A E08
+   confere, capturando os comandos SQL de cada rota de escrita, que nenhuma
+   rota faz `FOR SHARE` direto em `organizacoes` e que a função é o primeiro
+   comando de todo caminho de escrita do encaminhamento.
+
+   **Alternativa descartada: separar travar de alterar na própria policy**
+   (`USING` da RESTRICTIVE de UPDATE aceitando o órgão, `WITH CHECK` o
+   recusando). Como a policy não enxerga a força da trava, o mesmo `USING`
+   deixaria o órgão tomar `FOR UPDATE` na linha do município, que conflita
+   com o `FOR KEY SHARE` que todo INSERT de filha com chave para
+   `organizacoes` toma, e com todo `FOR SHARE` de N1: um erro da API pararia
+   o município inteiro. E o UPDATE do órgão chegaria a travar a linha antes
+   de o `WITH CHECK` recusar. A função dá só a força `FOR SHARE`, só na linha
+   do contexto.
 3. **O protocolo comum com a eliminação do município.** A eliminação toma N1
    por UPDATE ANTES do primeiro DELETE (ADR 0009, decisão 7, tabela "Por
    caminho"; a 038 desta árvore ainda não o faz, e a correção é da F03, E09).
@@ -878,18 +985,21 @@ acrescenta quatro níveis DEPOIS de N9:
 5. **A ordem efetiva de quem escreve, por caminho.** O gatilho `AFTER UPDATE`
    da 018 gravava o aviso ao fim do UPDATE, antes de a rota gravar o evento
    (N13 antes de N12). Ele é aposentado na 070 (decisão 7, e), e o aviso passa
-   a nascer do evento (decisão 17):
+   a nascer do evento (decisão 17). Em toda linha abaixo, N1 é a chamada de
+   `travar_municipio_para_escrita()` (item 2a), fora a abertura do link, que
+   trava dentro de `abrir_oficio`:
 
    | Caminho | Sequência |
    | --- | --- |
    | transição do órgão ou da Defesa Civil (aceite, resposta, devolução, esclarecimento pedido e respondido, complemento, conclusão, cancelamento) | N1; N10 pelo UPDATE condicional do estado, no qual rodam o `BEFORE` (matriz coluna por ator e transição válida) e o `AFTER` que grava o evento (N12); do evento, o gatilho grava espelho e aviso (N13) |
-   | criação pela Defesa Civil | N1; INSERT da linha nova de `providencias` (o `BEFORE` do 017 pode inserir em `orgaos`, com espera só de unicidade do nome); INSERT da versão 1 do dossiê (N12), que gera o evento `enviado` (N12), do qual nasce o espelho (N13); o ofício, se houver, segue a linha abaixo a partir de N11 |
+   | criação pela Defesa Civil | N1; INSERT da linha nova de `providencias` (o `BEFORE` do 017 pode inserir em `orgaos`, com espera só de unicidade do nome), cujo `AFTER INSERT` grava o evento `enviado` com `fato_seq` 1 e versão 1 (N12), e dele o espelho e o aviso (N13); INSERT da versão 1 do dossiê (N12, chave com o id nascido nesta transação, regra 1). **Sem ofício nesta transação (correção 2):** se a Defesa Civil pede o ofício junto, a rota confirma a criação e roda a emissão como caminho próprio, em transação nova, pela linha abaixo; uma falha na emissão deixa o encaminhamento criado sem ofício, estado legítimo, e a resposta diz isso. Assim N11 nunca é tomado depois de N13 |
    | emissão do ofício | N1; N10 (`FOR NO KEY UPDATE`, relendo o estado: encaminhamento cancelado ou concluído não recebe ofício); N11 (`proximo_oficio`); N12 (INSERT do ofício e do envio); N13 |
-   | reenvio com dossiê novo | N1; N10 (UPDATE de `devolvido` para `enviado`); N12 (INSERT da versão nova do dossiê, que gera `reenviado`); N13 |
+   | reenvio com dossiê novo | N1; N10 (`FOR NO KEY UPDATE`, relendo `devolvido`); N12 (INSERT da versão nova do dossiê, que não gera evento); UPDATE de `devolvido` para `enviado` na linha já travada em N10 (nenhuma trava nova), cujo `AFTER UPDATE` grava `reenviado` com o `fato_seq` e a versão nova (N12); N13 (correção 2: a versão vem antes da transição, para a sequência não voltar de N13 a N12) |
    | reenvio do link e desfecho do envio | N1; N12 (INSERT do envio, ou UPDATE de `desfecho` e `detalhe` na linha do envio) |
    | abertura do link (`abrir_oficio`, decisão 12) | leitura do envio sem trava; N1; N12 (`FOR UPDATE` e releitura do envio, INSERT da abertura e, com `entregue`, do evento); N13 só o que o mapeamento da decisão 17 declarar para esse evento |
    | visualização pelo órgão (`POST`) | N1; N12 (INSERT direto do evento; espera só de unicidade por usuário e estado) |
-   | alteração de prazo, prioridade e atribuição | N1; N10 (UPDATE da coluna), com o `AFTER` gravando o fato de linha (N12) e o que dele nasce (N13) |
+   | alteração de prazo, prioridade e atribuição | N1; N10 (UPDATE de uma coluna mapeada por comando, decisão 17, item 2), com o `AFTER` gravando o fato de linha (N12) e o que dele nasce (N13) |
+   | recomposição do dossiê do legado "pedido em revisão" (decisão 17, item 2) | N1; N10 (`FOR NO KEY UPDATE`, relendo a marca); N12 (INSERT da versão nova); UPDATE que limpa a marca na linha já travada, cujo `AFTER` grava `dossie_recomposto` (N12); N13 |
    | relógios (lembrete da E10, escalonamento da E16, sino da E11) | como `sistema`, um encaminhamento por transação ou vários em ordem crescente de id: N1; N10 (`FOR NO KEY UPDATE`, relendo o estado: encaminhamento concluído na mesma hora não recebe lembrete); N12; N13 |
 
 6. **Nenhum caminho de identidade toca N10 a N13**, fora a eliminação. O
@@ -929,8 +1039,11 @@ N10 e N11); lembrete contra conclusão (E10).
   vigência, autenticação, segundo fator); `antes_do_ator` (roda antes de
   existir ator: login, link de uso único, `interesse_recente`); ou `gatilho`
   (correção 1: função `RETURNS trigger`, que o Postgres só executa como
-  gatilho, nunca por chamada direta; é a forma dos geradores da decisão 17).
-  Função sem declaração reprova.
+  gatilho, nunca por chamada direta; é a forma dos geradores da decisão 17);
+  ou `trava` (correção 2: a função só toma a trava compartilhada da linha do
+  município do contexto, não devolve dado e não escreve, e vale igual para
+  todo ator; é a forma de `travar_municipio_para_escrita()`, decisão 14, item
+  2a, e só ela a usa). Função sem declaração reprova.
 - **A etiqueta não prova o limite (correção 1).** A E06 não confere só a
   declaração: CHAMA cada função de `FUNCOES_PRIVILEGIADAS` sob o ator de órgão
   (Maria, com o contexto completo da Obras), inclusive as `antes_do_ator`, e
@@ -942,10 +1055,16 @@ N10 e N11); lembrete contra conclusão (E10).
   órgão a mais por haver ator. `gatilho`: a chamada direta falha; o
   comportamento é provado disparando o gatilho sob o ator de órgão (o
   gerador grava exatamente o evento, o espelho e o aviso que o mapeamento
-  declara, com autor e tipo derivados). Uma função nova sem o teste
+  declara, com autor e tipo derivados). `trava`: a chamada não devolve dado
+  e não escreve nada; a linha do município do contexto fica travada (uma
+  segunda conexão com `FOR UPDATE NOWAIT` nela recebe 55P03) e a de outro
+  município não; o UPDATE de `organizacoes` de Maria continua alcançando zero
+  linhas; e o corpo, conferido no catálogo, é o único `SELECT ... FOR SHARE`
+  da decisão 14, item 2a, sem parâmetro. Uma função nova sem o teste
   comportamental sob ator de órgão reprova o catálogo.
-- Toda função privilegiada que a F04 criar (`varrer_lembretes_de_encaminhamento()`
-  na E10 e o que a E11 e a E16 precisarem) entra no catálogo da própria etapa
+- Toda função privilegiada que a F04 criar (`travar_municipio_para_escrita()`
+  na E02, `varrer_lembretes_de_encaminhamento()` na E10 e o que a E11 e a
+  E16 precisarem) entra no catálogo da própria etapa
   (`catalogo/f04-eNN.ts`) pela assinatura completa, com motivo, tenant, a lista
   exata de papéis com `EXECUTE` (sem `PUBLIC`) e o teste comportamental, e
   segue as regras de corpo da ADR 0009 (decisão 8: sem DDL, sem
@@ -953,9 +1072,10 @@ N10 e N11); lembrete contra conclusão (E10).
   devolve só ids e marco, e recusa quando o ator não é `sistema`.
 - `app_orgao_vigente()`, o gatilho que valida a transição e a matriz coluna por
   ator NÃO são SECURITY DEFINER: rodam com os direitos de quem escreve, sob a
-  RLS dele. Os GERADORES da decisão 17 (o que grava o evento da transição e o
-  fato de linha, o que grava `enviado` e `reenviado` a partir da versão do
-  dossiê, e o que grava espelho e avisos a partir do evento) SÃO SECURITY
+  RLS dele. Os GERADORES da decisão 17 (o que grava, a partir da linha de
+  `providencias`, o evento da criação, da transição e do fato de linha,
+  `enviado` e `reenviado` inclusive, e o `reencaminhado`; e o que grava
+  espelho e avisos a partir do evento) SÃO SECURITY
   DEFINER de gatilho, de propósito: é o que permite tirar do `dc360_app`, sob
   qualquer ator, o INSERT desses fatos. Cada um tem `search_path` fixo, monta
   todo valor a partir de `NEW`, `OLD`, das funções de contexto e de linhas
@@ -977,6 +1097,7 @@ N10 e N11); lembrete contra conclusão (E10).
 | Ato administrativo por GET, legado (documentos de vistoria; termo de interdição, decisão 11) | "nenhum GET escreve" e "nenhum GET materializa estado ou fato de negócio" | só as tabelas e efeitos declarados; nenhuma rota da família do órgão; nenhuma entrada nova nesta categoria | E11 registra; conversão em POST fora da F04 (H novo) |
 | Categoria anterior ao município (`interesse_municipio`, decisão 3) | `organizacao_id` e a forma da decisão 7, a; o `IS NULL` sobre contexto | sem SELECT ao `dc360_app`; recusa a todo ator autenticado; uma tabela só | E05, E06 |
 | Geradores SECURITY DEFINER de gatilho (decisão 17) | "o gatilho do encaminhamento roda com os direitos de quem escreve" | não são chamáveis diretamente; valores derivados de `NEW`, `OLD` e do contexto; declaração `gatilho` e teste sob ator de órgão (decisão 15) | E03, E04, E11 |
+| Guarda N1 do ator de órgão por função (`travar_municipio_para_escrita()`, decisão 14, item 2a; correção 2) | a classe C, que nega ao ator de órgão a trava da linha de `organizacoes` (o `FOR SHARE` passa pela policy de UPDATE) | só a força `FOR SHARE`, só a linha do município do contexto, sem parâmetro, sem dado devolvido, sem escrita; o UPDATE de `organizacoes` continua negado ao órgão; ACL exata e declaração `trava` (decisão 15) | E02, E05, E06 |
 | Aviso de escalonamento a órgão de nível acima (E16) | "o sino do órgão só fala do próprio órgão": o órgão do nível sabe que um encaminhamento de outro órgão venceu | nenhuma leitura do encaminhamento (404), nenhum dossiê, protocolo ou pessoa; só ponteiro, órgão de origem e rótulo do nível | E16 |
 | Leitura da linha de `providencias` pelo órgão (classe A), com `ocorrencia_id` e os textos livres da Defesa Civil (`descricao`, `responsavel`, `orgao_destino`, `resposta` e `respondida_por` legados), e de `oficios` com `observacoes` | "o órgão não vê nada da ocorrência" e "texto livre só pelo dossiê e pelos eventos" (decisão 5), no nível da linha: privilégio de coluna é do papel de banco e não separa atores | o id é opaco; a API da família do órgão e a página do link não devolvem nenhuma dessas colunas (lista de inclusão, E08 e E12, provada no contrato); `ocorrencias` continua classe D | E05, E08, E12 |
 
@@ -984,7 +1105,7 @@ Exceção que não está nesta tabela não existe. Uma etapa que precise de outr
 escreve a linha nesta ADR por nota de revisão, com as três colunas, antes do
 código.
 
-### 17. Os fatos do encaminhamento são gravados pelo banco (correção 1)
+### 17. Os fatos do encaminhamento são gravados pelo banco (correção 1; item 2 refeito na correção 2)
 
 A primeira redação conferia quem grava e onde, mas não O QUE: um evento, um
 espelho ou um aviso aceito pelo `WITH CHECK` podia afirmar um fato que não
@@ -997,10 +1118,12 @@ transação, e nunca recebido do `dc360_app`.
    ele nasce, quem pode produzi-lo, se é visível ao órgão, as chaves de texto
    admitidas no `detalhe` (lista de inclusão, decisão 5) e o que nasce dele
    (espelho na trilha, aviso, aviso do órgão):
-   - **fatos gerados pelo banco**: toda transição da decisão 9, todo fato de
-     linha (prazo, prioridade, atribuição alterados) e o `reencaminhado`,
-     gravado no encaminhamento pai quando nasce o filho com `parent_id`. O
-     `dc360_app` NUNCA os insere, sob ator nenhum, servidor inclusive;
+   - **fatos gerados pelo banco**: toda transição da decisão 9 (a criação,
+     com `enviado`, inclusive), todo fato de linha (prazo, prioridade,
+     atribuição alterados; e `dossie_recomposto`, correção 2, item 2) e o
+     `reencaminhado`, gravado no encaminhamento pai quando nasce o filho com
+     `parent_id`. O `dc360_app` NUNCA os insere, sob ator nenhum, servidor
+     inclusive;
    - **fatos de inserção direta**, numa lista positiva por ator: `usuario_orgao`
      só `visualizado` do próprio órgão; `sistema` só `lembrete` (E10) e
      `escalonado` (E16); `servidor` nenhum na F04. O `visualizado` de autor
@@ -1009,20 +1132,80 @@ transação, e nunca recebido do `dc360_app`.
      gatilho `BEFORE INSERT` deriva autor, marca, visibilidade e, no
      `visualizado`, a versão vigente do dossiê, ignorando o que veio no
      comando.
-2. **O evento de transição nasce da transição.** Um gerador `AFTER UPDATE` em
-   `providencias` grava o evento quando o estado muda (o tipo vem da tabela de
-   transições, nunca do comando), e o fato de linha quando muda uma coluna que o
-   mapeamento declara. O texto da rodada (resposta, motivo, destino sugerido,
-   pergunta e resposta de esclarecimento) chega no MESMO UPDATE, em colunas da
-   linha do encaminhamento que a matriz coluna por ator libera só para aquela
-   transição; o gerador o copia para o `detalhe` nas chaves que o tipo admite.
-   A forma dessas colunas (uma por texto ou uma coluna de texto da transição
-   com chaves fixas por tipo) é da E02 e da E03, com teste. `enviado` e
-   `reenviado` nascem da inserção da versão do dossiê (`AFTER INSERT` em
-   `encaminhamento_dossies`), que confere na mesma transação que a linha está
-   em `enviado`. Um gatilho de restrição adiado para o fim da transação confere
-   que toda mudança de estado ganhou exatamente um evento: encaminhamento
-   enviado sem dossiê, ou transição sem evento, não confirma.
+2. **O evento nasce da transição, e cada transição tem o seu (refeito na
+   correção 2).** A correção 1 fazia `enviado` e `reenviado` nascerem da
+   inserção da versão do dossiê, conferindo só que a linha estava em
+   `enviado`, e o gatilho adiado só conferia que toda mudança de estado tinha
+   ganhado um evento. Isso deixava passar o contrário: uma versão adicional
+   do dossiê num encaminhamento já em `enviado`, sem transição nenhuma,
+   gerava um `reenviado` que nenhuma transição produziu, e uma conferência
+   por contagem não separa transições repetidas na mesma transação nem
+   impede reaproveitar evento antigo. A regra agora:
+   - **Um gerador `AFTER INSERT OR UPDATE` em `providencias` grava todo
+     evento gerado da linha.** Na criação, `enviado`. Numa mudança de estado,
+     o tipo da tabela de transições para o par (estado anterior, estado
+     novo), nunca do comando; `devolvido` para `enviado` dá `reenviado`.
+     Numa mudança de coluna mapeada, o fato de linha. O texto da rodada
+     (resposta, motivo, destino sugerido, pergunta e resposta de
+     esclarecimento) chega no MESMO UPDATE, em colunas da linha do
+     encaminhamento que a matriz coluna por ator libera só para aquela
+     transição; o gerador o copia para o `detalhe` nas chaves que o tipo
+     admite. A forma dessas colunas (uma por texto ou uma coluna de texto da
+     transição com chaves fixas por tipo) é da E02 e da E03, com teste.
+   - **Um fato por comando.** O `BEFORE UPDATE` recusa o comando que muda
+     mais de um entre o estado e cada coluna mapeada (a Defesa Civil que
+     muda prazo e prioridade manda dois UPDATE). Cada UPDATE gera, então,
+     nenhum fato ou exatamente um.
+   - **O número do fato.** `providencias` ganha `fato_seq` (inteiro, `NOT
+     NULL`), escrito só pelo banco: o `BEFORE INSERT` o põe em 1, e o `BEFORE
+     UPDATE` o faz `OLD.fato_seq + 1` quando o comando gera fato e
+     `OLD.fato_seq` quando não, ignorando o valor recebido. O evento gerado
+     leva o mesmo `fato_seq`, com unicidade `(organizacao_id, providencia_id,
+     fato_seq)` entre os eventos que o têm. Transições repetidas na mesma
+     transação (`aceito`, `respondido`, `aceito` por complemento,
+     `respondido` de novo) têm números diferentes e eventos diferentes; um
+     evento antigo tem número menor e não serve a uma transição nova.
+   - **A versão do dossiê presa à transição.** `providencias` ganha
+     `dossie_versao_vigente`, escrita só pelo banco: 1 na criação;
+     `OLD.dossie_versao_vigente + 1` na transição `devolvido` para `enviado`
+     e na recomposição do legado (abaixo); imutável em todo outro comando. O
+     `enviado`, o `reenviado` e o `dossie_recomposto` levam `dossie_versao`
+     igual à versão vigente nova, com unicidade de um evento desses três
+     tipos por versão. A coluna `dossie_versao` do evento tem chave
+     estrangeira composta `(organizacao_id, providencia_id, dossie_versao)`
+     para `encaminhamento_dossies`, `DEFERRABLE INITIALLY DEFERRED`, porque na
+     criação o evento nasce antes da versão 1; o `visualizado` também a usa,
+     para a versão que o órgão viu (decisões 8 e 12), mas não declara
+     versão nova. **A inserção da versão do dossiê não gera evento nenhum.**
+     O `BEFORE INSERT` de `encaminhamento_dossies` exige versão sequencial
+     (a maior existente do encaminhamento mais um), e um gatilho de
+     restrição adiado exige, ao confirmar, exatamente um evento `enviado`,
+     `reenviado` ou `dossie_recomposto` do mesmo encaminhamento com aquela
+     versão. Versão adicional sem transição, portanto, não confirma e não
+     produz `enviado` nem `reenviado`; transição para `enviado` sem a versão
+     nova também não confirma, pela chave adiada do evento.
+   - **A conferência adiada compara cada transição com o seu evento, sem
+     contar.** O gatilho de restrição `AFTER INSERT OR UPDATE` em
+     `providencias`, `DEFERRABLE INITIALLY DEFERRED`, `FOR EACH ROW`, só
+     quando `fato_seq` mudou, dispara uma vez por comando que gerou fato, e
+     o Postgres entrega a cada disparo adiado o `OLD` e o `NEW` do próprio
+     comando, não os da linha no fim da transação. Ele confere que existe
+     exatamente um evento daquele encaminhamento com `fato_seq =
+     NEW.fato_seq`, do tipo que o par `OLD`/`NEW` exige e, quando o tipo
+     declara versão, com `dossie_versao = NEW.dossie_versao_vigente`.
+   - **Os demais eventos.** O `reencaminhado` nasce do INSERT do filho, no
+     pai, preso ao filho por `encaminhamento_filho_id`, com unicidade de um
+     por filho, sem `fato_seq`. Os de inserção direta (`visualizado`,
+     `lembrete`, `escalonado`) e os de origem `migracao` têm `fato_seq`
+     nulo. Um CHECK por tipo fixa quais colunas cada tipo exige e quais
+     proíbe.
+   - **Recomposição do legado.** O encaminhamento legado marcado "pedido em
+     revisão" (decisão 5) é o único caso de versão nova sem transição de
+     estado: o coordenador ou o administrador insere a versão 2 e, no
+     comando seguinte, limpa a marca; o `BEFORE UPDATE` só avança a versão
+     vigente nessa troca da marca, e o gerador grava o fato de linha
+     `dossie_recomposto`, com a versão. Sem a marca, a versão só avança em
+     `devolvido` para `enviado`.
 3. **Espelho e aviso nascem do evento, presos a ele.** Um gerador `AFTER INSERT`
    em `encaminhamento_eventos` grava, conforme o mapeamento do tipo: o espelho
    em `trilha_eventos` (origem `portal` para ator de órgão, `escritorio` para
@@ -1032,20 +1215,42 @@ transação, e nunca recebido do `dc360_app`.
    (`organizacao_id`, `encaminhamento_evento_id`) para o evento; a chave do
    aviso passa a ser `encaminhamento_evento:<id>` (uma por rodada; os avisos
    antigos de chave `providencia:<id>` ficam como estão). O tipo do espelho e o
-   do aviso vêm do mapeamento, nunca do comando.
+   do aviso vêm do mapeamento, nunca do comando. **A chave é reservada
+   (correção 2).** Como a unicidade `aviso_unico_por_fato` é por município e
+   chave, um aviso de tipo permitido gravado antes com
+   `encaminhamento_evento:<id>` ocuparia a chave do aviso verdadeiro. Por
+   isso: (a) o aviso gerado é coerente por CHECK na tabela: com
+   `encaminhamento_evento_id` preenchido, `chave_do_fato =
+   'encaminhamento_evento:' || encaminhamento_evento_id` e o tipo na lista
+   dos tipos do mapeamento; com ela nula, a chave fora do prefixo
+   (`NOT starts_with(chave_do_fato, 'encaminhamento_evento:')`, nunca `LIKE`,
+   em que `_` casa qualquer caractere); (b) o INSERT direto do `dc360_app`
+   exige `encaminhamento_evento_id` nulo e a chave fora do prefixo (item 4);
+   (c) o gerador grava o aviso SEM `ON CONFLICT`: um conflito na chave
+   reservada é erro, a transição inteira volta, e nunca confirma uma
+   transição sem o aviso dela. O `DO NOTHING` da 018 não é repetido em
+   gerador nenhum desta ADR.
 4. **O que o `dc360_app` deixa de poder gravar, sob qualquer ator:** evento de
    transição ou de fato de linha; `visualizado` de autor `link`; linha de
    `trilha_eventos` com origem `portal` ou com `encaminhamento_evento_id`
    (RESTRICTIVE de INSERT `TO dc360_app` na 068); linha de `avisos` dos tipos
-   `providencia_respondida` e `encaminhamento_*` (RESTRICTIVE de INSERT `TO
-   dc360_app` com a lista positiva dos tipos que a aplicação grava, na 070). O
-   ator de órgão, além disso, não grava nada em `trilha_eventos` nem em
-   `avisos` (classe D, decisão 3).
+   `providencia_respondida` e `encaminhamento_*`, e linha de `avisos` de
+   qualquer tipo com `encaminhamento_evento_id` preenchido ou com a chave no
+   prefixo `encaminhamento_evento:` (RESTRICTIVE de INSERT `TO dc360_app`
+   com a lista positiva dos tipos que a aplicação grava, a referência nula e
+   a chave fora do prefixo, na 070, E07; o CHECK de coerência do item 3
+   também na 070, e a lista de tipos dele redefinida na E11, quando entram
+   os `encaminhamento_*`). O ator de órgão, além disso, não grava nada em
+   `trilha_eventos` nem em `avisos` (classe D, decisão 3).
 5. **Consequência para a rota.** A rota faz a transição por UPDATE condicional
    e não grava evento, espelho nem aviso; `encaminhamentos/eventos.ts` (E08)
-   só grava os tipos de inserção direta. O backfill de estado (067) e o de
-   eventos de origem `migracao` (068) acontecem antes de os geradores
-   existirem, e nenhum aviso nem espelho nasce deles (teste da E03).
+   só grava os tipos de inserção direta. No reenvio e na recomposição, a rota
+   insere a versão nova do dossiê ANTES do UPDATE (decisão 14, item 5); na
+   criação, depois do INSERT do encaminhamento. O backfill de estado (067,
+   com `fato_seq` e `dossie_versao_vigente` dos legados) e o de eventos de
+   origem `migracao` (068) acontecem antes de os geradores e as
+   conferências adiadas existirem, e nenhum aviso nem espelho nasce deles
+   (teste da E03).
 6. **Testes obrigatórios (E03 e E05).** Sob Maria (Obras): INSERT em
    `avisos` de `providencia_respondida` com a chave legítima `providencia:<id>`
    ou `encaminhamento_evento:<id>` de um encaminhamento dela, ANTES da
@@ -1058,8 +1263,28 @@ transação, e nunca recebido do `dc360_app`.
    INSERT direto de evento de transição e de aviso `providencia_respondida`
    recusados. Toda transição da decisão 9, feita por UPDATE sob o ator certo,
    produz exatamente um evento do tipo da tabela, o espelho e o aviso do
-   mapeamento, com autor e marca derivados; o mesmo UPDATE sem mudança de
-   estado não produz nada.
+   mapeamento, com autor e marca derivados; o mesmo UPDATE sem mudança no
+   estado nem nas colunas mapeadas não produz nada (correção 2: um UPDATE
+   que só muda prazo, prioridade ou atribuição produz o fato de linha, e não
+   "nada").
+7. **Testes da correlação (correção 2; E03 e E04).** (a) Versão adicional
+   sem transição: com o encaminhamento em `enviado` e depois em `aceito`, o
+   INSERT da versão seguinte do dossiê não confirma (gatilho adiado), e
+   nenhum `enviado` nem `reenviado` existe a mais; versão fora de sequência
+   é recusada no INSERT. (b) Múltiplas transições na mesma transação, com
+   repetição: de `enviado`, numa transação só, sob o coordenador (P-12 nas
+   transições do órgão), `aceito`, `respondido`, `aceito` (complemento) e
+   `respondido` de novo produzem quatro eventos, com `fato_seq`
+   consecutivos, o tipo de cada par e dois `respondido` distintos, cada um
+   com o texto da sua rodada, e confirmam. (c) Transição `devolvido` para `enviado` sem a versão nova não
+   confirma; com ela, grava um `reenviado` com a versão nova e confirma. (d)
+   UPDATE que muda o estado e uma coluna mapeada juntos é recusado. (e)
+   Recomposição sem a marca "pedido em revisão" é recusada; com ela, grava
+   um `dossie_recomposto` e nenhum `reenviado`. (f) A conferência não é
+   enfeite: num banco descartável, com o gerador trocado por um plantado
+   que pula a segunda transição de (b), ou que grava o segundo `respondido`
+   com o `fato_seq` do primeiro, ou que grava `reenviado` sem versão, a
+   confirmação falha nos três casos.
 
 ### Premissas do plano da F04 que esta ADR fixa como norma
 
@@ -1087,18 +1312,18 @@ transação, e nunca recebido do `dc360_app`.
 
 | Etapa | O que esta ADR exige dela |
 | --- | --- |
-| E02 | estados e colunas; `destinatario_id` com chave composta e gatilho que exige vínculo vigente no órgão do encaminhamento, lido sem trava (decisão 14); `UNIQUE (organizacao_id, id, orgao_id)` como alvo das chaves triplas; `chave_de_criacao` única por município, escrita só pela Defesa Civil; as colunas do texto da rodada que o gerador copia para o evento (decisão 17, item 2); backfill de estado antes de existir gerador; nenhuma policy de órgão (até a E05 nenhum ambiente com dado real liga `PORTAL_ATIVO`) |
-| E03 | tabela de transições com o ator e o papel de cada uma (decisão 9) e `EVENTOS_DO_ENCAMINHAMENTO` (decisão 17), iguais no shared e no banco; gatilho de validação com `app_ator_tipo()`, `app_ator_papel()` e o papel no órgão (leitor não transita); os geradores SECURITY DEFINER de gatilho (evento da transição e fato de linha; espelho e aviso a partir do evento), com a declaração `gatilho` no catálogo da etapa; o gatilho de restrição adiado (toda transição tem o seu evento); `encaminhamento_evento_id` com chave composta em `trilha_eventos` e `avisos`; `portal` em `origem` e `usuario_orgao` em `autor_papel` da trilha, se a F03 não tiver feito; RESTRICTIVE de INSERT em `encaminhamento_eventos` (tipos de inserção direta por ator) e em `trilha_eventos` (nada de origem `portal` nem de evento ligado pelo `dc360_app`); autoria e marca `em_nome_do_orgao` derivadas do ator (decisão 8); `reencaminhado` nunca visível ao órgão (CHECK); chaves triplas; ordem de apagamento com os eventos depois de `avisos` e `trilha_eventos` |
-| E04 | lista de inclusão e sensível só com justificativa (decisão 10); `pedido` e `observacoes_da_coordenacao` como "texto livre dirigido ao órgão" em `campos_sensiveis` (decisão 5); composição só sob o ator da Defesa Civil, com sigilo (decisão 7, b); `campos_sensiveis` atualizável só por servidor e sistema; o gerador de `enviado` e `reenviado` a partir da versão do dossiê (decisão 17); versão 1 `migracao` sem texto livre, legados abertos marcados "pedido em revisão" e contados |
-| E05 | classes A, B, C, D, "sem alcance" e "anterior ao município" (decisões 2 e 3), com a composição da classe A por comando, `USING` e `WITH CHECK`; matriz de escrita da classe B; `app_orgao_vigente()` (decisão 4); as seis decisões da decisão 7; sigilo dos dois lados; testes da decisão 17 sob ator de órgão; testes concorrentes da decisão 14, com a prova de que a eliminação juntada toma N1 antes do primeiro DELETE; o mecanismo de tempo da decisão 13, item 6, medido |
+| E02 | estados e colunas; `destinatario_id` com chave composta e gatilho que exige vínculo vigente no órgão do encaminhamento, lido sem trava (decisão 14); `UNIQUE (organizacao_id, id, orgao_id)` como alvo das chaves triplas; `chave_de_criacao` única por município, escrita só pela Defesa Civil; as colunas do texto da rodada que o gerador copia para o evento (decisão 17, item 2); `fato_seq` e `dossie_versao_vigente`, escritas só pelo banco (decisão 17, item 2, correção 2); a função `travar_municipio_para_escrita()` com assinatura completa, ACL exata e declaração `trava` no catálogo da etapa (decisão 14, item 2a); backfill de estado antes de existir gerador; nenhuma policy de órgão (até a E05 nenhum ambiente com dado real liga `PORTAL_ATIVO`) |
+| E03 | tabela de transições com o ator e o papel de cada uma (decisão 9) e `EVENTOS_DO_ENCAMINHAMENTO` (decisão 17), iguais no shared e no banco; gatilho de validação com `app_ator_tipo()`, `app_ator_papel()` e o papel no órgão (leitor não transita); os geradores SECURITY DEFINER de gatilho (evento da criação, da transição e do fato de linha a partir de `providencias`, com `fato_seq` e, nos tipos que declaram versão, `dossie_versao`; espelho e aviso a partir do evento, sem `ON CONFLICT`), com a declaração `gatilho` no catálogo da etapa; um fato por comando no `BEFORE UPDATE`; o gatilho de restrição adiado por transição, que compara cada comando com o seu evento pelo `fato_seq` (decisão 17, item 2, correção 2); unicidade do `fato_seq` e de um evento de versão por versão; CHECK por tipo das colunas que cada evento exige e proíbe; `encaminhamento_evento_id` com chave composta em `trilha_eventos` e `avisos`; `portal` em `origem` e `usuario_orgao` em `autor_papel` da trilha, se a F03 não tiver feito; RESTRICTIVE de INSERT em `encaminhamento_eventos` (tipos de inserção direta por ator) e em `trilha_eventos` (nada de origem `portal` nem de evento ligado pelo `dc360_app`); autoria e marca `em_nome_do_orgao` derivadas do ator (decisão 8); `reencaminhado` nunca visível ao órgão (CHECK); chaves triplas; ordem de apagamento com os eventos depois de `avisos` e `trilha_eventos` |
+| E04 | lista de inclusão e sensível só com justificativa (decisão 10); `pedido` e `observacoes_da_coordenacao` como "texto livre dirigido ao órgão" em `campos_sensiveis` (decisão 5); composição só sob o ator da Defesa Civil, com sigilo (decisão 7, b); `campos_sensiveis` atualizável só por servidor e sistema; a inserção da versão do dossiê não gera evento (correção 2): versão sequencial no `BEFORE INSERT`, gatilho de restrição adiado que exige exatamente um `enviado`, `reenviado` ou `dossie_recomposto` declarando a versão, e a chave estrangeira adiada do evento para a versão (decisão 17, item 2); a recomposição do legado com `dossie_recomposto`; versão 1 `migracao` sem texto livre, legados abertos marcados "pedido em revisão" e contados |
+| E05 | classes A, B, C, D, "sem alcance" e "anterior ao município" (decisões 2 e 3), com a composição da classe A por comando, `USING` e `WITH CHECK`; matriz de escrita da classe B; `app_orgao_vigente()` (decisão 4); as seis decisões da decisão 7; sigilo dos dois lados; testes da decisão 17 sob ator de órgão; os dois limites de `travar_municipio_para_escrita()` sob Maria (decisão 14, item 2a); testes concorrentes da decisão 14, com a prova de que a eliminação juntada toma N1 antes do primeiro DELETE; o mecanismo de tempo da decisão 13, item 6, medido |
 | E06 | catálogo do órgão: exatamente uma classificação para toda tabela descoberta no catálogo do Postgres, inclusive "sem alcance" e "anterior ao município"; policy de toda tabela com `orgao_id` com `app_orgao_vigente` ou `app_ator_tipo`, sem `IS NULL` sobre contexto (fora a RESTRICTIVE nomeada da categoria anterior ao município) nem `OR true`; nenhuma PERMISSIVE de classe A com o ramo do órgão, e a RESTRICTIVE em cada comando; corpo de `app_orgao_vigente()` sem `IS NULL` sobre contexto; ACL exata dela e do auxiliar de negação; declaração de cada função privilegiada e a chamada de cada uma sob ator de órgão, com resultado e efeitos (decisão 15); cada ramo acusado num banco descartável |
-| E07 | privilégio de coluna sem `id`, `organizacao_id` e `orgao_id`; resposta imutável; matriz coluna por ator (decisão 8); 017 restrito a INSERT ou inerte; aposentadoria do 018 em `providencias` e RESTRICTIVE de INSERT em `avisos` com a lista positiva de tipos da aplicação (decisões 7, e, e 17); resposta legada como transição |
-| E08 | duas famílias de rota; ordem das conferências da decisão 13, item 2; 404 achado sob o ator do órgão; autoria do token e da vigência; `orgaoId` só da rota, conferido; transição só por UPDATE condicional, sem gravar evento, espelho ou aviso, e N1 em `FOR SHARE` antes de tudo (decisões 14 e 17); resposta por lista de inclusão sem `ocorrenciaId`, `parent_id` nem os textos livres de `providencias` e `oficios` (decisão 5); D-24 e P-12; visualização por POST |
+| E07 | privilégio de coluna sem `id`, `organizacao_id` e `orgao_id`; resposta imutável; matriz coluna por ator (decisão 8); 017 restrito a INSERT ou inerte; aposentadoria do 018 em `providencias` e RESTRICTIVE de INSERT em `avisos` com a lista positiva de tipos da aplicação, `encaminhamento_evento_id` nulo e a chave fora do prefixo `encaminhamento_evento:`; CHECK de coerência entre referência, chave e tipo do aviso gerado (decisões 7, e, e 17, itens 3 e 4, correção 2); resposta legada como transição |
+| E08 | duas famílias de rota; ordem das conferências da decisão 13, item 2; 404 achado sob o ator do órgão; autoria do token e da vigência; `orgaoId` só da rota, conferido; transição só por UPDATE condicional, sem gravar evento, espelho ou aviso, e N1 por `travar_municipio_para_escrita()` antes de tudo, sem `FOR SHARE` direto em `organizacoes` (decisões 14 e 17); criação sem ofício na mesma transação e reenvio com a versão do dossiê antes do UPDATE (decisão 14, item 5, correção 2); resposta por lista de inclusão sem `ocorrenciaId`, `parent_id` nem os textos livres de `providencias` e `oficios` (decisão 5); D-24 e P-12; visualização por POST |
 | E09 | busca do órgão sob a RLS, sem total que some outro órgão; ofícios, exportações e `GET /orgaos` fechados ao token do portal (P-06, P-07) |
 | E10 | relógio como `sistema`; função privilegiada sem parâmetro de município, só ids e marco, recusando outro ator (decisão 15); N1 e N10 antes de gravar (decisão 14); `lembrete` como inserção direta do sistema e `prazo_alterado` como fato de linha gerado pelo banco (decisão 17) |
-| E11 | sino do órgão (classe A) e lidos (classe B, única escrita pessoal do ator de órgão); tipos `encaminhamento_*` acrescentados ao mapeamento e ao gerador da decisão 17 (redefinição declarada no catálogo da etapa), nunca INSERT do órgão em `avisos`; `GET /avisos` deixa de escrever; `get-nao-escreve.test.ts` com as três naturezas, todas as tabelas e efeitos por rota e o mecanismo que acusa escrita revertida (decisão 11) |
+| E11 | sino do órgão (classe A) e lidos (classe B, única escrita pessoal do ator de órgão); tipos `encaminhamento_*` acrescentados ao mapeamento, ao gerador da decisão 17 (redefinição declarada no catálogo da etapa, ainda sem `ON CONFLICT`) e à lista de tipos do CHECK de coerência de `avisos` (decisão 17, item 3), nunca INSERT do órgão em `avisos`; `GET /avisos` deixa de escrever; `get-nao-escreve.test.ts` com as três naturezas, todas as tabelas e efeitos por rota e o mecanismo que acusa escrita revertida (decisão 11) |
 | E12 | migração própria que redefine `abrir_oficio` (N1, releitura, evento `visualizado` de autor `link` com envio e versão); página do link e impressão do ofício pela Defesa Civil montadas do dossiê, sem os textos livres de `providencias` e `oficios`; a rota do link não escreve; D-05 conforme a decisão 12 |
-| E13 | os dez cenários; status, corpo e cabeçalhos iguais entre ids nos três casos da decisão 13, item 2; prova estrutural da mesma sequência de comandos e teste de tempo com margem (decisão 13, item 6); regra da ocorrência encerrada |
+| E13 | os dez cenários; status, corpo e cabeçalhos iguais entre ids nos quatro casos da decisão 13, item 2 (403 de papel, 422, 429 e 404), com a contagem do limite igual para id próprio e alheio; prova estrutural da mesma sequência de comandos e teste de tempo com margem (decisão 13, item 6); regra da ocorrência encerrada |
 | E14 | prioridade só pela Defesa Civil, pela matriz coluna por ator e não por `GRANT` (decisão 8); `prioridade_alterada` como fato de linha gerado pelo banco |
 | E15 | `orgao_competencias` classe C; competência só sugere e valida (CP-53, alternativa A como premissa); nada bloqueia a Defesa Civil |
 | E16 | cadeia como dado do município (CP-53, alternativa C); aviso de escalonamento como exceção declarada (decisão 16); `escalonado` como inserção direta do sistema; destinatário lendo o encaminhamento: 404; `ESCALONAMENTO_AUTOMATICO=nao` |
@@ -1108,13 +1333,15 @@ transação, e nunca recebido do `dc360_app`.
 
 | Etapa | Teste |
 | --- | --- |
-| E03 | evento direto com autor, marca ou visibilidade diferentes do derivado: o banco grava o derivado; leitor transitando recusado no banco; operador concluindo recusado no banco (D-24); `reencaminhado` visível ao órgão recusado; cada transição da decisão 9 gera exatamente um evento, o espelho e o aviso do mapeamento; UPDATE sem mudança de estado não gera nada; transição sem evento não confirma; backfill sem aviso nem espelho; servidor inserindo evento de transição ou espelho de origem `portal` recusado |
-| E05 | Maria (Obras), João (Saúde), Ana (os dois) e Rita (servidora) no município A, mais o município B, com os casos positivos e negativos da etapa; os negativos da decisão 17 (aviso antes da resposta, evento de tipo reservado, trilha de qualquer tipo, `autor_tipo = 'link'`), com o mesmo erro para encaminhamento próprio, alheio e inexistente; autopromoção e troca de órgão no banco (decisão 3); o formulário público grava e todo ator autenticado é recusado em `interesse_municipio`; composição da classe A por comando, com `USING` e `WITH CHECK` (decisão 2); RESTRICTIVE de sigilo: Maria lê o encaminhamento de ocorrência restrita enviado à Obras, e o operador sem autoria não lê o dossiê dele; os testes concorrentes da decisão 14, com a chave idempotente contra a eliminação |
+| E02 | sob Rita, `travar_municipio_para_escrita()` trava a linha do município A (segunda conexão com `FOR UPDATE NOWAIT` em A: 55P03) e não a de B; nada é escrito; recusa município eliminado e contexto ausente; ACL exata (só `dc360_app`, sem `PUBLIC`) e corpo conferidos no catálogo (decisão 14, item 2a) |
+| E03 | evento direto com autor, marca ou visibilidade diferentes do derivado: o banco grava o derivado; leitor transitando recusado no banco; operador concluindo recusado no banco (D-24); `reencaminhado` visível ao órgão recusado; cada transição da decisão 9 gera exatamente um evento, o espelho e o aviso do mapeamento; UPDATE sem mudança no estado nem nas colunas mapeadas não gera nada; UPDATE que muda o estado e uma coluna mapeada juntos recusado; os testes da correlação da decisão 17, item 7, (b), (d) e (f); transição sem evento não confirma; backfill sem aviso nem espelho; servidor inserindo evento de transição ou espelho de origem `portal` recusado |
+| E04 | os testes da correlação da decisão 17, item 7, (a), (c) e (e): versão adicional sem transição não confirma e não gera `enviado` nem `reenviado`; versão fora de sequência recusada; `devolvido` para `enviado` sem versão nova não confirma; recomposição só com a marca, gerando `dossie_recomposto` |
+| E05 | Maria (Obras), João (Saúde), Ana (os dois) e Rita (servidora) no município A, mais o município B, com os casos positivos e negativos da etapa; os negativos da decisão 17 (aviso antes da resposta, evento de tipo reservado, trilha de qualquer tipo, `autor_tipo = 'link'`), com o mesmo erro para encaminhamento próprio, alheio e inexistente; autopromoção e troca de órgão no banco (decisão 3); o formulário público grava e todo ator autenticado é recusado em `interesse_municipio`; composição da classe A por comando, com `USING` e `WITH CHECK` (decisão 2); RESTRICTIVE de sigilo: Maria lê o encaminhamento de ocorrência restrita enviado à Obras, e o operador sem autoria não lê o dossiê dele; os testes concorrentes da decisão 14, com a chave idempotente contra a eliminação; os dois limites da guarda N1 sob Maria: a função trava A e, com a trava, o UPDATE de `organizacoes` alcança zero linhas e nada muda; a função não trava B; o `SELECT ... FOR SHARE` direto de Maria devolve zero linhas (regressão da regra do Postgres, decisão 14, item 2a) |
 | E06 | tabela com `orgao_id` e policy só por município reprova; policy com `IS NULL` sobre contexto fora da RESTRICTIVE nomeada reprova; policy com `OR true` reprova; PERMISSIVE de classe A com o ramo do órgão reprova; comando de classe A sem RESTRICTIVE reprova; tabela sem classificação, ou com duas, reprova; entrada da lista sem tabela reprova; classe "sem alcance" com grant reprova; função privilegiada sem declaração reprova; função cujo comportamento sob ator de órgão difere da declaração reprova; `aplicar_negacao_ao_usuario_de_orgao` com `EXECUTE` de `PUBLIC` ou do `dc360_app` reprova |
-| E07 | ator de órgão mudando `prioridade`, `prazo_em` ou `orgao_id` recusado pelo gatilho, com o privilégio de coluna presente; servidor mudando `orgao_id` recusado; resposta legada produz um aviso só, antes e depois da 070; `dc360_app` inserindo aviso `providencia_respondida` recusado |
+| E07 | ator de órgão mudando `prioridade`, `prazo_em` ou `orgao_id` recusado pelo gatilho, com o privilégio de coluna presente; servidor mudando `orgao_id` recusado; resposta legada produz um aviso só, antes e depois da 070; `dc360_app` inserindo aviso `providencia_respondida` recusado; sob Rita e sob `sistema`, INSERT em `avisos` de tipo permitido com `encaminhamento_evento_id` preenchido ou com a chave `encaminhamento_evento:<id>` recusado; aviso incoerente (referência, chave e tipo) recusado pelo CHECK, inclusive como dono; num banco descartável, o aviso plantado como dono na chave do evento seguinte faz a transição falhar com erro de unicidade, e nunca confirmar sem o aviso |
 | E11 | GET fora da lista nominal que escreve reprova; GET da lista que escreve tabela ou efeito não declarado reprova; GET da família autenticada do órgão que escreve qualquer coisa reprova; INSERT revertido e par INSERT e DELETE plantados num GET são acusados |
 | E12 | INSERT direto com `autor_tipo = 'link'` recusado sob cada ator; a abertura `entregue` grava um `visualizado` só, com o envio e a versão que a página mostrou; segunda abertura: 410, sem evento novo; o documento, nas duas rotas, sem os textos livres de `providencias` e `oficios` |
-| E13 | para cada rota do órgão: mesma sequência de comandos com id de outro órgão, de outro município e inexistente; status, corpo e cabeçalhos iguais entre ids no 403 de papel, no 422 de corpo e no 404; teste de tempo com margem no detalhe e no aceite |
+| E13 | para cada rota do órgão: mesma sequência de comandos com id de outro órgão, de outro município e inexistente; status, corpo e cabeçalhos iguais entre ids no 403 de papel, no 422 de corpo, no 429 de taxa (cabeçalhos do limite comparados, relógio fixo, contagem igual para id próprio e alheio) e no 404; teste de tempo com margem no detalhe e no aceite |
 
 ### O que fica proibido
 
@@ -1135,6 +1362,14 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
   linha, evento de autor `link`, espelho de origem `portal` ou aviso do
   encaminhamento; ator de órgão gravando em `trilha_eventos` ou em `avisos`
   (decisão 17);
+- evento `enviado` ou `reenviado` nascido da inserção do dossiê; versão do
+  dossiê que confirme sem exatamente um evento gerado que a declare;
+  conferência de transição por contagem em vez de transição a transição;
+  UPDATE que gere mais de um fato; `fato_seq` ou `dossie_versao_vigente`
+  vindos do comando (decisão 17, item 2, correção 2);
+- INSERT direto em `avisos` com `encaminhamento_evento_id` ou com a chave no
+  prefixo `encaminhamento_evento:`; gerador de aviso com `ON CONFLICT DO
+  NOTHING` (decisão 17, item 3, correção 2);
 - texto livre de `providencias` ou de `oficios` chegando ao órgão fora do
   dossiê e dos eventos visíveis a ele; versão `migracao` do dossiê com texto
   livre (decisão 5);
@@ -1157,7 +1392,9 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
   administrativo por GET;
 - resposta ao órgão (status, corpo, cabeçalho, tempo ou efeito) que dependa de
   dado de outro órgão ou município, fora das exceções da decisão 16; 403 onde o
-  recurso é de outro órgão ou município; recusa anterior à busca que varie
+  recurso é de outro órgão ou município, fora a exceção da decisão 13, item
+  2 (o 403 de papel decidido antes da busca, igual para todo id, exista ou
+  não o recurso e seja de quem for); recusa anterior à busca que varie
   conforme o id (decisão 13, item 2);
 - organização vinda de outro lugar que não o token verificado; órgão como
   tenant; token com órgão; painel do órgão com vários municípios ao mesmo tempo;
@@ -1165,9 +1402,15 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
   aceite;
 - exceção ao isolamento fora da tabela da decisão 16;
 - caminho do encaminhamento que tome nível de N2 a N9 da ADR 0009, que escreva
-  sem ter tomado N1 em `FOR SHARE` primeiro, ou que trave a linha do
-  encaminhamento com `FOR UPDATE`; mudança de `id`, `organizacao_id` ou
-  `orgao_id` de `providencias` (decisão 14).
+  sem ter chamado `travar_municipio_para_escrita()` primeiro, que trave
+  `organizacoes` por `FOR SHARE` direto, ou que trave a linha do
+  encaminhamento com `FOR UPDATE`; criação que emita ofício na mesma
+  transação; mudança de `id`, `organizacao_id` ou `orgao_id` de
+  `providencias` (decisão 14);
+- policy de `organizacoes` que deixe o ator de órgão travar a linha por
+  comando (o `USING` de UPDATE aceitando o órgão), e a função da guarda com
+  parâmetro, com dado devolvido, com escrita ou com `EXECUTE` de `PUBLIC`
+  (decisão 14, item 2a).
 
 ### Boas
 
@@ -1205,12 +1448,21 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
   administrativos por GET legados, até a conversão deles em POST fora da F04
   (decisão 11).
 - **Toda escrita do encaminhamento toma a linha do município em `FOR SHARE`**
-  (decisão 14). É o modo que o login já usa; a suspensão e a eliminação passam
+  (decisão 14), pela função da guarda (item 2a). É o modo que o login já
+  usa; a suspensão e a eliminação passam
   a esperar as escritas em curso do município, e a linha recebe mais travas
   compartilhadas. Medir na F24-E02, junto das policies.
-- **Os geradores dos fatos são SECURITY DEFINER de gatilho** (decisão 17): três
+- **Os geradores dos fatos são SECURITY DEFINER de gatilho** (decisão 17), e
+  a guarda N1 é uma função SECURITY DEFINER (decisão 14, item 2a): três
   funções privilegiadas a mais no catálogo, em troca de tirar do `dc360_app` o
-  INSERT de fato que outra pessoa lê como acontecido.
+  INSERT de fato que outra pessoa lê como acontecido e de dar ao órgão a
+  trava sem lhe dar o UPDATE do município.
+- **Um fato por comando** (decisão 17, item 2): a Defesa Civil que muda prazo
+  e prioridade de uma vez manda dois UPDATE, e cada um gera o seu fato. É o
+  preço de a conferência adiada comparar comando a comando.
+- **A criação com ofício vira duas transações** (decisão 14, item 5): se a
+  emissão falhar depois da criação confirmada, o encaminhamento fica sem
+  ofício, e a Defesa Civil emite de novo.
 - **Encaminhamento legado aberto não volta ao órgão sem revisão** (decisão 5):
   a Defesa Civil recompõe o dossiê antes do reenvio, e o órgão vê só o mínimo
   enquanto isso.
@@ -1246,19 +1498,25 @@ São as condições que reabrem o G04, mais as que esta ADR acrescenta:
 | Distinguir a escrita do gatilho da escrita direta por `pg_trigger_depth()` ou por uma variável de sessão na policy | Marca que o `dc360_app` alcança ou contorna: a variável ele define, e a profundidade de gatilho ele obtém por qualquer gatilho que escreva na mesma tabela. A lição da ADR 0009. |
 | Eliminação provando que bloqueia os escritores sem trava comum (só pela ordem de apagamento) | A ordem filho antes de pai não basta: a eliminação apaga uma filha sem confirmar e espera o encaminhamento, enquanto o caminho segura o encaminhamento e espera a unicidade daquela filha (correção 1, achado 2). A trava comum em N1 fecha o caso para todo nível. |
 | Buscar o recurso antes de toda recusa (inclusive papel e corpo) | Também não enumera, mas faz a rota ler o banco para pedido que já se sabe recusado e espalha a regra pela rota; as recusas que não dependem do recurso, iguais para todo id, são mais simples de provar (decisão 13, item 2). |
+| Separar travar de alterar na policy de `organizacoes` (`USING` de UPDATE aceitando o órgão, `WITH CHECK` recusando) | A policy não enxerga a força da trava: o órgão poderia tomar `FOR UPDATE` na linha do município, que conflita com o `FOR KEY SHARE` de toda filha e com todo `FOR SHARE` de N1, e o UPDATE dele travaria a linha antes da recusa (correção 2; decisão 14, item 2a). |
+| `enviado` e `reenviado` nascendo da inserção da versão do dossiê, com o estado conferido (correção 1) | Estar em `enviado` não prova a transição: uma versão adicional sem transição gerava `reenviado` (correção 2, novo 2). O evento nasce da transição, e a versão é presa a ele (decisão 17, item 2). |
+| Gatilho adiado que conta eventos por mudança de estado na transação | Contagem não separa transições repetidas na mesma transação nem impede reaproveitar evento antigo, e não vê o evento a mais. O `fato_seq` liga cada comando ao seu evento, e o disparo adiado de cada comando confere o seu (decisão 17, item 2). |
 | Copiar o texto livre legado para a versão `migracao` do dossiê | O texto antigo foi escrito sem a regra de divulgação e pode carregar contato, relato ou informação interna; copiá-lo seria divulgá-lo pelo caminho novo (decisão 5). |
 
 ## Estado e aceite
 
-- **Situação:** PROPOSTA, com a correção 1.
+- **Situação:** PROPOSTA, com as correções 1 e 2.
 - **Aceite do Rafael (H116):** depende do aceite da ADR 0009 (H97), porque esta
   usa a pessoa, a conta, o vínculo, o ator e a ordem de travas de lá. Com o
   aceite, a situação passa a "aceita, em vigor" com a data.
 - **Segunda leitura de segurança** de outra família de modelo, somente leitura,
   antes do aceite, como a ADR 0009 teve. A primeira rodada (nove achados, três
   bloqueando) entrou na correção 1, com seção própria no Contexto e a tabela
-  achado a achado em `docs/evidencias-v2/G04/V2-F04-E01/correcao-1/`. Uma nova
-  rodada sobre esta redação vem antes do aceite; correção nova entra do mesmo
+  achado a achado em `docs/evidencias-v2/G04/V2-F04-E01/correcao-1/`. A
+  segunda rodada (dois pontos novos bloqueando e duas dívidas) entrou na
+  correção 2, com a tabela item a item e a demonstração da regra do `FOR
+  SHARE` em `docs/evidencias-v2/G04/V2-F04-E01/correcao-2/`. Uma nova rodada
+  sobre esta redação vem antes do aceite; correção nova entra do mesmo
   jeito.
 - **Decisões que esta ADR toma como premissa, com o dono:** CP-09 alternativa C
   (H117, Alyson e encarregado); CP-53 alternativa A para a competência e C para
