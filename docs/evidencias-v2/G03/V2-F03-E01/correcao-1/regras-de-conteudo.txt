@@ -1,0 +1,37 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad25858c58713845d/dc360
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 349ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum 499ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhuma norma citada fora da lista autorizada 708ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 316ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 20ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 20ms
+ × packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 26ms
+   → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\docs\sumiu-depois-da-listagem.md'
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 17ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\docs\sumiu-depois-da-listagem.md'
+ ❯ packages/shared/test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -4048, code: 'EPERM', syscall: 'symlink', path: 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\alvo-que-nao-existe.md', dest: 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-nvLygb\docs\sumiu-depois-da-listagem.md' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  03:53:10
+   Duration  2.55s (transform 61ms, setup 0ms, collect 80ms, tests 1.96s, environment 0ms, prepare 202ms)
+

@@ -254,6 +254,46 @@ de tocar o banco. A tela apenas reflete a mesma tabela.
 
 ---
 
+## Pessoa, conta e vínculo (proposta da ADR 0009, ainda não no código)
+
+Esta seção descreve o que VAI existir, ao contrário do resto do documento: é a
+proposta da `docs/adr/0009-pessoa-global-com-conta-por-municipio.md`, que espera
+o aceite do Rafael e o parecer do encarregado de dados (CP-49) e é construída na
+F03. Hoje cada pessoa é uma conta de um município só, com um e-mail que não se
+repete no sistema.
+
+- **Pessoa:** quem entra. Uma só no sistema inteiro, com nome, e-mail, senha e
+  segundo fator. Não tem papel, nem equipe, nem município. Nenhum município vê o
+  que a pessoa tem em outro.
+- **Conta:** a pessoa dentro de um município. É na conta que ficam o papel, a
+  matrícula, a equipe e o "ativo". A mesma pessoa pode ter conta em vários
+  municípios, uma em cada, e com papéis diferentes (coordenadora em um,
+  usuária de órgão em outro). Desativar a conta num município não mexe nas
+  outras.
+- **Município ativo:** ao entrar, quem tem mais de uma conta escolhe o
+  município, e o acesso vale só para ele. Para trabalhar em outro, troca de
+  município, confirma a senha de novo (e o código do segundo fator sempre que
+  ela o tem ligado, ou que o papel no outro município o exige: trocar nunca
+  pede menos que entrar), e o sistema abre um acesso novo. Nunca há acesso a
+  dois de uma vez.
+- **Papel por município:** os quatro papéis acima continuam, e são papéis da
+  conta. O administrador continua sendo o teto do município, mas só sobre as
+  contas dele: ele convida (a conta só aparece quando a pessoa aceita), ativa,
+  desativa e muda papel, e nunca
+  define a senha, o e-mail ou o segundo fator de pessoa que tem conta em outro
+  município, nem fica sabendo se ela tem: nenhuma resposta que ele recebe muda
+  por causa de outro município (regra final no CP-50).
+- **`usuario_orgao`:** um quinto papel de conta, para quem é de secretaria ou de
+  órgão parceiro (inclusive externo, como concessionária ou bombeiros). Não tem
+  nenhuma das ações da tabela acima e não vira papel de servidor, nem o
+  contrário. Entra só por convite, com segundo fator, e só depois que a F03
+  fechar. É o começo da resposta à divergência 2 abaixo ("Órgão parceiro").
+- **Vínculo:** liga a conta `usuario_orgao` a um órgão do MESMO município, como
+  gestor, executor ou leitor, com início, fim e motivo. O que o órgão vê e faz é
+  da F04. O órgão é parte do município, nunca um município à parte.
+
+---
+
 ## As três divergências não decididas
 
 Estas existem porque o produto foi construído sobre uma tabela de oito perfis

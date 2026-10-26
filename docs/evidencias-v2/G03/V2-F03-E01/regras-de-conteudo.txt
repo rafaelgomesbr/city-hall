@@ -1,0 +1,38 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8c1922d289b1851a/dc360
+
+ ✓ packages/shared/test/ressalva-saida-a-campo.test.ts (38 tests) 93ms
+ ✓ packages/shared/test/permissoes-no-readme.test.ts (10 tests) 21ms
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (10 tests | 1 failed) 11757ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  2359ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  2987ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  3648ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 3ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  2520ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 104ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 50ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 43ms
+     → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-9WAkaJ\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-9WAkaJ\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 38ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-9WAkaJ\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-9WAkaJ\docs\sumiu-depois-da-listagem.md'
+ ❯ packages/shared/test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 57 passed (58)
+   Start at  01:45:51
+   Duration  13.42s (transform 1.92s, setup 0ms, collect 2.55s, tests 11.87s, environment 1ms, prepare 1.47s)
+
