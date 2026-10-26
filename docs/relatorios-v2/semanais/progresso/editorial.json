@@ -1,9 +1,9 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "A F00 (estabilização) chegou ao fim da validação: na rodada 10 (25/10, no Windows) as etapas E16, E19 e E22 passaram, e a E09 foi aceita por decisão sua. O gatekeeper RECOMENDA o gate G00. A F01 (engenharia e ambientes) tem as 22 etapas implementadas e espera o G00 para ser validada. A F02 (API v1 e contratos) está andando: o lote 1 está pronto e o lote 2 está em implementação.",
+  "lead": "A F00 (estabilização) está recomendada para o gate G00, que só espera você. A F01 (engenharia e ambientes) teve a revisão independente do Codex: mais de 20 defeitos de código foram achados e corrigidos com teste; o CI só segue vermelho num ponto que depende de decisão sua (H106). A F02 (API v1 e contratos) está com 8 das 9 etapas implementadas (falta a E05, teste de contrato, no lote 4). A F03 (contas e municípios) foi aberta em 26/10 e já tem plano em 8 lotes.",
   "aSeguir": {
-    "titulo": "G00 depende só de você; F02 segue em paralelo",
-    "texto": "Falta só a sua parte no G00: aprovar e fazer o merge na master (H09), ajustar o ruleset que hoje só aceita squash (H44) e confirmar o status da E09 aceita (H84). Depois do G00, o gatekeeper valida a F01 em sessão nova. A F02 continua no ramo v2/f02, com o lote 2 (painel e campo em /v1, catálogo de erros na API, contrato OpenAPI e idempotência) em implementação."
+    "titulo": "G00 e H106 dependem de você; F02 e F03 seguem em paralelo",
+    "texto": "Falta só a sua parte no G00: aprovar e fazer o merge na master (H09), ajustar o ruleset que hoje só aceita squash (H44) e confirmar o status da E09 aceita (H84). O CI da F01 só fica verde com a sua decisão sobre as vulnerabilidades da imagem pública do PostGIS (H106). Na F02, falta a E05 (lote 4) e depois a validação da fase em sessão nova. Na F03, o endurecimento comportamental do isolamento entre municípios está em andamento."
   },
   "imagens": [
     {
@@ -22,27 +22,27 @@
   "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
   "validacao": {
     "titulo": "O que a validação achou",
-    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para nenhuma na rodada 10. O placar da F00 é 8 etapas validadas, 16 validadas com pendência humana e a E09 aceita por você.",
+    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. Na F00, a qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para nenhuma na rodada 10. Agora o Codex (OpenAI) trabalha junto: revisa cada lote e implementa partes periféricas, e o que ele mudou além do pedido foi desfeito na revisão (6 regras da fila do campo e 1 do painel).",
     "achados": [
       {
-        "titulo": "Rodada 10:",
-        "texto": "E16, E19 e E22 passaram no Windows. A rodada 11, só mecânica, não encontrou mudança de produto. Resultado: o gatekeeper recomenda o G00.",
+        "titulo": "F01, revisão independente:",
+        "texto": "o Codex achou mais de 20 defeitos de código, entre eles o dump de produção que podia nascer legível por outros usuários no Windows e a cadeia de deploy que podia aprovar a homologação sem o painel publicado. Todos foram corrigidos com teste, em três frentes paralelas.",
         "selo": "corrigido"
       },
       {
-        "titulo": "E09 (telas de sessão e senha):",
-        "texto": "depois de várias rodadas, você aceitou a etapa pelo modelo de ameaça documentado (H36). Falta só confirmar o status dela (H84).",
+        "titulo": "F03, portão de isolamento entre municípios:",
+        "texto": "refeito como catálogo nominal e reforçado depois de uma revisão adversarial: as 15 tentativas de burla agora reprovam. A ADR 0009 (pessoa global com conta por município) foi corrigida duas vezes depois de duas revisões de segurança.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Revisão do lote 1 da F02:",
-        "texto": "o Codex (OpenAI), que passou a trabalhar junto, revisou o lote 1. Nada bloqueia, e os 2 achados viraram conserto.",
+        "titulo": "F02, lotes 2 e 3:",
+        "texto": "juntados e verdes. O contrato OpenAPI está completo, com 96 operações descritas e 0 pendentes, e o aplicativo de campo com versão antiga recebe a resposta 426 sem perder nada da fila.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Testes instáveis:",
-        "texto": "um caso do navegador WebKit no Linux falhou uma vez e passou na repetição. Virou dívida registrada (DV-45) e, pela D-32, achado instável não reprova a etapa.",
-        "selo": "em dívida"
+        "titulo": "CI da F01:",
+        "texto": "segue vermelho num único ponto: o Trivy reprova a imagem pública do PostGIS por vulnerabilidades que só o fornecedor pode consertar. Ninguém perdoou nada; a saída é decisão sua (H106).",
+        "selo": "depende de você"
       }
     ]
   },
@@ -50,12 +50,27 @@
     {
       "quem": "Rafael",
       "titulo": "Gate G00 e merge na master (H09)",
-      "texto": "Aprovar o G00, agora recomendado, e fazer o merge na master, junto com a troca da Production Branch da Vercel para producao (sem a troca, o painel congela)."
+      "texto": "Aprovar o G00, recomendado, e fazer o merge na master, junto com a troca da Production Branch da Vercel para producao (sem a troca, o painel congela)."
     },
     {
       "quem": "Rafael",
       "titulo": "Ruleset da master (H44)",
       "texto": "Hoje o ruleset só aceita squash. Trocar para commit de merge depois do merge da F00 e só então importar o ruleset."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Vulnerabilidades na imagem do PostGIS (H106)",
+      "texto": "Decidir como tratar o Trivy vermelho: o conserto depende de o mantenedor da imagem pública republicar. É o único ponto que mantém o CI da F01 vermelho."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Aceite da ADR 0009 (H97)",
+      "texto": "Aceitar a decisão de pessoa global com conta por município e a redação proposta para o CLAUDE.md. O CLAUDE.md não muda sem o seu aceite."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Decisões da F03 (H107 a H109)",
+      "texto": "Troca de município sem prova nova (a recomendação é não adotar), procedimento da liberação da segunda conta em produção e custo de produto de não revelar se a pessoa já existia."
     },
     {
       "quem": "Rafael",
@@ -70,7 +85,7 @@
     {
       "quem": "Rafael",
       "titulo": "Conferências da F02 (H87, H88, H89)",
-      "texto": "Ver duas chamadas autenticadas (com /v1 e pelo espelho), ler a tabela do catálogo de 92 códigos de erro e, na homologação, registrar uma ocorrência entre 21h e meia-noite para conferir a data no CSV e o ano do protocolo."
+      "texto": "Ver duas chamadas autenticadas (com /v1 e pelo espelho), ler a tabela do catálogo de 95 códigos de erro e, na homologação, registrar uma ocorrência entre 21h e meia-noite para conferir a data no CSV e o ano do protocolo."
     },
     {
       "quem": "Rafael",
