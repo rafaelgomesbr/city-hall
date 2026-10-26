@@ -1,0 +1,35 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/codex-2a/dc360/apps/console[39m
+
+{"level":30,"time":1792979806710,"pid":25308,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","operador_id":"5f6d4021-150a-4f35-8f67-ab32dd35278f","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792979806752,"pid":25308,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792979806762,"pid":25308,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792979806789,"pid":25308,"hostname":"Rafa_Laptop","reqId":"00837a2a-e172-4aac-b1ce-bc76041eb618","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792979806804,"pid":25308,"hostname":"Rafa_Laptop","reqId":"00837a2a-e172-4aac-b1ce-bc76041eb618","res":{"statusCode":200},"responseTime":14.20719999999983,"msg":"request completed"}
+{"level":40,"time":1792979807409,"pid":25308,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792979807426,"pid":25308,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792979807435,"pid":25308,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792979807437,"pid":25308,"hostname":"Rafa_Laptop","reqId":"a59afc31-5b46-42af-a1cb-5aa309f840e8","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792979807438,"pid":25308,"hostname":"Rafa_Laptop","reqId":"a59afc31-5b46-42af-a1cb-5aa309f840e8","res":{"statusCode":200},"responseTime":0.8248999999996158,"msg":"request completed"}
+{"level":40,"time":1792979808050,"pid":25308,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792979808071,"pid":25308,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792979808081,"pid":25308,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792979808086,"pid":25308,"hostname":"Rafa_Laptop","reqId":"d38653ad-6a6b-4c92-b89f-bf834bc90c53","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792979808087,"pid":25308,"hostname":"Rafa_Laptop","reqId":"d38653ad-6a6b-4c92-b89f-bf834bc90c53","res":{"statusCode":200},"responseTime":0.9591999999993277,"msg":"request completed"}
+ [32m✓[39m test/saude-versao.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 5786[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mrepete a versão e o commit que o build gravou [33m 1154[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22msem as variáveis (fora de uma imagem) diz desconhecida, e segue 200 [33m 630[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mnegativo: valor fora do formato não é ecoado pela rota pública [33m 650[2mms[22m[39m
+ [32m✓[39m test/no-navegador.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 31091[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22ma pagina abre com a politica no cabecalho, e o script e a folha passam por ela [33m 744[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mo dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes [33m 1044[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcom senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar [33m 1831[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha [33m 1083[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22mem Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda [33m 7665[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22msair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele [33m 10981[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m   Start at [22m 22:56:40
+[2m   Duration [22m 33.43s[2m (transform 483ms, setup 363ms, collect 3.01s, tests 36.88s, environment 0ms, prepare 520ms)[22m
+

@@ -31,7 +31,7 @@ const lancador = playwright[MOTOR];
 if (!lancador) { console.error(`motor desconhecido: ${MOTOR}`); process.exit(2); }
 
 const BASE = process.env.BASE_WEB ?? "http://localhost:4173";
-const API = process.env.BASE_API ?? "http://127.0.0.1:3333";
+const API = `${(process.env.BASE_API ?? "http://127.0.0.1:3333").replace(/\/+$/, "")}/v1`;
 const SENHA = "defesa-civil-2026";
 const LARGURAS = [320, 390, 768, 1280];
 const erros = [];
@@ -648,11 +648,10 @@ async function enviarPeloTeclado(pg, modo, botao, ultimoCampo) {
   }
   await resposta;
   /*
-    A resposta que se espera é a PRIMEIRA: o 401 de senha errada faz o cliente
-    renovar o token e repetir o pedido uma vez, então o desfecho de verdade
-    chega depois (e, sob carga, bem depois). O sinal de que acabou é o botão de
-    enviar voltar a ficar habilitado: medir antes disso media o foco do meio do
-    envio, e reprovou ao acaso no Firefox e no WebKit.
+    O 401 de senha errada não pede renovação. Ainda assim, a resposta pode
+    chegar antes de a tela terminar de tratar o erro. O sinal de que acabou é
+    o botão de enviar voltar a ficar habilitado: medir antes disso media o
+    foco do meio do envio, e reprovou ao acaso no Firefox e no WebKit.
   */
   const sinalDeFim = await botao.elementHandle();
   await pg.waitForFunction((el) => !el.disabled, sinalDeFim, { timeout: 20_000 });

@@ -41,6 +41,7 @@ import { createHash } from "node:crypto";
 import { inflateRawSync } from "node:zlib";
 
 const BASE = process.env.BASE_WEB ?? "http://localhost:4173";
+const BASE_API_V1 = `${(process.env.BASE_API ?? "http://127.0.0.1:3333").replace(/\/+$/, "")}/v1`;
 const SENHA = "defesa-civil-2026";
 const erros = [];
 let passou = 0, falhou = 0;
@@ -253,7 +254,7 @@ const recusa = await page.evaluate(async (url) => {
     body: JSON.stringify({ motivo: "tentativa direta pela API, contornando a tela" }),
   });
   return { status: r.status, corpo: await r.text() };
-}, process.env.BASE_API ?? "http://127.0.0.1:3333");
+}, BASE_API_V1);
 ok("a API recusa mesmo contornando a interface", recusa.status === 403, `(${recusa.status})`);
 ok("e diz que e falta de permissao", recusa.corpo.includes("sem_permissao"));
 
@@ -273,7 +274,7 @@ const aposSair = await page.evaluate(async ({ url, renovacao }) => {
     body: JSON.stringify({ renovacao }),
   });
   return r.status;
-}, { url: process.env.BASE_API ?? "http://127.0.0.1:3333", renovacao: renovacaoAntes });
+}, { url: BASE_API_V1, renovacao: renovacaoAntes });
 ok("o token de renovacao nao vale mais no servidor", aposSair === 401, `(${aposSair})`);
 
 console.log("\n== 9. Cadastro com senha, e a conta nova entra ==");
@@ -357,7 +358,7 @@ const negado = await page.evaluate(async ({ api, id }) => {
     headers: { authorization: `Bearer ${tokens.acesso}` },
   });
   return r.status;
-}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333", id: idDocumento });
+}, { api: BASE_API_V1, id: idDocumento });
 ok("outro municipio nao gera o laudo de uma ocorrencia alheia", negado === 404, `(${negado})`);
 
 console.log("\n== 13. Galeria de evidencia no painel ==");
@@ -397,7 +398,7 @@ const envio = await page.evaluate(async ({ api, ocorrenciaId }) => {
   });
 
   return { put: put.status, confirmacao: confirmacao.status };
-}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333", ocorrenciaId: idDocumento });
+}, { api: BASE_API_V1, ocorrenciaId: idDocumento });
 
 ok("os bytes sobem direto para o armazenamento", envio.put === 200, `(${envio.put})`);
 ok("o servidor confirma o envio", envio.confirmacao === 200, `(${envio.confirmacao})`);
@@ -613,7 +614,7 @@ const negadoTrilha = await page.evaluate(async (api) => {
     headers: { authorization: `Bearer ${tokens.acesso}` },
   });
   return r.status;
-}, process.env.BASE_API ?? "http://127.0.0.1:3333");
+}, BASE_API_V1);
 ok("e a API recusa mesmo contornando a tela", negadoTrilha === 403, `(${negadoTrilha})`);
 
 console.log("\n== 17. Vinculo de duplicidade e providencias no painel ==");
@@ -735,7 +736,7 @@ await page.locator("#nova-descricao").fill("Registro que nao deve chegar ao serv
 // continua: com a API em qualquer outra porta, a interceptacao nao casava, a
 // requisicao ia normalmente, e as duas verificacoes abaixo reprovavam por
 // motivo que nao tinha nada a ver com o produto.
-const alvoDeRede = new URL(process.env.BASE_API ?? "http://127.0.0.1:3333");
+const alvoDeRede = new URL(BASE_API_V1);
 await contexto.route(`**/${alvoDeRede.host}/**`, (rota) => rota.abort());
 await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
 await page.waitForTimeout(2500);
@@ -813,7 +814,7 @@ const paraRedespachar = await page.evaluate(async ({ api }) => {
   });
 
   return criada.id;
-}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333" });
+}, { api: BASE_API_V1 });
 
 await page.goto(`${BASE}/ocorrencias/${paraRedespachar}`, { waitUntil: "networkidle" });
 await page.waitForSelector(".cabecalho-pagina h1", { timeout: 20_000 });
@@ -878,7 +879,7 @@ const recusaDaAntiga = await page.evaluate(async ({ api }) => {
     }),
   });
   return r.status;
-}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333" });
+}, { api: BASE_API_V1 });
 ok("a senha antiga deixa de valer", recusaDaAntiga === 401, `(${recusaDaAntiga})`);
 
 
@@ -894,7 +895,7 @@ console.log("\n== 23. Sessão encerrada e conta desativada: a frase certa na tel
   Duas frases, porque são duas situações com ações opostas: sessão encerrada
   manda entrar de novo; conta desativada diz que entrar de novo não resolve.
 */
-const API_E05 = process.env.BASE_API ?? "http://127.0.0.1:3333";
+const API_E05 = BASE_API_V1;
 const SENHA_DO_MARCOS = "senha-inicial-do-marcos";
 
 /*
@@ -1106,7 +1107,7 @@ console.log("\n== 24. Papel alterado com a tela aberta: a escrita seguinte renov
   novo, e a escrita passa. A pessoa nao e mandada para a entrada e a tela passa
   a mostrar so o que o papel novo tem (o menu Usuarios some).
 */
-const API_E07 = process.env.BASE_API ?? "http://127.0.0.1:3333";
+const API_E07 = BASE_API_V1;
 const SENHA_DA_HELENA_E07 = "senha-nova-da-helena-2026";
 const NOVA_DA_HELENA_E07 = "terceira-senha-da-helena-2026";
 
@@ -1160,7 +1161,7 @@ await page.getByRole("button", { name: "Trocar senha" }).click();
 await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
 ok("a escrita passa, sem mandar a pessoa para a entrada", !page.url().includes("/entrar"));
 ok("o painel tentou, levou 401, renovou e repetiu",
-   pedidosE07.join(" ") === "/auth/trocar-senha:401 /auth/renovar:200 /auth/trocar-senha:200",
+   pedidosE07.join(" ") === "/v1/auth/trocar-senha:401 /v1/auth/renovar:200 /v1/auth/trocar-senha:200",
    `(${pedidosE07.join(" ")})`);
 ok("a tela passa a mostrar so o que o papel novo tem: o menu Usuarios some",
    (await menuUsuarios.count()) === 0);
@@ -1955,7 +1956,7 @@ await page.waitForSelector(".indicador", { timeout: 30_000 });
 ok("e a sessao de quem estava logado continua de pe", page.url().includes("/painel"));
 
 // ---- Recuperação desligada no servidor, limite e rede caída ----
-await paginaE10.route("**/auth/recuperacao", (rota) => rota.fulfill({
+await paginaE10.route("**/v1/auth/recuperacao", (rota) => rota.fulfill({
   status: 200, contentType: "application/json", body: JSON.stringify({ ativa: false }),
 }));
 await paginaE10.goto(`${BASE}/recuperar-senha`, { waitUntil: "networkidle" });
@@ -1968,9 +1969,9 @@ ok("os passos apontam o botao Redefinir senha da lista de Usuarios",
    (await paginaE10.locator(".passos").textContent()).includes("Redefinir senha")
    && (await paginaE10.locator(".passos").textContent()).includes("lista de Usuários"));
 await capturarE10(paginaE10, "pedido-desligada");
-await paginaE10.unroute("**/auth/recuperacao");
+await paginaE10.unroute("**/v1/auth/recuperacao");
 
-await paginaE10.route("**/auth/recuperar", (rota) => rota.fulfill({
+await paginaE10.route("**/v1/auth/recuperar", (rota) => rota.fulfill({
   status: 503, contentType: "application/json",
   body: JSON.stringify({ erro: "recuperacao_desligada", mensagem: "A recuperação de senha por email está desligada neste município." }),
 }));
@@ -1980,9 +1981,9 @@ await paginaE10.getByRole("button", { name: "Enviar link de redefinição" }).cl
 await paginaE10.waitForSelector(".passos", { timeout: 20_000 });
 ok("se o servidor responde 503 recuperacao_desligada no pedido, a tela troca para as instrucoes de quem administra",
    (await paginaE10.locator("#recuperar-email").count()) === 0);
-await paginaE10.unroute("**/auth/recuperar");
+await paginaE10.unroute("**/v1/auth/recuperar");
 
-await paginaE10.route("**/auth/recuperar", (rota) => rota.fulfill({
+await paginaE10.route("**/v1/auth/recuperar", (rota) => rota.fulfill({
   status: 429, contentType: "application/json",
   body: JSON.stringify({ erro: "excesso_de_requisicoes", mensagem: "Requisições demais. Aguarde um instante." }),
 }));
@@ -1994,9 +1995,9 @@ ok("limite de pedidos (429): a frase manda aguardar, e o formulario continua",
    (await paginaE10.locator(".aviso--perigo").textContent()).includes("Muitos pedidos em pouco tempo")
    && (await paginaE10.locator("#recuperar-email").count()) === 1);
 await capturarE10(paginaE10, "pedido-erro-excesso");
-await paginaE10.unroute("**/auth/recuperar");
+await paginaE10.unroute("**/v1/auth/recuperar");
 
-await paginaE10.route("**/auth/recuperar", (rota) => rota.abort("failed"));
+await paginaE10.route("**/v1/auth/recuperar", (rota) => rota.abort("failed"));
 await paginaE10.goto(`${BASE}/recuperar-senha`, { waitUntil: "networkidle" });
 await paginaE10.locator("#recuperar-email").fill("alguem@exemplo.gov.br");
 await paginaE10.getByRole("button", { name: "Enviar link de redefinição" }).click();
@@ -2004,7 +2005,7 @@ await paginaE10.waitForSelector(".aviso--perigo", { timeout: 20_000 });
 ok("sem rede: a frase diz que nada foi enviado",
    (await paginaE10.locator(".aviso--perigo").textContent()).includes("Sem conexão com o servidor"));
 await capturarE10(paginaE10, "pedido-erro-rede");
-await paginaE10.unroute("**/auth/recuperar");
+await paginaE10.unroute("**/v1/auth/recuperar");
 await contextoE10.close();
 
 console.log("\n== 28. Baixar o pacote de saida pelo painel, contra a API real (V2-F00-E11) ==");
@@ -2036,7 +2037,7 @@ console.log("\n== 28. Baixar o pacote de saida pelo painel, contra a API real (V
   O leitor de ZIP abaixo e do formato classico (sem ZIP64): o pacote da semente e
   pequeno. O do produto (ZIP64) e coberto em `apps/api/test/saida-de-municipio.test.ts`.
 */
-const API_E11 = process.env.BASE_API ?? "http://127.0.0.1:3333";
+const API_E11 = BASE_API_V1;
 const ID_SERRA_ALTA_E11 = "11111111-1111-4111-8111-000000000001";
 const ID_VALE_FUNDO_E11 = "22222222-2222-4222-8222-000000000002";
 
@@ -2259,7 +2260,7 @@ await baixadoE11.delete();
 let primeiroPedidoE11 = true;
 const renovacoesE11 = [];
 paginaE11.on("request", (r) => { if (r.url().endsWith("/auth/renovar")) renovacoesE11.push(r.url()); });
-await paginaE11.route("**/saida/pacote.zip", (rota) => {
+await paginaE11.route("**/v1/saida/pacote.zip", (rota) => {
   if (rota.request().method() === "POST" && primeiroPedidoE11) {
     primeiroPedidoE11 = false;
     return rota.fulfill({
@@ -2280,12 +2281,12 @@ ok("com 401 no primeiro pedido o painel renova UMA vez e baixa o ZIP",
    `(${renovacoesE11.length} renovacao(oes), ${bytes401E11.length} bytes)`);
 ok("e a pessoa continua no painel, sem ser mandada para a entrada", paginaE11.url().includes("/organizacao"));
 await baixado401E11.delete();
-await paginaE11.unroute("**/saida/pacote.zip");
+await paginaE11.unroute("**/v1/saida/pacote.zip");
 
 // ---- Carregando: o botao diz Gerando e nao aceita segundo clique ----
 let liberarE11;
 const seguraE11 = new Promise((r) => { liberarE11 = r; });
-await paginaE11.route("**/saida/pacote.zip", async (rota) => { await seguraE11; await rota.continue(); });
+await paginaE11.route("**/v1/saida/pacote.zip", async (rota) => { await seguraE11; await rota.continue(); });
 const [baixadoLentoE11] = await Promise.all([
   paginaE11.waitForEvent("download", { timeout: 120_000 }),
   (async () => {
@@ -2300,11 +2301,11 @@ const [baixadoLentoE11] = await Promise.all([
 await baixadoLentoE11.delete();
 await paginaE11.getByRole("button", { name: "Baixar pacote de saída" }).waitFor({ timeout: 20_000 });
 ok("terminado o download, o botao volta a dizer Baixar pacote de saida", true);
-await paginaE11.unroute("**/saida/pacote.zip");
+await paginaE11.unroute("**/v1/saida/pacote.zip");
 
 // ---- Recusas: a frase do servidor chega a tela ----
 async function recusarE11(corpoDoServidor, status, esperado, nomeDaCaptura) {
-  await paginaE11.route("**/saida/pacote.zip", (rota) => rota.fulfill({
+  await paginaE11.route("**/v1/saida/pacote.zip", (rota) => rota.fulfill({
     status, contentType: "application/json",
     headers: { "access-control-allow-origin": new URL(BASE).origin },
     body: JSON.stringify(corpoDoServidor),
@@ -2315,7 +2316,7 @@ async function recusarE11(corpoDoServidor, status, esperado, nomeDaCaptura) {
   ok(`a tela mostra a frase do servidor: ${esperado.slice(0, 48)}...`, texto.includes(esperado), `(${texto})`);
   ok("e o botao volta a poder ser usado", await botaoE11.isEnabled());
   await capturarE11(paginaE11, nomeDaCaptura);
-  await paginaE11.unroute("**/saida/pacote.zip");
+  await paginaE11.unroute("**/v1/saida/pacote.zip");
   // Sai do estado de erro para a proxima: recarrega a tela.
   await paginaE11.goto(`${BASE}/organizacao`, { waitUntil: "networkidle" });
   await botaoE11.waitFor({ timeout: 30_000 });
@@ -2332,7 +2333,7 @@ await recusarE11(
 );
 ok("a recusa nao derruba a sessao: a administradora continua em Organizacao", paginaE11.url().includes("/organizacao"));
 
-await paginaE11.route("**/saida/pacote.zip", (rota) => rota.abort("failed"));
+await paginaE11.route("**/v1/saida/pacote.zip", (rota) => rota.abort("failed"));
 await botaoE11.click();
 await paginaE11.waitForSelector(".aviso--perigo", { timeout: 20_000 });
 const textoRedeE11 = (await paginaE11.locator(".aviso--perigo").textContent()) ?? "";
@@ -2340,7 +2341,7 @@ ok("sem rede: a frase diz que o arquivo nao foi baixado, e nao que algo preenchi
    textoRedeE11.includes("Sem conexão com o servidor. O arquivo não foi baixado.") && !textoRedeE11.includes("preencheu"),
    `(${textoRedeE11})`);
 await capturarE11(paginaE11, "saida-erro-rede");
-await paginaE11.unroute("**/saida/pacote.zip");
+await paginaE11.unroute("**/v1/saida/pacote.zip");
 
 // ---- Aparencia: o cartao cabe na tela, no computador e no celular ----
 for (const [largura, altura] of [[1280, 900], [390, 844]]) {

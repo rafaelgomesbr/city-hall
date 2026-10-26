@@ -1,0 +1,29 @@
+npm warn exec The following package was not found and will be installed: vitest@5.0.5
+
+ RUN  v5.0.5 C:/Projetos/city-hall/.claude/worktrees/codex-2a/dc360
+
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (10 tests | 1 failed) 19282ms
+   ❯ Regras de conteúdo (10)
+     ❯ recorte das isenções num repositório sintético (4)
+       × tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 171ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-tGTdeI\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-tGTdeI\docs\sumiu-depois-da-listagem.md'
+ ❯ packages/shared/test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  22:48:37
+   Duration  19.78s (tests 99%)
+
