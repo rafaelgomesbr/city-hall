@@ -201,7 +201,7 @@ Rafael, CP-44):
 | --- | --- |
 | `db/provedores/postgis.sql` | `CREATE SCHEMA IF NOT EXISTS extensions` e `CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions`, e imprime `postgis_version()`. Papel de **setup**, nunca o de aplicação. Só em HML: em PROD a extensão nasce na migration da F32 |
 | bloco "PostGIS" de `db/provedores/supabase-endurecer.sql` | Se a extensão existe: revoga tudo de `PUBLIC`, `anon`, `authenticated` e `service_role` nos objetos DA EXTENSÃO (achados por dependência, não por schema), e dá a `dc360_app` USAGE no schema, SELECT em `spatial_ref_sys` e EXECUTE nas funções. Sem a extensão, não faz nada |
-| `node scripts/conferir-ambiente.mjs --extensoes` | Confere, só leitura, que a extensão está disponível, instalada em `extensions` (nunca `public`), que ninguém do provedor a alcança e que `dc360_app` enxerga o mínimo |
+| `node scripts/conferir-ambiente.mjs --extensoes` | Confere, só leitura, que a extensão está disponível, que o papel de setup PODE criá-la (superusuário ou `CREATE` no banco; disponível não é criável), instalada em `extensions` (nunca `public`), que ninguém do provedor a alcança (nem por herança de papel) e que `dc360_app` enxerga o mínimo |
 
 Por que revogar de `PUBLIC` e não só dos três papéis: o script da extensão
 concede SELECT a `PUBLIC` e o Postgres concede EXECUTE nas funções a `PUBLIC`
@@ -217,8 +217,15 @@ psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurece
 DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes
 ```
 
-**Em PROD**, só a pergunta de disponibilidade (não cria nada):
+**Em PROD**, só a pergunta de disponibilidade e de capacidade (não cria nada):
 `DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes --ambiente=prod`.
+Com a extensão disponível e ainda não instalada, o papel de setup precisa ser
+superusuário ou ter `CREATE` no banco, senão a conferência reprova. Se ele tem
+`CREATE` mas não é superusuário e o PostGIS não é extensão confiável, ela
+AVISA: no Postgres comum só superusuário cria a extensão, e provedores como o
+Supabase liberam isso por fora, o que só se confirma tentando em HML (CP-44).
+A URL com `sslmode=verify-full` e sem `sslrootcert` recebe a raiz do provedor
+do repositório, como no migrador (precisa de `npm run build:shared` em `dc360`).
 A URL vem da variável de ambiente, nunca de argumento, e a saída só traz nomes
 de papel, de objeto e contagens (nunca a URL, o usuário ou a senha). Sem banco,
 `--fatos=ARQUIVO` avalia fatos já coletados.

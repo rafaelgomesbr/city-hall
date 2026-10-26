@@ -31,8 +31,16 @@
 #   exclui `devOptional`, então o SBOM do aplicativo (667 componentes) tem menos
 #   que a conferência de licença (731), que conta `devOptional` como produção.
 # - imagem: o MESMO Trivy da varredura (V2-F01-E20), versão fixa e SHA-256
-#   conferido por `scripts/varrer-imagem.sh instalar`, lendo a imagem recém
-#   construída com os mesmos `Dockerfile` e argumentos do job `imagens`.
+#   conferido por `scripts/varrer-imagem.sh instalar`, lendo a imagem PUBLICADA
+#   e promovida, referenciada por DIGEST, SEM reconstruir. O `Dockerfile` instala
+#   Chromium e bibliotecas do Debian corrente: reconstruir no dia da tag podia
+#   inventariar versões diferentes das que `deploy-hml.yml` publicou e
+#   `promover-producao.yml` leva a PROD (correção 1 da F01). O digest é lido do
+#   mesmo lugar que a promoção lê: o selo `hml-ok-<commit>` no GHCR, que tem de
+#   ser igual ao `sha-<commit>` construído e ter a atestação de proveniência do
+#   `deploy-hml.yml`. Commit sem imagem aprovada em HML: o job FALHA com mensagem
+#   clara, e nenhum SBOM de imagem é publicado (SBOM de outra imagem seria pior
+#   que nenhum).
 #
 # Quem escreve no repositório:
 #
@@ -138,6 +146,11 @@ jobs:
     name: SBOM da imagem (${{ matrix.imagem }})
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    # Só leitura: `packages: read` para ler o selo e puxar a imagem do GHCR (a
+    # mesma permissão que o job `validar` da promoção usa). Nenhuma escrita.
+    permissions:
+      contents: read
+      packages: read
     defaults:
       run:
         shell: bash
@@ -147,26 +160,48 @@ jobs:
       matrix:
         include:
           - imagem: api
-            dockerfile: Dockerfile
           - imagem: console
-            dockerfile: Dockerfile.console
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      # A versão e o commit entram na imagem como no job `imagens` do
-      # verificar.yml, para o SBOM descrever a MESMA imagem que o CI exercita.
-      - name: Construir a imagem
+      - name: Entrar no GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      # O digest vem do MESMO lugar que a promoção para PROD lê (selo `hml-ok-`),
+      # com as mesmas três provas: o selo existe, é igual ao digest construído
+      # (`sha-`) e tem atestação do `deploy-hml.yml`. Sem isso, falha: não há
+      # SBOM de imagem "parecida". `$GITHUB_SHA` é o commit da tag.
+      - name: Resolver o digest da imagem publicada e promovida
+        id: digest
         env:
           IMAGEM: ${{ matrix.imagem }}
-          DOCKERFILE: ${{ matrix.dockerfile }}
+          COMMIT: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
-          if [ -z "$versao" ]; then echo "versao vazia"; exit 1; fi
-          docker build --progress=plain -f "$DOCKERFILE" -t "dc360-${IMAGEM}:sbom" \
-            --build-arg DC360_VERSAO="$versao" \
-            --build-arg DC360_COMMIT="$GITHUB_SHA" .
+          set -euo pipefail
+          imagem="ghcr.io/${GITHUB_REPOSITORY,,}/dc360-${IMAGEM}"
+          digest="$(docker buildx imagetools inspect "$imagem:hml-ok-$COMMIT" --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::o commit $COMMIT não tem a imagem $IMAGEM aprovada em HML (selo hml-ok-$COMMIT ausente): o SBOM da imagem só descreve a imagem publicada e promovida, e não reconstrói. Rode o deploy-hml.yml para este commit e dispare este workflow de novo."
+            exit 1
+          fi
+          construido="$(docker buildx imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
+          if [ "$digest" != "$construido" ]; then
+            echo "::error::o selo hml-ok da imagem $IMAGEM ($digest) não é o digest construído para o commit ($construido)"
+            exit 1
+          fi
+          gh attestation verify "oci://$imagem@$digest" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/deploy-hml.yml" \
+            --deny-self-hosted-runners >/dev/null \
+            || { echo "::error::a imagem $IMAGEM ($digest) não tem atestação de proveniência assinada pelo deploy-hml.yml"; exit 1; }
+          echo "referencia=$imagem@$digest" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "SBOM da imagem $IMAGEM sobre $imagem@$digest"
 
       - name: Instalar o Trivy (versão fixa, SHA-256 conferido)
         run: |
@@ -176,15 +211,25 @@ jobs:
       - name: Gerar o SBOM CycloneDX da imagem
         env:
           IMAGEM: ${{ matrix.imagem }}
+          REFERENCIA: ${{ steps.digest.outputs.referencia }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
           REF_NOME: ${{ github.ref_name }}
           TRIVY_SKIP_VERSION_CHECK: "true"
           TRIVY_DISABLE_TELEMETRY: "true"
         run: |
+          set -euo pipefail
           rotulo="${REF_NOME//\//-}"
           mkdir -p "$RUNNER_TEMP/sbom"
           arquivo="$RUNNER_TEMP/sbom/sbom-${rotulo}-imagem-${IMAGEM}.cdx.json"
-          "$TRIVY_BIN" image --no-progress --format cyclonedx --output "$arquivo" "dc360-${IMAGEM}:sbom"
+          # `--image-src remote`: lê a imagem do registro, por digest, nunca de
+          # uma imagem que por acaso exista no daemon do runner.
+          "$TRIVY_BIN" image --no-progress --image-src remote --format cyclonedx \
+            --output "$arquivo" "$REFERENCIA"
           node scripts/conferir-sbom.mjs "$arquivo" --minimo=10
+          # O SBOM tem de citar o digest da imagem inventariada.
+          grep -q "${DIGEST#sha256:}" "$arquivo" \
+            || { echo "::error::o SBOM de $IMAGEM não cita o digest $DIGEST: não descreve a imagem promovida"; exit 1; }
+          echo "- SBOM da imagem \`$IMAGEM\`: \`$DIGEST\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar o SBOM como artefato do run
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

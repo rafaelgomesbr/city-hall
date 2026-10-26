@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso
+ok 1 - o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso
+  ---
+  duration_ms: 50.1319
+  type: 'test'
+  ...
+# Subtest: a política versionada tem as listas propostas pelo roadmap e não decide nada pelo Rafael
+ok 2 - a política versionada tem as listas propostas pelo roadmap e não decide nada pelo Rafael
+  ---
+  duration_ms: 0.5951
+  type: 'test'
+  ...
+# Subtest: componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; mantém devOptional
+ok 3 - componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; mantém devOptional
+  ---
+  duration_ms: 0.5718
+  type: 'test'
+  ...
+# Subtest: componentesDeProducao: o grafo de runtime decide, e a marca `dev: true` inconsistente não esconde o componente
+ok 4 - componentesDeProducao: o grafo de runtime decide, e a marca `dev: true` inconsistente não esconde o componente
+  ---
+  duration_ms: 0.3878
+  type: 'test'
+  ...
+# Subtest: componentesDeProducao: dependência transitiva de runtime também é alcançada pelo grafo, mesmo marcada dev
+ok 5 - componentesDeProducao: dependência transitiva de runtime também é alcançada pelo grafo, mesmo marcada dev
+  ---
+  duration_ms: 0.1669
+  type: 'test'
+  ...
+# Subtest: normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência
+ok 6 - normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência
+  ---
+  duration_ms: 0.1384
+  type: 'test'
+  ...
+# Subtest: expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam
+ok 7 - expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam
+  ---
+  duration_ms: 0.1604
+  type: 'test'
+  ...
+# Subtest: expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida
+ok 8 - expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida
+  ---
+  duration_ms: 0.1784
+  type: 'test'
+  ...
+# Subtest: fixture com AGPL: reprova com a política decidida e só avisa com a proposta
+ok 9 - fixture com AGPL: reprova com a política decidida e só avisa com a proposta
+  ---
+  duration_ms: 0.6541
+  type: 'test'
+  ...
+# Subtest: componente sem licença reprova com a política decidida (e UNLICENSED também)
+ok 10 - componente sem licença reprova com a política decidida (e UNLICENSED também)
+  ---
+  duration_ms: 0.7754
+  type: 'test'
+  ...
+# Subtest: licença fora das duas listas reprova com a política decidida (nega por padrão) e a exceção nomeada a libera
+ok 11 - licença fora das duas listas reprova com a política decidida (nega por padrão) e a exceção nomeada a libera
+  ---
+  duration_ms: 0.5974
+  type: 'test'
+  ...
+# Subtest: exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado
+ok 12 - exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado
+  ---
+  duration_ms: 0.3512
+  type: 'test'
+  ...
+# Subtest: exceção sem motivo, sem dono, sem data, com prazo longo demais ou sem versão: defeito da política
+ok 13 - exceção sem motivo, sem dono, sem data, com prazo longo demais ou sem versão: defeito da política
+  ---
+  duration_ms: 0.3605
+  type: 'test'
+  ...
+# Subtest: exceção desnecessária (a licença já é permitida) e política mal formada também são defeito
+ok 14 - exceção desnecessária (a licença já é permitida) e política mal formada também são defeito
+  ---
+  duration_ms: 0.3147
+  type: 'test'
+  ...
+# Subtest: lockfile sem componente algum não passa por verde (não leu nada)
+ok 15 - lockfile sem componente algum não passa por verde (não leu nada)
+  ---
+  duration_ms: 0.1158
+  type: 'test'
+  ...
+# Subtest: linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2
+ok 16 - linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2
+  ---
+  duration_ms: 512.706
+  type: 'test'
+  ...
+# Subtest: o job produto do verificar.yml roda a conferência de licenças, sem continue-on-error e sem escrita
+ok 17 - o job produto do verificar.yml roda a conferência de licenças, sem continue-on-error e sem escrita
+  ---
+  duration_ms: 0.785
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 682.3812

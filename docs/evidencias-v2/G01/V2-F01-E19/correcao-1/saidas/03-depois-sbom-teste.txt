@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: conferir-sbom: um CycloneDX com componentes passa; vazio, formato errado e componente sem nome reprovam
+ok 1 - conferir-sbom: um CycloneDX com componentes passa; vazio, formato errado e componente sem nome reprovam
+  ---
+  duration_ms: 2.5587
+  type: 'test'
+  ...
+# Subtest: conferir-sbom: o código de saída que o CI lê (0 em ordem, 1 reprovado, 2 arquivo ilegível ou uso errado)
+ok 2 - conferir-sbom: o código de saída que o CI lê (0 em ordem, 1 reprovado, 2 arquivo ilegível ou uso errado)
+  ---
+  duration_ms: 468.3067
+  type: 'test'
+  ...
+# Subtest: publicar-sbom.sh: com os quatro SBOM e sem Release, cria RASCUNHO e anexa os quatro mais o SHA256SUMS.txt com --clobber
+ok 3 - publicar-sbom.sh: com os quatro SBOM e sem Release, cria RASCUNHO e anexa os quatro mais o SHA256SUMS.txt com --clobber # SKIP script em bash
+  ---
+  duration_ms: 0.1295
+  type: 'test'
+  ...
+# Subtest: publicar-sbom.sh: Release que já existe não é recriado, só recebe os arquivos
+ok 4 - publicar-sbom.sh: Release que já existe não é recriado, só recebe os arquivos # SKIP script em bash
+  ---
+  duration_ms: 0.1091
+  type: 'test'
+  ...
+# Subtest: publicar-sbom.sh: faltando um dos quatro, ou um deles vazio, não publica NADA (SBOM pela metade parece completo)
+ok 5 - publicar-sbom.sh: faltando um dos quatro, ou um deles vazio, não publica NADA (SBOM pela metade parece completo) # SKIP script em bash
+  ---
+  duration_ms: 0.0994
+  type: 'test'
+  ...
+# Subtest: publicar-sbom.sh: tag fora do padrão e uso errado saem 2 sem chamar o gh
+ok 6 - publicar-sbom.sh: tag fora do padrão e uso errado saem 2 sem chamar o gh # SKIP script em bash
+  ---
+  duration_ms: 0.0956
+  type: 'test'
+  ...
+# Subtest: sbom.yml: dispara em tag v* e campo-v* e em rodada manual, e nada mais
+ok 7 - sbom.yml: dispara em tag v* e campo-v* e em rodada manual, e nada mais
+  ---
+  duration_ms: 0.3982
+  type: 'test'
+  ...
+# Subtest: sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e os jobs que geram só leem
+ok 8 - sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e os jobs que geram só leem
+  ---
+  duration_ms: 1.0894
+  type: 'test'
+  ...
+# Subtest: sbom.yml: os dois lockfiles e as duas imagens estão na matriz, o gerador npm tem versão exata e lê só o lockfile de produção
+ok 9 - sbom.yml: os dois lockfiles e as duas imagens estão na matriz, o gerador npm tem versão exata e lê só o lockfile de produção
+  ---
+  duration_ms: 0.6748
+  type: 'test'
+  ...
+# Subtest: sbom.yml: o SBOM da imagem lê a imagem publicada por digest, do mesmo selo que a promoção, e não reconstrói
+ok 10 - sbom.yml: o SBOM da imagem lê a imagem publicada por digest, do mesmo selo que a promoção, e não reconstrói
+  ---
+  duration_ms: 0.8319
+  type: 'test'
+  ...
+# Subtest: sbom.yml: o SBOM da imagem usa as MESMAS provas de digest que a promoção para PROD
+ok 11 - sbom.yml: o SBOM da imagem usa as MESMAS provas de digest que a promoção para PROD
+  ---
+  duration_ms: 10.1313
+  type: 'test'
+  ...
+# Subtest: sbom.yml: nome de tag e de ramo entram nos comandos por variável de ambiente, nunca interpolados no script
+ok 12 - sbom.yml: nome de tag e de ramo entram nos comandos por variável de ambiente, nunca interpolados no script
+  ---
+  duration_ms: 0.5272
+  type: 'test'
+  ...
+# Subtest: sbom.yml: o job publicar não grava credencial no checkout e só traz dc360/scripts
+ok 13 - sbom.yml: o job publicar não grava credencial no checkout e só traz dc360/scripts
+  ---
+  duration_ms: 0.2412
+  type: 'test'
+  ...
+# Subtest: DV-27: o gerador de SBOM é instalado por `npm ci` a partir de um lockfile com integrity, e a versão bate nos três lugares
+ok 14 - DV-27: o gerador de SBOM é instalado por `npm ci` a partir de um lockfile com integrity, e a versão bate nos três lugares
+  ---
+  duration_ms: 20.3725
+  type: 'test'
+  ...
+# Subtest: DV-27: a regra do gerador travado morde (npm exec, sem lockfile, sem integrity, versão fora de sincronia)
+ok 15 - DV-27: a regra do gerador travado morde (npm exec, sem lockfile, sem integrity, versão fora de sincronia)
+  ---
+  duration_ms: 2.4379
+  type: 'test'
+  ...
+# Subtest: DV-27: o que o gerador não cobre fica escrito: o SBOM exclui devOptional e a conferência de licença não
+ok 16 - DV-27: o que o gerador não cobre fica escrito: o SBOM exclui devOptional e a conferência de licença não
+  ---
+  duration_ms: 0.1558
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 4
+# todo 0
+# duration_ms 633.707

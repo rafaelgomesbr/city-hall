@@ -12,7 +12,13 @@
  * `licenses`, que o lockfile não copia), a conferência o trata como SEM
  * LICENÇA: quem reprova ou aceita é uma exceção nomeada, nunca o silêncio.
  *
- * "Produção" = tudo que o npm não marca como `dev: true`. O `devOptional`
+ * "Produção" = o que o GRAFO de execução alcança (`nosDeRuntimeDoLockfile`, o
+ * mesmo cálculo do `auditar`, que segue só `dependencies`, `optionalDependencies`
+ * e `peerDependencies` a partir da raiz e dos workspaces) MAIS tudo que o npm não
+ * marca como `dev: true`. A marca sozinha não basta: um lockfile editado ou
+ * corrompido pode marcar `dev: true` num pacote que a imagem instala, e ele
+ * sumiria da conferência de licença (o `auditar` barra a marca inconsistente,
+ * mas este conferidor roda sozinho). O `devOptional`
  * (necessário para desenvolvimento OU como opcional de produção) entra de
  * propósito: é o que `npm ci --omit=dev` ainda instala quando o opcional casa
  * com a plataforma. Os workspaces do próprio produto (sem prefixo
@@ -51,6 +57,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { nosDeRuntimeDoLockfile } from "./auditar-excecoes.mjs";
 import { hojeEmIso, lerDataIso, problemasDaExcecao } from "./excecoes-de-seguranca.mjs";
 
 export const RAIZ_PADRAO = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -95,13 +102,18 @@ export function componentesDeProducao(lock) {
   if (!lock || typeof lock !== "object" || !lock.packages || typeof lock.packages !== "object") {
     throw new Error("lockfile sem o campo `packages` (só o formato 2 e 3 do npm é lido)");
   }
+  // O grafo é a fonte de verdade do que a imagem instala (o mesmo cálculo do
+  // `auditar`); a marca `dev: true` sozinha pode ser editada ou corrompida.
+  const runtime = nosDeRuntimeDoLockfile(lock);
   const vistos = new Map();
   for (const [chave, v] of Object.entries(lock.packages)) {
     if (chave === "" || !v || typeof v !== "object") continue;
     if (v.link) continue;
     const posicao = chave.lastIndexOf("node_modules/");
     if (posicao < 0) continue; // workspace do próprio produto
-    if (v.dev) continue;
+    // Alcançado pelo grafo de execução: é produção, qualquer que seja a marca.
+    // Fora do grafo, vale a marca (o `devOptional` entra de propósito).
+    if (v.dev && !runtime.has(chave)) continue;
     const pacote =
       typeof v.name === "string" && v.name ? v.name : chave.slice(posicao + "node_modules/".length);
     const versao = typeof v.version === "string" ? v.version : "?";

@@ -12,8 +12,11 @@
  *   conferir     `lint-teto.json` é EXATAMENTE a soma das duas baselines
  *                (monorepo e aplicativo). Teto com folga (maior que a soma) é
  *                reprovado também: folga é espaço para o achado novo se esconder.
- *   contra-base  o teto, a contagem de cada regra e a lista de arquivos sem
- *                formatação não podem subir em relação ao ramo-base do PR.
+ *   contra-base  o teto, a contagem de cada regra, a contagem de CADA PAR
+ *                (projeto, arquivo, regra) e a lista de arquivos sem formatação
+ *                não podem subir em relação ao ramo-base do PR. O par importa:
+ *                só o total e a regra deixam corrigir uma supressão num arquivo
+ *                e abrir outra do mesmo tipo em outro, e o total fica igual.
  *
  * Uso (em `dc360/`):
  *   node scripts/lint-teto.mjs conferir
@@ -97,11 +100,50 @@ export function problemasDeConsistencia(gravado, calculado) {
 }
 
 /**
+ * Nenhum par (projeto, arquivo, regra) pode subir em relação ao ramo-base, e
+ * par que não existia não pode aparecer. `atual` e `base` têm a forma
+ * `{ monorepo, campo }`, cada um um `eslint-suppressions.json`. Base ausente
+ * (`null` no projeto) é a introdução do mecanismo: não há contra o quê comparar.
+ * Mover um arquivo que tem supressão também reprova (o par "novo" não existia):
+ * a saída é corrigir o achado, não carregá-lo para o endereço novo.
+ */
+export function problemasPorArquivoERegra(atual, base) {
+  const problemas = [];
+  if (!atual || !base) return problemas;
+  for (const projeto of ["monorepo", "campo"]) {
+    const depois = atual[projeto];
+    const antes = base[projeto];
+    if (!depois || !antes) continue;
+    for (const [arquivo, regras] of Object.entries(depois)) {
+      for (const [regra, info] of Object.entries(regras ?? {})) {
+        const n = Number(info?.count ?? 0);
+        const era = Number(antes[arquivo]?.[regra]?.count ?? 0);
+        if (n > era) {
+          problemas.push(
+            `${projeto}: ${arquivo} regra ${regra} subiu: ${era} na base, ${n} aqui` +
+              `${era === 0 ? " (par arquivo+regra novo na baseline)" : ""}. ` +
+              "Corrija o achado em vez de baselinar.",
+          );
+        }
+      }
+    }
+  }
+  return problemas;
+}
+
+/**
  * O PR não pode subir nada em relação ao ramo-base: nem o total, nem a contagem
  * de uma regra, nem regra que não existia, nem arquivo sem formatação a mais.
  * Base ausente (`null`) é a introdução do mecanismo: não há contra o quê comparar.
  */
-export function problemasContraBase({ tetoAtual, tetoBase, formatoAtual, formatoBase }) {
+export function problemasContraBase({
+  tetoAtual,
+  tetoBase,
+  formatoAtual,
+  formatoBase,
+  supressoesAtual,
+  supressoesBase,
+}) {
   const problemas = [];
   if (tetoBase && tetoAtual) {
     if (tetoAtual.total > tetoBase.total) {
@@ -118,6 +160,7 @@ export function problemasContraBase({ tetoAtual, tetoBase, formatoAtual, formato
       }
     }
   }
+  problemas.push(...problemasPorArquivoERegra(supressoesAtual, supressoesBase));
   if (formatoBase && formatoAtual) {
     const antes = new Set(formatoBase.arquivos ?? []);
     for (const arq of formatoAtual.arquivos ?? []) {
@@ -186,6 +229,14 @@ function principal(argv) {
       tetoBase: lerDoRef(ref, ARQUIVOS.teto),
       formatoAtual: lerJson(join(DC360, ARQUIVOS.formato)),
       formatoBase: lerDoRef(ref, ARQUIVOS.formato),
+      supressoesAtual: {
+        monorepo: lerJson(join(DC360, ARQUIVOS.monorepo)),
+        campo: lerJson(join(DC360, ARQUIVOS.campo)),
+      },
+      supressoesBase: {
+        monorepo: lerDoRef(ref, ARQUIVOS.monorepo),
+        campo: lerDoRef(ref, ARQUIVOS.campo),
+      },
     });
     if (p.length) {
       console.error(`REPROVADO contra ${ref} (${p.length}):\n- ${p.join("\n- ")}`);

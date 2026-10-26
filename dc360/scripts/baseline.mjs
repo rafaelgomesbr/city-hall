@@ -351,7 +351,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     hook com dependência faltando em `apps/web/src`, `eval`, `Function`, `any`
     explícito, `setTimeout` com texto, e as mesmas duas no aplicativo de campo).
   */
-  "V2-F01-E17": 20,
+  "V2-F01-E17": 26, // 20 na E17; a correção 1 acrescentou 6 (o teto vale por arquivo e regra, não só no total: a supressão corrigida num arquivo que financia outra noutro, o par que sobe, o aplicativo de campo, igual e descer, base ausente e as baselines do ramo-base lidas do repositório)
+  /*
+    V2-F01-E17, correção 1: `scripts/lint.test.mjs` é novo, com 5 casos (o lint
+    chama o `node` no script do ESLint, sem shell, e roda de verdade num
+    caminho com espaço, repassa `--prune-suppressions` e o código de saída,
+    ESLint ausente sai 2 e o fonte não usa mais shell nem o atalho de lote).
+  */
+  "V2-F01-E17-lint": 5,
   "V2-F01-E17-formato": 8,
   "V2-F01-E17-regras": 10,
   /*
@@ -381,8 +388,8 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     script que anexa ao Release com um `gh` de mentira e as travas do
     `sbom.yml`: escrita só no job `publicar`, só em tag).
   */
-  "V2-F01-E19": 15,
-  "V2-F01-E19-sbom": 14, // 11 na E19; a DV-27 acrescentou 3 (o gerador de SBOM instalado por lockfile próprio)
+  "V2-F01-E19": 17, // 15 na E19; a correção 1 acrescentou 2 (o grafo de runtime decide o que é produção: a marca `dev: true` inconsistente não esconde o componente, nem o transitivo)
+  "V2-F01-E19-sbom": 16, // 11 na E19; a DV-27 acrescentou 3 (o gerador de SBOM instalado por lockfile próprio); a correção 1 acrescentou 2 (o SBOM da imagem lê a imagem publicada por digest, sem reconstruir, com as mesmas provas da promoção)
   /*
     V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 20 casos (o
     `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e
@@ -407,7 +414,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     PGlite, com `pg_trgm` no lugar do PostGIS; e a coleta feita por um papel sem
     USAGE no schema, que o CI 2 mostrou falhar com 42501).
   */
-  "V2-F01-E22": 24,
+  "V2-F01-E22": 36, // 24 na E22; a correção 1 acrescentou 12 (disponível não é criável: o papel de setup sem CREATE reprova em PROD; o privilégio herdado por papel intermediário; a âncora TLS do migrador na conexão)
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -432,6 +439,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
   "V2-F01-E09": "conferir-ambiente.test.mjs",
   "V2-F01-E17": "lint-teto.test.mjs",
+  "V2-F01-E17-lint": "lint.test.mjs",
   "V2-F01-E17-formato": "formato-conferir.test.mjs",
   "V2-F01-E17-regras": "lint-regras.test.mjs",
   "V2-F01-E15": "producao.test.mjs",
