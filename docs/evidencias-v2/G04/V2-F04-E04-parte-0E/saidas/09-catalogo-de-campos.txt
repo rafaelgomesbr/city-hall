@@ -1,0 +1,19 @@
+Catalogo de campos do dossie (CAMPOS_DO_DOSSIE), gerado da arvore em trab/f04-0e-e04-dossie
+
+protocolo | minimo_fixo | sensivel=false | justificativa=false | obrigatorio=true | origem=ocorrencias.protocolo | rotulo=Protocolo
+tipo | minimo_fixo | sensivel=false | justificativa=false | obrigatorio=true | origem=ocorrencias.tipo | rotulo=Tipo da ocorrência
+endereco | minimo_fixo | sensivel=false | justificativa=false | obrigatorio=true | origem=ocorrencias.endereco | rotulo=Endereço do local
+solicitante_nome | dado_sensivel_da_ocorrencia | sensivel=true | justificativa=true | obrigatorio=false | origem=ocorrencias.solicitante_nome | rotulo=Nome do solicitante
+solicitante_contato | dado_sensivel_da_ocorrencia | sensivel=true | justificativa=true | obrigatorio=false | origem=ocorrencias.solicitante_contato | rotulo=Contato do solicitante
+vulnerabilidade_descricao | dado_sensivel_da_ocorrencia | sensivel=true | justificativa=true | obrigatorio=false | origem=ocorrencias.vulnerabilidade_descricao | rotulo=Vulnerabilidade registrada
+descricao | dado_sensivel_da_ocorrencia | sensivel=true | justificativa=true | obrigatorio=false | origem=ocorrencias.descricao | rotulo=Descrição do relato
+pedido | texto_livre_dirigido_ao_orgao | sensivel=true | justificativa=false | obrigatorio=true | origem=escolha_da_defesa_civil | rotulo=O que a Defesa Civil pede ao órgão
+observacoes_da_coordenacao | texto_livre_dirigido_ao_orgao | sensivel=true | justificativa=false | obrigatorio=false | origem=escolha_da_defesa_civil | rotulo=Observações da coordenação
+
+Colunas de texto livre que nunca chegam ao orgao:
+  providencias.descricao
+  providencias.responsavel
+  providencias.orgao_destino
+  providencias.resposta
+  providencias.respondida_por
+  oficios.observacoes

@@ -1,0 +1,5 @@
+  aceita: zod GHSA-mrhx-c7xc-m3w5 (high, dono Rafael, até 2027-01-05)
+
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 7 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.
