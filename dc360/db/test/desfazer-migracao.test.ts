@@ -143,11 +143,49 @@ describe("positivos: desfaz só a última, e o ciclo deixa o esquema idêntico",
   });
 });
 
-describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () => {
-  it("uma 053 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato", async () => {
+/**
+ * O número da migração de PROVA é CALCULADO: a última migração real mais um.
+ *
+ * Era a literal `053`, escrita quando a 052 era a última. Cada migração nova da
+ * F03 (053 a 065) ocuparia o número da prova, e a prova colidiria com a
+ * migração de verdade em vez de ir depois dela. Calculada, ela vai sempre para
+ * o fim da fila, e nenhuma migração nova precisa saber que ela existe.
+ */
+function numeroDaMigracaoDeProva(reais: readonly Migracao[]): string {
+  const ultima = reais.at(-1)?.versao;
+  const numero = ultima ? /^(\d+)_/.exec(ultima)?.[1] : undefined;
+  if (numero === undefined)
+    throw new Error(`migração real sem número no começo do nome: ${ultima}`);
+  // Mesma largura da última, e nunca menos que 3 dígitos.
+  return String(Number(numero) + 1).padStart(Math.max(numero.length, 3), "0");
+}
+
+describe("o número da migração de prova é calculado (a última real mais um)", () => {
+  it("vai depois da última real, qualquer que seja ela, sem depender do CLI", () => {
     const reais = carregarMigracoes();
+    const prova = numeroDaMigracaoDeProva(reais);
+    const ultimo = Number(/^(\d+)_/.exec(reais.at(-1)!.versao)![1]);
+    expect(Number(prova)).toBe(ultimo + 1);
+    // Não colide com nenhuma migração real.
+    expect(reais.map((m) => m.versao.slice(0, prova.length))).not.toContain(prova);
+    // E continua depois quando migrações novas chegam (a F03 traz de 053 a 065).
+    const comNovas: Migracao[] = [
+      ...reais,
+      { versao: `${String(ultimo + 1).padStart(3, "0")}_nova.sql`, sql: "SELECT 1;" },
+      { versao: `${String(ultimo + 2).padStart(3, "0")}_outra.sql`, sql: "SELECT 1;" },
+    ];
+    expect(Number(numeroDaMigracaoDeProva(comNovas))).toBe(ultimo + 3);
+    expect(numeroDaMigracaoDeProva([{ versao: "099_x.sql", sql: "" }])).toBe("100");
+    expect(() => numeroDaMigracaoDeProva([])).toThrow(/sem número/);
+  });
+});
+
+describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () => {
+  it("uma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato", async () => {
+    const reais = carregarMigracoes();
+    const versaoDaProva = `${numeroDaMigracaoDeProva(reais)}_prova_do_desfazer.sql`;
     const PROVA: Migracao = {
-      versao: "053_prova_do_desfazer.sql",
+      versao: versaoDaProva,
       sql: `
         CREATE TABLE prova_e18 (
           id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -160,7 +198,7 @@ describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () =>
       `,
     };
     const VOLTA: Desfazer = {
-      versao: "053_prova_do_desfazer.sql",
+      versao: versaoDaProva,
       sql: "DROP TABLE prova_e18;",
     };
 
@@ -172,7 +210,7 @@ describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () =>
     expect(JSON.stringify(com["rls"])).toContain("prova_e18");
 
     const r = await desfazerUltimaMigracao(bd, [...reais, PROVA], [VOLTA], DEV);
-    expect(r.desfeita).toBe("053_prova_do_desfazer.sql");
+    expect(r.desfeita).toBe(versaoDaProva);
     expect(await fotografia()).toEqual(antes);
 
     await aplicarMigracoes(bd, [...reais, PROVA]);

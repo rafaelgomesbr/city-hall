@@ -23,6 +23,13 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  COLUNAS_COM_UPDATE_DO_APP,
+  EXCECOES_AO_ISOLAMENTO,
+  FUNCOES_PRIVILEGIADAS,
+  conferirExcecoes,
+  conferirFuncoesPrivilegiadas,
+} from "./catalogo/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 /**
@@ -187,56 +194,27 @@ describe("CA-06: isolamento entre organizações", () => {
    * Agora ele pergunta ao banco quais tabelas existem, e a única isenta é a de
    * controle de migrações, que não guarda dado de município nenhum.
    */
-  const SEM_TENANT = new Set([
-    // Controle do próprio aplicador de migrações.
-    "schema_migracoes",
-    // A raiz do tenant: ela não tem organizacao_id, ela É a organização.
-    "organizacoes",
-    // Sequência de protocolo: tem organizacao_id e policy, mas a chave
-    // primária é composta e não tem coluna `id`.
-    "protocolo_sequencias",
-    /*
-      Pedidos vindos do formulário público.
+  /*
+    As isenções NÃO moram mais aqui (V2-F03-E08, parte 0B). Eram dois conjuntos
+    de nomes soltos, `SEM_TENANT` (quem não tem a COLUNA `organizacao_id`) e
+    `SEM_POLICY_DE_TENANT` (quem não se amarra ao contexto do município), e
+    nenhum guardava o motivo de ninguém. Agora são `EXCECOES_AO_ISOLAMENTO`, em
+    `db/test/catalogo/`: cada tabela com o motivo e a trava que a prende no
+    lugar da coluna e da policy, conferida nos dois sentidos contra o banco
+    (tabela sem a coluna fora da lista reprova; entrada que o banco não
+    confirma, também). Quem cria tabela sem `organizacao_id` na F03 escreve a
+    exceção no catálogo da própria etapa, e este arquivo não muda.
 
-      É a única tabela do produto que é ANTERIOR ao município: quem preenche
-      ainda não é cliente, não tem token e não tem organização. Exigir
-      `organizacao_id` aqui seria exigir que a pessoa já pertencesse ao que ela
-      está pedindo para conhecer.
-
-      A isenção NÃO é buraco, e o teste logo abaixo prova isso: o papel de
-      aplicação insere e NÃO lê. Sem SELECT, um formulário aberto na internet
-      não consegue virar uma lista de contatos de servidores públicos.
-    */
-    "interesse_municipio",
-    /*
-      Os operadores do CONSOLE DO FORNECEDOR (migração 038). Não são de
-      município nenhum: são as contas de quem opera a plataforma, e a tabela
-      existe fora de qualquer tenant, como `organizacoes` existe acima deles.
-      Ela é do fornecedor e só o papel do console a alcança; o que a prende
-      não é `organizacao_id`, é o par de policies amarradas ao operador da
-      sessão (`console_operador_atual()`), cobrado no bloco de tabelas do
-      fornecedor logo abaixo.
-    */
-    "console_operadores",
-    /*
-      Os CÓDIGOS DE RECUPERAÇÃO de senha desses operadores (migração 039).
-      Mesma razão: são do fornecedor, não de município nenhum. O que os
-      prende é a policy amarrada ao operador da sessão, cobrada no bloco de
-      tabelas do fornecedor logo abaixo, e o caso-irmão em
-      `db/test/recuperacao-do-console.test.ts` (operador não vê nem insere
-      código de outro).
-    */
-    "console_codigos_de_recuperacao",
-  ]);
-
-  /**
-   * Quem não se amarra ao contexto do município, e por quê.
-   *
-   * Muito mais estreita que `SEM_TENANT`: aqui só entra tabela que existe
-   * ANTES de qualquer município. `organizacoes` e `protocolo_sequencias` não
-   * têm a coluna e mesmo assim têm policy de contexto, e continuam checadas.
-   */
-  const SEM_POLICY_DE_TENANT = new Set(["interesse_municipio"]);
+    Quem esteve no conjunto antigo e a razão de cada um: `organizacoes` (a raiz
+    do tenant), `interesse_municipio` (anterior ao município, escreve e não
+    lê), `console_operadores` e `console_codigos_de_recuperacao` (do fornecedor,
+    migrações 038 e 039). `protocolo_sequencias` estava no conjunto antigo sem
+    precisar: tem `organizacao_id` e policy de contexto, e a conferência nominal
+    recusa exceção de que a tabela não precisa.
+  */
+  const SEM_POLICY_DE_TENANT = new Set(
+    EXCECOES_AO_ISOLAMENTO.filter((e) => e.semPolicyDeTenant).map((e) => e.tabela),
+  );
 
   /**
    * AS TABELAS DO FORNECEDOR (migrações 038 e 039), e a regra própria delas.
@@ -342,16 +320,18 @@ describe("CA-06: isolamento entre organizações", () => {
       /*
         Isenção ESTREITA, e de propósito.
 
-        `SEM_TENANT` é a lista de quem não tem a COLUNA `organizacao_id`, e
-        usá-la aqui seria isentar demais: `organizacoes` e
-        `protocolo_sequencias` não têm a coluna e TÊM policy amarrada ao
-        contexto, então precisam continuar sendo verificadas. Usar a lista
+        A lista de quem não tem a COLUNA `organizacao_id` (`semOrganizacaoId`
+        em `EXCECOES_AO_ISOLAMENTO`) é larga, e usá-la aqui seria isentar
+        demais: `organizacoes` não tem a coluna e TEM policy amarrada ao
+        contexto, então precisa continuar sendo verificada. Usar a lista
         larga aqui enfraqueceria o portão para fazer um teste passar, que é
         exatamente o que ele existe para impedir.
 
-        Só `interesse_municipio` é isenta, porque é anterior ao município: não
-        há contexto a que se amarrar. O teste logo abaixo prova que a isenção
-        não abre buraco.
+        Só quem declara `semPolicyDeTenant` é isenta, e hoje é só
+        `interesse_municipio`, porque é anterior ao município: não há contexto
+        a que se amarrar. O teste logo abaixo prova que a isenção não abre
+        buraco, e a conferência nominal recusa a isenção de tabela que TEM
+        policy de tenant.
       */
       if (SEM_POLICY_DE_TENANT.has(t)) continue;
       const r = await db.query<{
@@ -444,19 +424,15 @@ describe("CA-06: isolamento entre organizações", () => {
     }
   });
 
-  it("toda tabela de negócio carrega a coluna organizacao_id", async () => {
-    for (const t of await tabelasDeNegocio()) {
-      if (SEM_TENANT.has(t)) continue;
-      const r = await db.query<{ existe: boolean }>(
-        `SELECT EXISTS (
-           SELECT 1 FROM information_schema.columns
-            WHERE table_schema='public' AND table_name=$1 AND column_name='organizacao_id'
-              AND is_nullable = 'NO'
-         ) AS existe`,
-        [t],
-      );
-      expect(r.rows[0]!.existe, `${t} não tem organizacao_id obrigatório`).toBe(true);
-    }
+  it("toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO", async () => {
+    /*
+      A conferência é nominal e nos dois sentidos (`catalogo/conferir.ts`, e as
+      sondas que a fazem reprovar em `db/test/catalogo-nominal.test.ts`):
+      tabela sem a coluna fora da lista reprova; entrada na lista cuja tabela
+      não existe, ou que não precisa da exceção, também.
+    */
+    expect((await tabelasDeNegocio()).length).toBeGreaterThan(0);
+    expect(await conferirExcecoes(db, EXCECOES_AO_ISOLAMENTO)).toEqual([]);
   });
 
   it("toda referência entre tabelas de negócio inclui a organização", async () => {
@@ -484,7 +460,7 @@ describe("CA-06: isolamento entre organizações", () => {
       /*
         `console_operadores.criado_por` aponta para a própria tabela (quem
         criou o operador), e a tabela não tem município: é do fornecedor
-        (migração 038, e a isenção em `SEM_TENANT`). Não há "outro município"
+        (migração 038, e a exceção nominal em `EXCECOES_AO_ISOLAMENTO`). Não há "outro município"
         a alcançar por ela. É a única referência isenta, e por nome: uma
         chave nova numa tabela nova continua reprovando aqui.
       */
@@ -526,131 +502,28 @@ describe("Funções privilegiadas", () => {
     return r.rows;
   }
 
-  it("existem, e são poucas o bastante para caberem numa revisão", async () => {
+  it("existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)", async () => {
     const lista = await definidoras();
     expect(lista.length).toBeGreaterThan(0);
     /*
-      Se este número disparar, alguém está resolvendo com privilégio o que
-      deveria resolver com contexto de tenant.
-
-      Subiu de 12 para 13 em 09/09/2026, por `abrir_oficio` (migração 017), e a
-      razão é a mesma que já justifica `credenciais_para_login` e
-      `consumir_recuperacao`: quem clica no link de uso único do ofício é uma
-      pessoa do órgão destinatário, sem conta, sem token e sem município. Não
-      existe contexto de tenant a definir antes de descobrir de qual município
-      é o link, e o único caminho até essa organização é o hash do próprio
-      link. Levantar o teto por isso é diferente de levantá-lo para não
-      escrever o `SET LOCAL`, e é essa diferença que este caso guarda.
-
-      Subiu de 13 para 14 em 09/09/2026, por `minimizar_por_prazo` (migração
-      021), pela mesma razão de `varrer_prazos`: ela roda num relógio, sem
-      ninguém logado, então não existe token, não existe município no contexto
-      e o papel de aplicação não enxergaria uma linha sequer. Sem contexto, ela
-      não teria nem como descobrir QUAIS municípios têm prazo vencido. A
-      alternativa seria a aplicação carregar a lista de municípios por fora do
-      RLS, que é a mesma porta com o cadeado do lado de dentro. Os casos do
-      bloco "Minimizacao por prazo e registro de consulta", mais abaixo,
-      guardam o tamanho desta porta: sem município de parâmetro, sem prazo de
-      parâmetro, e sem dado de pessoa na saída.
-
-      Subiu de 14 para 15 em 09/09/2026, por `municipios_a_resumir` (migração
-      026), e pela terceira vez pela mesma razão: é um relógio, sem ninguém
-      logado. `resumir_municipio()` é SECURITY INVOKER de propósito (a métrica é
-      escrita pelo próprio município, debaixo do RLS dele, e é essa inversão que
-      sustenta a ADR 0008), então quem a chama precisa JÁ estar no contexto de um
-      município. O relógio não estaria: sem contexto, o papel de aplicação não
-      enxerga uma linha de `organizacoes` e não teria como descobrir para quem
-      chamar. Esta é a menor das quinze portas: devolve `setof uuid` e nada mais,
-      não aceita município de parâmetro, e não alcança tabela de negócio nenhuma.
-      Os casos do bloco "O relogio que descobre para quem chamar o resumo", no
-      fim deste arquivo, guardam esses três limites.
-
-      Subiu de 15 para 16 em 14/09/2026, por `provisionar_municipio` (migração
-      036), e desta vez a razão é OUTRA. As três anteriores entraram porque não
-      existia contexto de município a definir; esta entra porque quem chama não
-      pode ter privilégio nenhum. O console do fornecedor precisa criar a
-      prefeitura e o primeiro administrador dela, e a alternativa seria dar
-      INSERT em `organizacoes` e `usuarios` ao papel `dc360_console`, que é
-      exatamente o que a decisão 3 da ADR 0008 proíbe: privilégio de tabela não
-      se divide em "só escrever", e com ele o console criaria administrador
-      dentro de município que já existe.
-
-      Esta é a única porta deste banco aberta para um papel que não é o de
-      aplicação, e por isso ela é a mais vigiada: o bloco "A porta de criar
-      municipio, e por que ela nao serve para ler", mais abaixo, cobra a forma
-      dela (dois uuid de saída, nenhum parâmetro que vire consulta, nenhuma
-      tabela de negócio no corpo) e cobra que o console continue sem privilégio
-      em tabela nenhuma depois de usá-la.
-
-      Subiu de 16 para 22 em 15/09/2026, pela migração 038, e são seis de uma
-      vez porque a feature é uma só: suspender e eliminar município, com o
-      console escrevendo INTENÇÃO e o relógio da API executando o
-      irreversível, guardado pelo estado no banco.
-
-      Quatro são do console (`console_suspender_municipio`,
-      `console_reativar_municipio`, `console_agendar_eliminacao`,
-      `console_cancelar_eliminacao`), e entram pela razão da
-      `provisionar_municipio`: quem chama não pode ter privilégio nenhum. O
-      console não tem UPDATE em `organizacoes` nem em `sessoes`, nem INSERT
-      em `trilha_administrativa`, e não pode ter (decisão 3 da ADR 0008). As
-      quatro exigem que o operador da sessão seja o dono do console, e não
-      leem nada: devolvem inteiro, void ou uma data.
-
-      Duas são do relógio (`executar_eliminacoes_vencidas`,
-      `concluir_eliminacao`), e entram pela razão de `varrer_prazos`: rodam
-      sem ninguém logado e sem município no contexto, e apagam linha em
-      tabelas que não têm policy de DELETE para papel nenhum. São as ÚNICAS
-      funções do banco que apagam dado de município, e por isso são as mais
-      vigiadas: só agem no que está vencido, não cancelado E marcado na
-      organização (marca que só a função do console escreve), conferem que
-      restou zero linha depois de cada DELETE, e estouram nomeando a tabela
-      se o dono das tabelas for barrado pela RLS (armadilha da 037). Os casos
-      estão em `db/test/eliminacao-de-municipio.test.ts`.
-
-      Subiu de 22 para 23 no mesmo dia, por `eliminacoes_pendentes` (038),
-      pela razão de `municipios_a_resumir`: a rota de saúde da API precisa
-      dizer se o relógio tem trabalho, e o papel de aplicação não enxerga uma
-      linha de `organizacoes` sem município no contexto. É a menor porta do
-      banco: sem parâmetro, devolve dois inteiros (agendadas, vencidas) e
-      nenhum nome nem id. O caso "a rota de saude conta agendadas e vencidas"
-      cobra a forma dela no catálogo.
-
-      Subiu de 23 para 26 em 15/09/2026, pela migração 039: recuperação de
-      senha dos operadores do console, inclusive do dono, por códigos de
-      recuperação. São três, e entram por duas razões que este arquivo já
-      conhece.
-
-      `console_renovar_codigos` entra pela razão de `provisionar_municipio`:
-      quem chama não pode ter privilégio. Gerar códigos novos marca os
-      anteriores como usados, que é um UPDATE, e o console não tem UPDATE na
-      tabela de códigos (com ele, uma sessão comprometida desmarcaria um
-      código gasto). Exige o operador da sessão, ativo, e devolve um inteiro.
-
-      `console_recuperacao_por_email` e `console_consumir_recuperacao` entram
-      pela razão de `credenciais_para_login` e `consumir_recuperacao` (002 e
-      005): quem perdeu a senha NÃO TEM SESSÃO, então não existe operador no
-      contexto e a policy de SELECT da tabela, amarrada ao operador da sessão,
-      devolveria vazio. A primeira é a única função do banco que devolve hash
-      de credencial sem sessão, e o que a mantém estreita é a forma dela: três
-      colunas (id do operador, id do código, hash do CÓDIGO), sem nome, sem
-      papel e sem `senha_hash`; email inexistente e operador inativo devolvem
-      vazio, nunca erro, para o console não revelar quem existe. A segunda
-      gasta o código e troca senha E segundo fator, escrevendo como dono das
-      tabelas com `row_security = off`: com um dono sem BYPASSRLS ela estoura
-      em vez de dizer "senha redefinida" com a senha velha no lugar. Os casos
-      estão em `db/test/recuperacao-do-console.test.ts`.
-
-      Subiu de 26 para 27 em 15/09/2026, por `varrer_tarefas_novas` (migração
-      042), pela razão exata de `varrer_prazos`: o aviso de tarefa nova é
-      enfileirado pelo despacho, dentro do contexto do município, mas quem o
-      ENVIA é o relógio, sem ninguém logado, e sem município no contexto o
-      papel de aplicação não enxergaria uma pendente sequer. Mesma forma da
-      irmã, e mais estreita na saída: sem município de parâmetro, sem filtro
-      de quem chama, e não devolve protocolo nem endereço. O bloco "O aviso de
-      despacho nasce na aplicacao, pela porta estreita da 042" guarda a forma.
+      O TETO NUMÉRICO (`<= 27`) MORREU aqui (V2-F03-E08, parte 0B, premissa
+      P-03 do plano da F03). Um teto deixa passar a função errada que ocupa a
+      vaga de outra, e a história de por que cada vaga existia vivia num
+      comentário de 120 linhas. Agora cada função `SECURITY DEFINER` tem NOME,
+      motivo e a forma de conferir o tenant em `db/test/catalogo/` (as 27 de
+      hoje em `base.ts`, a história de cada subida do teto no `motivo` de
+      cada uma), e a conferência vale nos dois sentidos:
+        - função SECURITY DEFINER no banco fora da lista reprova;
+        - nome na lista sem a função no banco reprova;
+        - o EXECUTE concedido tem de ser exatamente o declarado (nunca PUBLIC);
+        - dívida de tenant (`ainda_nao_confere`) exige a etapa que a paga.
+      Quem cria função privilegiada na F03 a lista no catálogo da própria
+      etapa. Se este caso reprovar, alguém está resolvendo com privilégio o que
+      deveria resolver com contexto de tenant, ou esqueceu de dizer por quê.
+      As sondas que fazem esta conferência reprovar estão em
+      `db/test/catalogo-nominal.test.ts`.
     */
-    expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(27);
+    expect(await conferirFuncoesPrivilegiadas(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -3992,28 +3865,14 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     const colunas = doApp.filter((a) => a.especie === "coluna");
     expect(
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
-      "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
-      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id), 029 (observacao), " +
-      "031 (o bloco de encerramento da saida a campo), 032 (a chave da " +
-      "prorrogacao) e 035 (a decisao sobre o objeto orfao) fazem",
-    ).toEqual([
-      "devolucoes_de_tarefa.observacao:UPDATE",
-      "devolucoes_de_tarefa.observacao_removida_em:UPDATE",
-      "objetos_orfaos.decidido_em:UPDATE",
-      "objetos_orfaos.decidido_por:UPDATE",
-      "objetos_orfaos.decisao:UPDATE",
-      "objetos_orfaos.decisao_motivo:UPDATE",
-      "oficio_envios.desfecho:UPDATE",
-      "oficio_envios.detalhe:UPDATE",
-      "oficio_envios.provedor_id:UPDATE",
-      "saidas_a_campo.desfecho:UPDATE",
-      "saidas_a_campo.encerrada_em:UPDATE",
-      "saidas_a_campo.encerrada_por:UPDATE",
-      "saidas_a_campo.observacao:UPDATE",
-      "saidas_a_campo.prorrogacao_key:UPDATE",
-      "saidas_a_campo.prorrogacoes:UPDATE",
-      "saidas_a_campo.retorno_previsto_em:UPDATE",
-    ]);
+      "a varredura de privilegio de coluna nao bate com COLUNAS_COM_UPDATE_DO_APP " +
+      "(db/test/catalogo/): privilegio de coluna que o banco tem e a lista nao nomeia, ou " +
+      "entrada da lista que o banco nao tem. As de hoje vem das migracoes 017 (desfecho, " +
+      "detalhe), 027 (provedor_id), 029 (observacao), 031 (o bloco de encerramento da saida " +
+      "a campo), 032 (a chave da prorrogacao) e 035 (a decisao sobre o objeto orfao)",
+    ).toEqual(
+      COLUNAS_COM_UPDATE_DO_APP.map((c) => `${c.tabela}.${c.coluna}:UPDATE`).sort(),
+    );
 
     // E a ancora do caminho das funcoes privilegiadas.
     const funcoes = new Set(doApp.filter((a) => a.especie === "funcao").map((a) => a.relacao));

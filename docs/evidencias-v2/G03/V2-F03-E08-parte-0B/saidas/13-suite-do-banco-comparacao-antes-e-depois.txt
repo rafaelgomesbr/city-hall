@@ -1,0 +1,53 @@
+ANTES  total 454 passou 440 falhou 8 pulado 6
+DEPOIS total 483 passou 469 falhou 8 pulado 6
+
+Casos que existiam antes e nao existem depois (renomeados ou removidos):
+  - test/desfazer-migracao.test.ts :: com as migrações de verdade: o isolamento sobrevive ao ciclo uma 053 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato [passed]
+  - test/isolamento.test.ts :: CA-06: isolamento entre organizações toda tabela de negócio carrega a coluna organizacao_id [passed]
+  - test/isolamento.test.ts :: Funções privilegiadas existem, e são poucas o bastante para caberem numa revisão [passed]
+
+Casos novos:
+  + test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) as funções privilegiadas listadas são exatamente as do banco [passed]
+  + test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) as exceções ao isolamento listadas são exatamente as do banco [passed]
+  + test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) a lista nominal tem os nomes de hoje, sem teto numérico [passed]
+  + test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) a dívida de tenant de hoje está declarada, com a etapa que a paga [passed]
+  + test/catalogo-nominal.test.ts :: sonda 1: função SECURITY DEFINER fora da lista reprova uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista [passed]
+  + test/catalogo-nominal.test.ts :: sonda 1: função SECURITY DEFINER fora da lista reprova a função de uma etapa que o catálogo ainda não conhece (nome de função da F03) reprova [passed]
+  + test/catalogo-nominal.test.ts :: sonda 2: sobrecarga de uma função listada reprova mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos [passed]
+  + test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova uma função que não existe no banco [passed]
+  + test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova uma função listada que deixou de ser SECURITY DEFINER [passed]
+  + test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova tirar a função da lista (o caminho inverso) também reprova [passed]
+  + test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE tem de ser exatamente o declarado EXECUTE concedido a PUBLIC [passed]
+  + test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE tem de ser exatamente o declarado EXECUTE concedido ao console numa função que só a aplicação executa [passed]
+  + test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE tem de ser exatamente o declarado quemExecuta lê a ACL: dono fora, PUBLIC como PUBLIC, ACL nula como PUBLIC [passed]
+  + test/catalogo-nominal.test.ts :: sonda 5: o que a entrada diz precisa ser verdade e ter dono dívida de tenant sem a etapa que a paga [passed]
+  + test/catalogo-nominal.test.ts :: sonda 5: o que a entrada diz precisa ser verdade e ter dono motivo de enchimento [passed]
+  + test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova uma tabela nova sem a coluna [passed]
+  + test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna [passed]
+  + test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova declarar a tabela como exceção, com motivo, é o caminho certo e passa [passed]
+  + test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) [passed]
+  + test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que não existe [passed]
+  + test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`) [passed]
+  + test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que TEM policy de tenant: isenção de policy desnecessária [passed]
+  + test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova entrada que não declara exceção nenhuma [passed]
+  + test/catalogo-nominal.test.ts :: sonda 8: a junção das contribuições das etapas as 13 etapas da F03 estão no catálogo, vazias, mais a base [passed]
+  + test/catalogo-nominal.test.ts :: sonda 8: a junção das contribuições das etapas a mesma função em duas etapas, sem redefine, é erro [passed]
+  + test/catalogo-nominal.test.ts :: sonda 8: a junção das contribuições das etapas redefine: true substitui a entrada anterior (a etapa que muda a forma de conferir o tenant) [passed]
+  + test/catalogo-nominal.test.ts :: sonda 8: a junção das contribuições das etapas redefine: true sem entrada anterior é erro (nome errado) [passed]
+  + test/catalogo-nominal.test.ts :: sonda 8: a junção das contribuições das etapas a mesma exceção ou a mesma coluna em duas etapas é erro [passed]
+  + test/desfazer-migracao.test.ts :: o número da migração de prova é calculado (a última real mais um) vai depois da última real, qualquer que seja ela, sem depender do CLI [passed]
+  + test/desfazer-migracao.test.ts :: com as migrações de verdade: o isolamento sobrevive ao ciclo uma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato [passed]
+  + test/isolamento.test.ts :: CA-06: isolamento entre organizações toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO [passed]
+  + test/isolamento.test.ts :: Funções privilegiadas existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando) [passed]
+
+Casos com status diferente:
+
+Falhas depois:
+  x test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com AMBIENTE_DC360=prod: código 1, sem conectar
+  x test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+  x test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com a porta 6543 (pooler): código 2, sem conectar
+  x test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) --desfazer com --semear: código 2
+  x test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco efêmero vazio: nada a desfazer, código 0
+  x test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+  x test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a URL de um banco hospedado de HML: código 1
+  x test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
