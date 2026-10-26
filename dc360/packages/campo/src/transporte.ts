@@ -219,6 +219,15 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
   const base = baseUrl.replace(/\/$/, "");
   // Só nos pedidos à API (`pedir`), nunca no PUT da URL assinada (`enviarBytes`).
   const daVersao = cabecalhosDaVersao(versaoDoAplicativo);
+  /**
+   * A última resposta da API foi 426 (V2-F02-E06, correção 1). Enquanto for
+   * verdade, o token é pedido SEM renovação antecipada: o 426 vem antes da
+   * autenticação, e renovar por antecipação a cada dreno só gastaria uma
+   * tentativa contra a mesma recusa. Cai na primeira resposta que não seja 426
+   * (erro de rede não conta: não diz nada sobre a versão) e some com o processo,
+   * que é o que a atualização do aplicativo reinicia.
+   */
+  let versaoRecusada = false;
 
   /**
    * Um pedido com token, tempo limite e a renovacao de uma vez so.
@@ -237,14 +246,14 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
     metodo: string,
     mensagemDeRede: string,
   ): Promise<{ resposta: Response; corpo: Record<string, unknown> | null }> {
-    const token = await obterToken();
+    const token = await (versaoRecusada ? obterToken({ semRenovar: true }) : obterToken());
     if (!token) throw falhaDeSessao("sessao_encerrada");
 
     async function uma(comToken: string): Promise<Response> {
       const cancelador = new AbortController();
       const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs);
       try {
-        return await buscar(`${base}${caminho}`, {
+        const resposta = await buscar(`${base}${caminho}`, {
           method: metodo,
           headers: {
             "content-type": "application/json",
@@ -254,6 +263,8 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
           body: corpoDoPedido === undefined ? undefined : JSON.stringify(corpoDoPedido),
           signal: cancelador.signal,
         });
+        versaoRecusada = resposta.status === 426;
+        return resposta;
       } catch (erro) {
         // Rede fora, DNS falhando, tempo esgotado: tudo isso melhora sozinho.
         throw new FalhaTemporaria(mensagemDeRede, erro);

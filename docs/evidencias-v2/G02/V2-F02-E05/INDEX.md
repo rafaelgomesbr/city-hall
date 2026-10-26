@@ -20,3 +20,6 @@
 | saidas/12-test-scripts.txt | 69eab555d62494c51a9c2f2fc2215e4b6bc62d3d23a7959ea7c8c1f68f95e7be |
 | saidas/13-regras-de-conteudo.txt | a8f7a69fcbf354c7ed4c14136543b10ac94531ab55c2e8101ccea181c66af0a4 |
 | saidas/14-conferir-indices.txt | dd39d03aa2b6fb1dd3a71fbfb4d113c8851e72daecf9fd2973606ad45eef1088 |
+| correcao-1/RESUMO.md | 0b12972097cfcd49817206a05602212e55b226094d9f8e1e0b691ed076adbf5c |
+| correcao-1/saidas/01-item3-ANTES.txt | 79a0be473df69d3afaf61dc7971c0eced3083004ff9b32c68d6fe8953a5abe04 |
+| correcao-1/saidas/02-item3-DEPOIS.txt | e6b81e02e44a5e875bb3a5ac2ab0b6c677a685a2497610f3f58d6ae8a8ea19e7 |

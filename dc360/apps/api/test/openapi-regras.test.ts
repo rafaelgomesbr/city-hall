@@ -253,7 +253,8 @@ describe("mais de um status de sucesso (`tambemResponde`, parte 4B)", () => {
       ...base,
       tambemResponde: [{ status: 200, descricao: "Reenvio: a mesma coisa." }],
     });
-    expect(Object.keys(respostas).sort()).toEqual(["200", "201"]);
+    /* O 426 é o do gancho de versão do /v1, global e derivado (V2-F02-E04, correção 1). */
+    expect(Object.keys(respostas).sort()).toEqual(["200", "201", "426"]);
     expect(respostas["200"]!.description).toBe("Reenvio: a mesma coisa.");
     expect(respostas["200"]!.content).toEqual(respostas["201"]!.content);
   });

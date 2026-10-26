@@ -456,8 +456,20 @@ export class FalhaDeSessao extends Error {
  * UM token novo. Quem implementa continua dono da trava de renovação e do piso
  * entre tentativas, e devolve o MESMO token quando não renovou: é assim que o
  * transporte sabe que repetir seria inútil.
+ *
+ * Com `semRenovar`, é o pedido do transporte enquanto a última resposta da API
+ * foi 426 (`versao_do_aplicativo_antiga`, V2-F02-E06): o servidor recusa o
+ * APLICATIVO antes de autenticar, então renovar o token por antecipação só
+ * gastaria uma tentativa contra a mesma recusa a cada dreno da fila. Quem
+ * implementa devolve o token que vale agora, perto de vencer ou não, e não toca
+ * a trava nem o piso entre tentativas. Dura até a primeira resposta que não
+ * seja 426; um 401 `nao_autenticado` nessa volta ainda leva ao pedido
+ * `renovarJa`, que renova uma vez como sempre.
  */
-export type ObterToken = (pedido?: { renovarJa?: boolean }) => Promise<string | null>;
+export type ObterToken = (pedido?: {
+  renovarJa?: boolean;
+  semRenovar?: boolean;
+}) => Promise<string | null>;
 
 /**
  * A coleta como ela SAI da fila para virar rascunho de novo.

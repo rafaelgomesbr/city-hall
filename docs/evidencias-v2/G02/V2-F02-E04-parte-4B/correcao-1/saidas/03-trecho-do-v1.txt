@@ -1,0 +1,75 @@
+POST /v1/sincronizacao/vistoria (parameters do cabeçalho e resposta 426):
+{
+  "parameters": [
+    {
+      "name": "x-app-version",
+      "in": "header",
+      "required": false,
+      "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+      "schema": {
+        "type": "string"
+      }
+    }
+  ],
+  "r426": {
+    "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+    "x-codigos-de-erro": [
+      "versao_do_aplicativo_antiga"
+    ],
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+        }
+      }
+    }
+  }
+}
+
+components.schemas.VersaoDoAplicativoAntiga:
+{
+  "type": "object",
+  "properties": {
+    "erro": {
+      "type": "string",
+      "const": "versao_do_aplicativo_antiga"
+    },
+    "mensagem": {
+      "type": "string"
+    },
+    "versaoMinima": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "erro",
+    "mensagem",
+    "versaoMinima"
+  ],
+  "additionalProperties": false
+}
+
+GET /v1/aplicativos/{aplicativo}/versao-minima (sem cabeçalho e sem 426):
+{
+  "parameters": [
+    {
+      "name": "aplicativo",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "enum": [
+          "campo",
+          "cidadao"
+        ],
+        "description": "campo ou cidadao"
+      }
+    }
+  ],
+  "respostas": [
+    "200",
+    "404"
+  ]
+}
+
+operações: 96, com 426: 95

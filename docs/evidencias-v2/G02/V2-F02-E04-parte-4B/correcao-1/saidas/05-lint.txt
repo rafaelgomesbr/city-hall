@@ -1,0 +1,11 @@
+
+> dc360@0.1.0 lint
+> node scripts/lint.mjs
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+exit 0

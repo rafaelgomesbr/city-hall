@@ -1,0 +1,11 @@
+PASS src/dados/renovacao-com-versao-antiga.test.ts
+PASS src/dados/token.test.ts
+(node:17828) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/versao-do-aplicativo.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       32 passed, 32 total
+Snapshots:   0 total
+Time:        1.78 s, estimated 2 s
+Ran all test suites matching /src\\dados\\renovacao-com-versao-antiga.test.ts|src\\dados\\token.test.ts|src\\dados\\versao-do-aplicativo.test.ts/i.

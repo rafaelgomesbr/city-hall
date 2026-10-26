@@ -17,6 +17,7 @@ import {
   fetchNaBase,
   pularGenerico,
   semComentarios,
+  usosDeRedeDoGlobal,
   usosDeRedeFora,
   type Chamada,
   type Extracao,
@@ -736,6 +737,19 @@ describe("Todo fetch de cliente passa por chamar ou pela base", () => {
     );
   });
 
+  it("arquivo coberto cujo perfil não declara fetch não chama fetch, nem qualificado (correção 1)", () => {
+    const aChamar: string[] = [];
+    for (const c of CLIENTES) {
+      for (const a of c.arquivos) {
+        if (a.perfil.funcoes.some((f) => f.nome === "fetch")) continue;
+        for (const uso of usosDeRedeDoGlobal(textoDoCliente(a))) {
+          aChamar.push(`${a.arquivo} linha ${uso.linha}: ${uso.texto.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(aChamar, "fetch em arquivo coberto cujo perfil só lê outras funções").toEqual([]);
+  });
+
   it("toda lista de exceção tem razão escrita e arquivo que existe", () => {
     for (const [arquivo, razao] of REDE_FORA_DO_CONTRATO) {
       expect(razao.length, arquivo).toBeGreaterThan(30);
@@ -941,6 +955,80 @@ describe("Casos sintéticos: o teste teria pego o defeito", () => {
     );
     expect(naBase.naoLidas).toEqual([]);
     expect(naBase.faltando).toEqual([]);
+  });
+
+  it.each(["globalThis", "window", "self"])(
+    "%s.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1)",
+    (global) => {
+      const certa = conferir(
+        `await ${global}.fetch(\`\${BASE}/ocorrencias\`, { method: "GET" });`,
+        PERFIL_DO_PAINEL,
+      );
+      expect(certa.contadas).toBe(1);
+      expect(certa.extraidas).toBe(1);
+      expect(certa.faltando).toEqual([]);
+      // O defeito da revisão: rota que não existe, chamada pela forma qualificada, passava calada.
+      const inexistente = conferir(
+        `await ${global}.fetch(\`\${BASE}/rota-que-nao-existe\`, { method: "DELETE" });`,
+        PERFIL_DO_PAINEL,
+      );
+      expect(inexistente.contadas).toBe(1);
+      expect(inexistente.extraidas).toBe(1);
+      expect(inexistente.faltando).toHaveLength(1);
+      // Fora da base e de variável, a forma qualificada também é chamada não lida.
+      const solta = conferir(
+        `await ${global}.fetch("https://exemplo.com.br/api/x");`,
+        PERFIL_DO_PAINEL,
+      );
+      expect(solta.contadas).toBe(1);
+      expect(solta.naoLidas).toHaveLength(1);
+    },
+  );
+
+  it("o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova", () => {
+    const painel = CLIENTES[0]!;
+    const arquivo = painel.arquivos[0]!;
+    const base = resultadoDe(painel, arquivo);
+    const com = conferirArquivo(
+      `${textoDoCliente(arquivo)}\nawait globalThis.fetch(\`\${BASE}/rota-que-nao-existe\`, { method: "DELETE" });\n`,
+      arquivo.arquivo,
+      arquivo.perfil,
+      registroDaApi,
+      expansoesDoPainel(),
+    );
+    expect(com.contadas).toBe(base.contadas + 1);
+    expect(com.extraidas).toBe(base.extraidas + 1);
+    expect(com.faltando).toHaveLength(base.faltando.length + 1);
+    expect(com.faltando.some((f) => f.includes("/rota-que-nao-existe"))).toBe(true);
+  });
+
+  it("fetch por colchetes (globalThis['fetch'](...)) conta e reprova como não lido", () => {
+    const r = conferir(
+      "await globalThis['fetch'](`${BASE}/rota-que-nao-existe`, { method: 'DELETE' });",
+      PERFIL_DO_PAINEL,
+    );
+    expect(r.contadas).toBe(1);
+    expect(r.extraidas).toBe(0);
+    expect(r.naoLidas).toHaveLength(1);
+  });
+
+  it("método de outro objeto chamado fetch NÃO é o fetch global", () => {
+    const r = conferir(
+      "await cliente.fetch(`${BASE}/rota-que-nao-existe`); await a.globalThis.fetch(x);",
+      PERFIL_DO_PAINEL,
+    );
+    expect(r.contadas).toBe(0);
+    expect(r.extraidas).toBe(0);
+    expect(r.naoLidas).toEqual([]);
+  });
+
+  it("a varredura de arquivo coberto acha fetch qualificado quando o perfil não declara fetch", () => {
+    expect(usosDeRedeDoGlobal("await globalThis.fetch(url);")).toHaveLength(1);
+    expect(usosDeRedeDoGlobal("await window.fetch(url);")).toHaveLength(1);
+    expect(usosDeRedeDoGlobal("await self.fetch(url);")).toHaveLength(1);
+    expect(usosDeRedeDoGlobal("await globalThis['fetch'](url);")).toHaveLength(1);
+    expect(usosDeRedeDoGlobal("await fetch(url);")).toHaveLength(1);
+    expect(usosDeRedeDoGlobal("const r = buscar(url); cliente.fetch(url);")).toEqual([]);
   });
 
   it("uma URL assinada só passa quando a expressão está declarada", () => {

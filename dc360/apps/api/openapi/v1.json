@@ -12,6 +12,17 @@
           "conta"
         ],
         "summary": "Registra (ou atualiza) o aparelho de quem está logado para receber notificação.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -100,6 +111,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "push_desligado: Notificação por push desligada; push_android_desligado: Push para Android desligado",
             "x-codigos-de-erro": [
@@ -123,6 +147,17 @@
           "conta"
         ],
         "summary": "Revoga o aparelho de quem está logado (204 mesmo quando não havia o que revogar).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -169,6 +204,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
                 }
               }
             }
@@ -264,6 +312,17 @@
           "conta"
         ],
         "summary": "Quanto o município ocupa do armazenamento e qual é o teto dele.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Bytes usados, teto e margem (nulos quando o município não tem teto) e a situação calculada pelo banco.",
@@ -348,6 +407,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -358,6 +430,17 @@
           "autenticacao"
         ],
         "summary": "Encerra as OUTRAS sessões da própria conta; a atual continua aberta.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Quantas sessões foram encerradas e a frase para mostrar à pessoa.",
@@ -396,6 +479,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -406,6 +502,17 @@
           "autenticacao"
         ],
         "summary": "Entra com email e senha (pública); a segunda etapa pode ser exigida.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -600,6 +707,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -635,6 +755,17 @@
           "autenticacao"
         ],
         "summary": "Quem sou eu, lido do token verificado.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "A identidade da sessão.",
@@ -689,6 +820,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -699,6 +843,17 @@
           "autenticacao"
         ],
         "summary": "Diz se a recuperação de senha por email está ligada neste servidor (pública).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Interruptor do servidor inteiro, igual para todos os municípios.",
@@ -718,6 +873,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -728,6 +896,17 @@
           "autenticacao"
         ],
         "summary": "Pede o link de redefinição de senha por email (pública).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -782,6 +961,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -817,6 +1009,17 @@
           "autenticacao"
         ],
         "summary": "Redefine a senha com o token do link; nenhuma sessão nasce daqui (pública).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -889,6 +1092,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -924,6 +1140,17 @@
           "autenticacao"
         ],
         "summary": "Troca o token de renovação por um par novo; o usado é revogado (pública).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1077,6 +1304,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -1112,6 +1352,17 @@
           "autenticacao"
         ],
         "summary": "Encerra a sessão (pública); com a ficha do aparelho, cala também a notificação dele.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1153,6 +1404,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -1163,6 +1427,17 @@
           "autenticacao"
         ],
         "summary": "Segunda etapa do login: o código de seis dígitos ou um código de recuperação (pública).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1322,6 +1597,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais; bloqueado: Tentativas de entrada demais",
             "x-codigos-de-erro": [
@@ -1358,6 +1646,17 @@
           "autenticacao"
         ],
         "summary": "Lista as sessões vivas da própria conta (sem IP e sem user-agent completo).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As sessões vivas da conta; `atual` marca a de onde o pedido veio e `aparelho` é navegador e sistema em uma frase.",
@@ -1414,6 +1713,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -1424,6 +1736,17 @@
           "autenticacao"
         ],
         "summary": "Troca a própria senha, exigindo a atual, e encerra as outras sessões.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1507,6 +1830,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -1536,6 +1872,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1664,6 +2009,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -1674,6 +2032,17 @@
           "conta"
         ],
         "summary": "Marca como lidos os avisos informados, só os que a pessoa pode ver.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1746,6 +2115,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -1765,6 +2147,15 @@
               "type": "string",
               "minLength": 2,
               "maxLength": 100
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1957,6 +2348,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -1979,6 +2383,17 @@
           "campo"
         ],
         "summary": "A tela do agente: a equipe dele, os chamados da equipe e as vistorias que ele já concluiu.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sem equipe, a resposta traz `equipe: null` e as três listas vazias (sem os totais). Com equipe, traz as listas, o total real de concluídas e o teto da lista.",
@@ -2356,6 +2771,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -2366,6 +2794,17 @@
           "conta"
         ],
         "summary": "O que o painel precisa saber do ambiente (a chave do mapa), igual para todos os municípios.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "A chave do mapa (vazia quando não há) e se o mapa está autorizado.",
@@ -2402,6 +2841,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -2421,6 +2873,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2500,6 +2961,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -2519,6 +2993,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2599,6 +3082,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "pdf_indisponivel: Geração de PDF indisponível",
             "x-codigos-de-erro": [
@@ -2630,6 +3126,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2710,6 +3215,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -2729,6 +3247,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2812,6 +3339,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -2831,6 +3371,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2915,6 +3464,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "pdf_indisponivel: Geração de PDF indisponível",
             "x-codigos-de-erro": [
@@ -2945,6 +3507,15 @@
             "schema": {
               "type": "string",
               "pattern": "^[0-9A-Fa-f]{12}$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3087,6 +3658,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -3097,6 +3681,17 @@
           "administracao"
         ],
         "summary": "Lista as equipes do município.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As equipes por nome, com quantas ocorrências em atendimento cada uma tem (campo `em_atendimento`, igual à coluna).",
@@ -3164,6 +3759,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -3172,6 +3780,17 @@
           "administracao"
         ],
         "summary": "Cadastra uma equipe.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3280,6 +3899,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -3299,6 +3931,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3423,6 +4064,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -3442,6 +4096,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3516,6 +4179,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -3527,6 +4203,17 @@
         ],
         "summary": "Autoriza o envio de uma fotografia: devolve a URL assinada para o aparelho mandar os bytes direto ao armazenamento.",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo capturadaEm: A data de captura não é plausível: precisa ser posterior a 2020 e não pode estar a mais de doze horas no futuro..",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3810,6 +4497,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor; armazenamento_indisponivel: Armazenamento de arquivos indisponível",
             "x-codigos-de-erro": [
@@ -3846,6 +4546,17 @@
           "campo"
         ],
         "summary": "Confirma que os bytes da fotografia chegaram ao armazenamento: o servidor mede tamanho e soma de verificação.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3971,6 +4682,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor; armazenamento_indisponivel: Armazenamento de arquivos indisponível",
             "x-codigos-de-erro": [
@@ -4003,6 +4727,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -4097,6 +4830,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -4107,6 +4853,17 @@
           "mapa-e-busca"
         ],
         "summary": "Abre um link curto do Google Maps no servidor e devolve a coordenada do ponto, sem seguir link para outro lugar.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4192,6 +4949,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
                 }
               }
             }
@@ -4311,6 +5081,15 @@
                 "todas",
                 "ativas"
               ]
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -4637,6 +5416,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -4646,6 +5438,17 @@
         ],
         "summary": "Abre uma ocorrência a partir de uma solicitação, com protocolo gerado pelo servidor.",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo tipoDescricao: Descreva em poucas palavras o que foi relatado, para a triagem poder classificar.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4849,6 +5652,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -4868,6 +5684,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -5721,6 +6546,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -5740,6 +6578,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -5908,6 +6755,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -5927,6 +6787,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6037,6 +6906,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6056,6 +6938,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6179,6 +7070,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6198,6 +7102,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6320,6 +7233,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6339,6 +7265,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6478,6 +7413,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6507,6 +7455,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6634,6 +7591,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6654,6 +7624,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6804,6 +7783,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6814,6 +7806,17 @@
           "ocorrencias"
         ],
         "summary": "Lista as ocorrências cujas tarefas o agente devolveu e esperam decisão da coordenação.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Uma linha por ocorrência em triagem com devolução, com o motivo da mais recente e se há observação (o texto não vem na lista).",
@@ -6945,6 +7948,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -6973,6 +7989,15 @@
             "schema": {
               "type": "string",
               "minLength": 1
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -7060,6 +8085,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7070,6 +8108,17 @@
           "ocorrencias"
         ],
         "summary": "Os indicadores do painel do coordenador.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sete contagens do município (do recorte da equipe, para o agente de campo), com os nomes de coluna do banco.",
@@ -7142,6 +8191,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7152,6 +8214,17 @@
           "ocorrencias"
         ],
         "summary": "Lista as ocorrências com interdição ativa (agente de campo só vê as da própria equipe).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As interdições de pé, da mais antiga para a mais nova.",
@@ -7269,6 +8342,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7300,6 +8386,15 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 200
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -7449,6 +8544,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7459,6 +8567,17 @@
           "ocorrencias"
         ],
         "summary": "Lista as providências encaminhadas que ainda esperam resposta do órgão.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As providências sem resposta, pelo prazo mais próximo.",
@@ -7552,6 +8671,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7571,6 +8703,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -7701,6 +8842,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -7709,6 +8863,17 @@
           "oficios-e-orgaos"
         ],
         "summary": "Emite o ofício de uma providência, reservando o próximo número do município.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -7823,6 +8988,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -7842,6 +9020,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8068,6 +9255,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -8087,6 +9287,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8153,6 +9362,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -8172,6 +9394,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8297,6 +9528,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "502": {
             "description": "envio_falhou: Provedor de email não entregou o envio",
             "x-codigos-de-erro": [
@@ -8332,6 +9576,17 @@
           "administracao"
         ],
         "summary": "Lê o prazo de retenção do município (nulo é valor: ainda não decidiu).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "O nome do município e os dois prazos em dias (nulos quando não decidiu).",
@@ -8403,6 +9658,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -8411,6 +9679,17 @@
           "administracao"
         ],
         "summary": "Grava o prazo de retenção do município; a mudança vai para a trilha.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8532,6 +9811,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -8555,6 +9847,15 @@
                 "true",
                 "false"
               ]
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8672,6 +9973,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -8680,6 +9994,17 @@
           "oficios-e-orgaos"
         ],
         "summary": "Cadastra um órgão no catálogo do município.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8787,6 +10112,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -8806,6 +10144,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -8929,6 +10276,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -8948,6 +10308,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -9062,6 +10431,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9081,6 +10463,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -9175,6 +10566,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9185,6 +10589,17 @@
           "publico"
         ],
         "summary": "Formulário público de contato de um município interessado (sem token; não cria município).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -9296,6 +10711,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9347,6 +10775,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -9476,6 +10913,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9486,6 +10936,17 @@
           "prestacao-de-contas"
         ],
         "summary": "Quem exportou o quê e quando (registro de operações da LGPD).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As últimas 200 exportações do município, da mais recente para a mais antiga.",
@@ -9571,6 +11032,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9633,6 +11107,15 @@
             "schema": {
               "type": "string",
               "maxLength": 30
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -9708,6 +11191,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9746,6 +11242,15 @@
             "schema": {
               "type": "string",
               "maxLength": 30
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -9893,6 +11398,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -9904,6 +11422,17 @@
         ],
         "summary": "Traça o caminho por ruas entre dois pontos pelo Google, sem a chave sair do servidor (com cache de 24 horas).",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo origem: A coordenada 0,0 não é um lugar.; corpo, campo destino: A coordenada 0,0 não é um lugar..",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10041,6 +11570,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "429": {
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
@@ -10089,6 +11631,17 @@
           "campo"
         ],
         "summary": "Lista as saídas a campo abertas e as que estouraram o prazo, para a coordenação.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As saídas abertas (vencidas primeiro, e entre elas quem foi sozinho), as contagens e a frase do limite do que a lista mostra.",
@@ -10255,6 +11808,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -10263,6 +11829,17 @@
           "campo"
         ],
         "summary": "O agente declara que saiu a campo, com a duração prevista e se vai sozinho.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10636,6 +12213,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -10647,6 +12237,17 @@
         ],
         "summary": "A coordenação encerra uma saída a campo, registrando o desfecho.",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Diga o que foi acionado (quem, e a que horas).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10797,6 +12398,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -10807,6 +12421,17 @@
           "campo"
         ],
         "summary": "Lê a saída a campo aberta do próprio agente.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "A saída aberta do agente, ou `saida: null` quando não há.",
@@ -10960,6 +12585,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -10970,6 +12608,17 @@
           "campo"
         ],
         "summary": "O agente prorroga o prazo de retorno da saída aberta.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -11095,6 +12744,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -11105,6 +12767,17 @@
           "campo"
         ],
         "summary": "O agente declara que voltou do campo.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -11237,6 +12910,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -11247,6 +12933,17 @@
           "prestacao-de-contas"
         ],
         "summary": "Gera o pacote de saída do município: ato do administrador, que exige duas permissões.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "O pacote ZIP com tudo que é do município, em fluxo e sem Content-Length. Cabeçalho Content-Disposition: attachment; filename=\"saida-<município>-<uf>-AAAA-MM-DD.zip\". O pedido fica registrado antes do primeiro byte; nada é apagado.",
@@ -11284,6 +12981,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -11294,6 +13004,17 @@
           "autenticacao"
         ],
         "summary": "Lê a situação da verificação em duas etapas da própria conta.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Ligada, pendente de confirmação, exigida pelo município, quantos códigos de recuperação restam e se o recurso está ligado neste servidor.",
@@ -11344,6 +13065,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -11354,6 +13088,17 @@
           "autenticacao"
         ],
         "summary": "Confirma a ativação com um código de verdade e SÓ ENTÃO liga o recurso.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -11532,6 +13277,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; segundo_fator_ilegivel: Segredo do segundo fator ilegível",
             "x-codigos-de-erro": [
@@ -11555,6 +13313,17 @@
           "autenticacao"
         ],
         "summary": "Desliga a verificação em duas etapas, exigindo a senha atual.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -11635,6 +13404,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
             "x-codigos-de-erro": [
@@ -11657,6 +13439,17 @@
           "autenticacao"
         ],
         "summary": "Começa a ativação: sorteia o segredo e devolve o que cadastrar no aplicativo (uma vez).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": false,
           "content": {
@@ -11754,6 +13547,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
             "x-codigos-de-erro": [
@@ -11777,6 +13583,17 @@
         ],
         "summary": "Recebe a devolução de uma tarefa pelo agente, de forma idempotente por chave.",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Com o motivo 'outro', escreva o que aconteceu.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -11981,6 +13798,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
@@ -12003,6 +13833,17 @@
           "campo"
         ],
         "summary": "Lista as ocorrências despachadas para as equipes do agente: o que o aparelho baixa para trabalhar sem sinal (limitada, com aviso de truncamento).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "As tarefas em campo da equipe do agente, o teto, se a lista foi cortada e o catálogo de órgãos ativos do município.",
@@ -12202,6 +14043,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -12212,6 +14066,17 @@
           "campo"
         ],
         "summary": "O aparelho informa as tarefas que ainda guarda; a rota diz as que saíram da lista dele e por quê.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -12336,6 +14201,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -12347,6 +14225,17 @@
         ],
         "summary": "Recebe o envelope de uma vistoria feita em campo, de forma idempotente por chave.",
         "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo vistoria: regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam; corpo, campo vistoria.checklist: A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão.; corpo, campo vistoria.checklist: O checklist tem item que não existe no catálogo da vistoria..",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -12797,6 +14686,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "503": {
             "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
@@ -12899,6 +14801,15 @@
             "schema": {
               "type": "string",
               "maxLength": 60
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13042,6 +14953,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13052,6 +14976,17 @@
           "prestacao-de-contas"
         ],
         "summary": "Lista os tipos de evento da trilha de auditoria, para a tela montar o filtro.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Cada tipo de evento que existe no município e quantas vezes ocorreu.",
@@ -13115,6 +15050,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13125,6 +15073,17 @@
           "administracao"
         ],
         "summary": "Lista os usuários do município.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Os usuários por nome, com a equipe e o último acesso; os campos têm o nome da coluna, em snake. Senha e hash nunca saem.",
@@ -13237,6 +15196,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -13245,6 +15217,17 @@
           "administracao"
         ],
         "summary": "Cadastra um usuário com senha inicial.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -13381,6 +15364,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13400,6 +15396,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13548,6 +15553,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13567,6 +15585,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13651,6 +15678,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13670,6 +15710,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13756,6 +15805,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13775,6 +15837,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13872,6 +15943,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -13891,6 +15975,15 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -13992,6 +16085,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -14002,6 +16108,17 @@
           "conta"
         ],
         "summary": "Lê o cadastro da própria conta, com a URL de leitura da foto.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "O cadastro da pessoa; `fotoUrl` é nula quando não há foto.",
@@ -14091,6 +16208,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       }
@@ -14101,6 +16231,17 @@
           "conta"
         ],
         "summary": "Remove a foto da própria conta (204 mesmo quando não havia foto).",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "Sem corpo."
@@ -14117,6 +16258,19 @@
                 }
               }
             }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
           }
         }
       },
@@ -14125,6 +16279,17 @@
           "conta"
         ],
         "summary": "Confirma a foto enviada: grava a chave e só então apaga a foto anterior.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -14206,6 +16371,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "507": {
             "description": "teto_de_armazenamento: Teto de armazenamento do município atingido",
             "x-codigos-de-erro": [
@@ -14228,6 +16406,17 @@
           "conta"
         ],
         "summary": "Pede a autorização para enviar a foto de perfil: o servidor decide a chave e emite a URL de escrita.",
+        "parameters": [
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -14322,6 +16511,19 @@
               }
             }
           },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
           "507": {
             "description": "teto_de_armazenamento: Teto de armazenamento do município atingido",
             "x-codigos-de-erro": [
@@ -14389,6 +16591,27 @@
           "mensagem"
         ],
         "additionalProperties": {}
+      },
+      "VersaoDoAplicativoAntiga": {
+        "type": "object",
+        "properties": {
+          "erro": {
+            "type": "string",
+            "const": "versao_do_aplicativo_antiga"
+          },
+          "mensagem": {
+            "type": "string"
+          },
+          "versaoMinima": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "erro",
+          "mensagem",
+          "versaoMinima"
+        ],
+        "additionalProperties": false
       }
     }
   },
