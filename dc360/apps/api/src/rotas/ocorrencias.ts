@@ -41,13 +41,19 @@ const idSchema = z.object({ id: z.string().uuid("Identificador inválido") });
 const bandeiraSchema = z.enum(["0", "1", "true", "false"]).optional()
   .transform((v) => v === "1" || v === "true");
 
-const consultaSchema = z.object({
+export const consultaSchema = z.object({
   busca: z.string().max(200).optional(),
   status: z.enum([...STATUS_OCORRENCIA, "todas", "ativas"]).default("ativas"),
   severidade: z.enum([...SEVERIDADES, "todas"]).default("todas"),
   atrasadas: bandeiraSchema,
   pagina: z.coerce.number().int().min(1).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/** A consulta de possíveis duplicidades (`GET /duplicidades/consulta`). */
+export const consultaDeDuplicidadesSchema = z.object({
+  tipo: z.string().min(1),
+  endereco: z.string().min(1).max(400),
 });
 
 /**
@@ -80,9 +86,30 @@ function condicaoAtrasada(alias: string): string {
  */
 const TETO_DO_MAPA = 200;
 
-const consultaMapaSchema = z.object({
+export const consultaMapaSchema = z.object({
   pagina: z.coerce.number().int().min(1).default(1),
   porPagina: z.coerce.number().int().min(1).max(TETO_DO_MAPA).default(TETO_DO_MAPA),
+});
+
+/*
+  O destino da providência passa a sair do CATÁLOGO (migração 017).
+
+  `orgaoId` é opcional aqui, e a razão é de compatibilidade, não de gosto:
+  uma tela ainda no ar manda só `orgaoDestino`, e recusar esse corpo tiraria
+  o encaminhamento do ar no meio de uma chuva. Quando ele vem, o texto do
+  catálogo é copiado para `orgao_destino`, que continua existindo como
+  registro do nome que o encaminhamento realmente levou; quando não vem, um
+  gatilho do banco resolve o nome contra o catálogo do próprio município, e
+  cria a entrada se ela não existir. Nos dois caminhos a providência acaba
+  amarrada ao catálogo, que é o que permite `orgao_id` ser NOT NULL e a chave
+  estrangeira composta valer de verdade.
+
+  O esquema do corpo é estendido AQUI, e não no pacote compartilhado, porque
+  `providenciaSchema` é usado também pela tela: acrescentar um campo
+  obrigatório lá quebraria o formulário antes de ele existir.
+*/
+export const providenciaComOrgaoSchema = providenciaSchema.extend({
+  orgaoId: z.string().uuid("Órgão inválido").optional(),
 });
 
 /**
@@ -773,10 +800,7 @@ export async function rotasOcorrencias(
   /** Possíveis duplicidades: mesmo tipo, ativa, nas últimas 48 horas. */
   app.get("/duplicidades/consulta", async (req) => {
     const quem = await app.exigirAutenticacao(req);
-    const q = z.object({
-      tipo: z.string().min(1),
-      endereco: z.string().min(1).max(400),
-    }).parse(req.query);
+    const q = consultaDeDuplicidadesSchema.parse(req.query);
 
     const termo = q.endereco.split(",")[0]?.trim().toLowerCase() ?? "";
     if (termo.length < 4) return { itens: [] };
@@ -1029,27 +1053,6 @@ export async function rotasOcorrencias(
     if (aparelhosAvisados > 0) despertarPush?.();
 
     return { status: "em_campo" };
-  });
-
-  /*
-    O destino da providência passa a sair do CATÁLOGO (migração 017).
-
-    `orgaoId` é opcional aqui, e a razão é de compatibilidade, não de gosto:
-    uma tela ainda no ar manda só `orgaoDestino`, e recusar esse corpo tiraria
-    o encaminhamento do ar no meio de uma chuva. Quando ele vem, o texto do
-    catálogo é copiado para `orgao_destino`, que continua existindo como
-    registro do nome que o encaminhamento realmente levou; quando não vem, um
-    gatilho do banco resolve o nome contra o catálogo do próprio município, e
-    cria a entrada se ela não existir. Nos dois caminhos a providência acaba
-    amarrada ao catálogo, que é o que permite `orgao_id` ser NOT NULL e a chave
-    estrangeira composta valer de verdade.
-
-    O esquema do corpo é estendido AQUI, e não no pacote compartilhado, porque
-    `providenciaSchema` é usado também pela tela: acrescentar um campo
-    obrigatório lá quebraria o formulário antes de ele existir.
-  */
-  const providenciaComOrgaoSchema = providenciaSchema.extend({
-    orgaoId: z.string().uuid("Órgão inválido").optional(),
   });
 
   app.post("/:id/providencia", async (req) => {

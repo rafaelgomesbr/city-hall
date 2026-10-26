@@ -536,22 +536,20 @@ fica em aberto:
 ## O contrato OpenAPI do `/v1` (V2-F02-E04)
 
 O registro de rotas (`src/contrato/rotas.ts`) e o documento gerado
-(`openapi/v1.json`) existem, mas descrevem a API pela metade. O que fica em
-aberto, com o número de cada coisa no relatório
+(`openapi/v1.json`) existem e, desde a parte 3C da F02, descrevem toda rota do `/v1`. O que
+fica em aberto, com o número de cada coisa no relatório
 (`docs/evidencias-v2/G02/V2-F02-E04/relatorio-de-rotas.txt`):
 
-1. **A dívida das respostas.** A maioria das entradas existentes ainda não tem
-   `resposta`: o documento as marca com `x-resposta-pendente` e o status
-   `default`, sem inventar um 200. Descrever a resposta de cada rota é a dívida,
-   e o relatório conta quantas faltam. Não reprova (as existentes sem resposta
-   saem num relatório); rota `nova` sem resposta reprova.
-2. **As rotas sem entrada (`pendentes`).** Quarenta rotas registradas ainda não
-   têm entrada, porque o corpo ou a query delas é validado por um esquema que
-   mora dentro de `src/rotas/*.ts` (`entradaSchema`, `consultaSchema`,
-   `emissaoSchema`...). Copiar esse esquema para o contrato criaria a segunda
-   fonte da verdade que a etapa quer evitar, então cada grupo declara a lista
-   (`pendentes`) e o teste conta e limita: o teto só desce. O lote 3 da F02
-   (partes 3C1 a 3C3) exporta cada esquema, descreve a rota e zera a lista.
+1. **A dívida das respostas, paga na F02.** As 96 entradas do `/v1` têm
+   `resposta` descrita e conferida por `inject` contra o que a API devolve; o
+   documento tem zero operações com `x-resposta-pendente`. Rota `nova` sem
+   resposta, ou existente que volte a ficar sem, reprova no teste.
+2. **As rotas sem entrada (`pendentes`) chegaram a zero.** Eram quarenta quando a
+   etapa começou; as partes 3C1 (18), 3C2 (10) e 3C3 (12) exportaram cada esquema
+   de `src/rotas/*.ts`, descreveram a rota e esvaziaram a lista.
+   `PENDENTES_CONGELADAS` está vazia e `TETO_DE_PENDENTES` é 0 em
+   `apps/api/test/openapi.test.ts`. Rota nova sob `/v1` entra com entrada e
+   resposta, nunca na lista.
 3. **Sem validador de OpenAPI.** A conferência é estrutural, escrita no teste
    (versão 3.1.0, caminhos, parâmetros de caminho, referências). Um validador de
    verdade seria dependência nova, e a escolha exige `npm audit` em zero.
@@ -564,6 +562,23 @@ aberto, com o número de cada coisa no relatório
    valida sozinho. Traduzir as mais comuns (campo obrigatório quando outro tem
    certo valor) para `if/then` é possível e fica para quando houver cliente
    gerado (F08-E04).
+
+6. **Um só status de sucesso por entrada (limite do gerador).** O registro
+   (`RespostaDoContrato.status`) comporta um status, e `POST
+   /v1/sincronizacao/vistoria`, `/devolucao` e `POST /v1/saida-a-campo`
+   respondem 201 na primeira vez e 200 no reenvio idempotente. O contrato declara
+   o 201 e a descrição conta o 200, mas o documento não lista os dois. Uma
+   extensão possível é `tambemResponde?: readonly { status; descricao }[]`.
+7. **A anotação de regras adicionais visita cada esquema uma vez (limite do
+   gerador).** `refinamentosDe`, em `src/contrato/openapi.ts`, usa um `WeakSet`
+   e anota a regra de um esquema só na primeira vez que o encontra. Em `POST
+   /v1/rota`, o mesmo `pontoSchema` serve a `origem` e a `destino`, e só `origem`
+   aparece em `x-regras-adicionais`; a regra do `destino` ficou dita no texto.
+8. **Respostas que são a linha do banco entregam colunas internas (decisão da
+   F03).** `GET /v1/ocorrencias` devolve `organizacao_id` e `chave_de_criacao`, e
+   o dossiê devolve também `busca` (a chave de busca normalizada). O contrato
+   descreve o que sai hoje, sem mudar comportamento; se tudo isso deve continuar
+   saindo é decisão da F03 (privacidade e autorização por campo).
 
 ## Idempotência da criação: o padrão para os próximos criadores (V2-F02-E07)
 

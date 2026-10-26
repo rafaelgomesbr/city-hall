@@ -52,7 +52,7 @@ import { rotasRegistradas } from "./superficie-registrada.js";
  * no mesmo commit. Subir, ou trocar uma pendente por outra, mexe aqui e no
  * diff.
  */
-const TETO_DE_PENDENTES = 10;
+const TETO_DE_PENDENTES = 0;
 
 const V1_JSON = fileURLToPath(new URL("../openapi/v1.json", import.meta.url));
 
@@ -145,18 +145,7 @@ function fundirFormas(instancia: FastifyInstance): { chaves: string[]; problemas
  * entra em `pendentes`: nasce com entrada e `resposta`. O lote 3 tira chaves
  * daqui e de `pendentes` no mesmo commit, e o diff mostra cada uma.
  */
-const PENDENTES_CONGELADAS: readonly string[] = [
-  "POST /v1/sincronizacao/pendencias/reconciliar",
-  "POST /v1/evidencias/autorizar-envio",
-  "POST /v1/evidencias/confirmar-envio",
-  "POST /v1/mapa/resolver-link",
-  "POST /v1/rota",
-  "GET /v1/busca",
-  "GET /v1/ocorrencias",
-  "GET /v1/ocorrencias/mapa",
-  "GET /v1/ocorrencias/duplicidades/consulta",
-  "POST /v1/ocorrencias/:id/providencia",
-];
+const PENDENTES_CONGELADAS: readonly string[] = [];
 
 /**
  * Confere `pendentes` contra a lista congelada e o teto, por IGUALDADE: voltar
