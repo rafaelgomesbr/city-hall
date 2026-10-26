@@ -14,7 +14,15 @@ Evidência da V2-F00-POS. O que cada arquivo prova está no RESUMO.md da subpast
 | api/08-test-scripts.txt | bbd95b90eccb4574da4a0d56d7826e8c555fafa854be59a28515f058923d5ff1 |
 | api/09-typecheck.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
 | api/10-conferir-numeros.txt | b7eb33db360ab1c488ac6a385da3520adbffd92c014572ca27c12e6000e2e502 |
-| api/RESUMO.md | 8219fa661713b21d962f9488a803c9fa4e771d5b3e9da2ce7017daf79f25141a |
+| api/11-oficio-SEM-o-conserto.txt | 3b8e729e6717f684645bee1b392f36289d16b38db4486461c9f1cb59bf550cc4 |
+| api/12-corridas-COM-a-revisao.txt | 0c96221e4ed962ec29fba5938c68842527a31ab5f700366f86d34052956f2a6b |
+| api/13-lock-timeout-SEM-o-teto.txt | 9ffc54498beb7b6ff4c694ea3df1cd507f816973622b9fa39491fde859acd5c3 |
+| api/14-typecheck-revisao.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| api/15-test-isolamento-revisao.txt | 88b729e847e99d3c1ebbd48c2d9d56ae435c723e5685ddee78db2496ee88be20 |
+| api/16-test-api-completa-revisao.txt | f1801be6ea173c2d89e03d55ad472bb17db6572e00ef1a710041e4b8b0b7795d |
+| api/17-conferir-numeros-revisao.txt | f00b97b9f070aac9441a50441b0502c4935635fe446d9e443645bcd95fb3ca44 |
+| api/18-test-scripts-revisao.txt | b531301bab6690f1456e735c722dcf4793a87e3b464a715208817c049fae0579 |
+| api/RESUMO.md | 6aad3b381e1aec4350764f1dcfff58e792c6e876d75bdbf634250ff4f9cd3e4f |
 | painel/RESUMO.md | f46a63c57f4e75df733ebb4d11f7f050b286cd7d0ebd4eeae0913ddfcde8a0ea |
 | painel/capturas/h05-claro-1280-3-depois-do-esc-a-janela-continua.png | f30adf4e7a0dcce8502045c3483e608afd6600ebbcdf948c500e9b07005b8b8c |
 | painel/capturas/h05-claro-320-3-depois-do-esc-a-janela-continua.png | c00cb3c03cdd6dbacf1f0ef6894af6447829d37e303e6d9672bab3243e1547c3 |

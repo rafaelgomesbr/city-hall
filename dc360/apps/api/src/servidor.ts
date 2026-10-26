@@ -638,6 +638,24 @@ export async function construirServidor(
       entre a conferência e a abertura), a resposta precisa ser a mesma, e
       não um 500 com "informe o código ao suporte".
     */
+    /*
+      A TRANSAÇÃO DESISTIU DE ESPERAR (55P03, o `lock_timeout` que o `Banco`
+      das rotas põe em toda transação de escrita, `auth/vigencia.ts`) ou o
+      Postgres a escolheu para desfazer um impasse (40P01). Nos dois casos nada
+      foi gravado (a transação voltou atrás inteira) e repetir é seguro. 503, e
+      não 500: a fila do aparelho trata 503 como temporário e tenta de novo
+      sozinha, e o painel diz para tentar em instantes, em vez de mandar
+      informar um código ao suporte por uma disputa de milissegundos.
+    */
+    const codigoDoBanco = (erro as { code?: unknown }).code;
+    if (codigoDoBanco === "55P03" || codigoDoBanco === "40P01") {
+      req.log.warn({ err: erro }, "transacao desistiu de esperar trava");
+      return resposta.code(503).header("retry-after", "2").send({
+        erro: "servidor_ocupado",
+        mensagem: "O servidor está ocupado com outra operação desta conta. Nada foi "
+          + "gravado; tente de novo em instantes.",
+      });
+    }
     if ((erro as { code?: unknown }).code === "DC367") {
       const suspenso = new AcessoSuspenso(403);
       return resposta.code(suspenso.status).send({ erro: suspenso.codigo, mensagem: suspenso.message });

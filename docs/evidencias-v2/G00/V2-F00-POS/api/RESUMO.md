@@ -142,6 +142,67 @@ As mutações foram feitas na árvore e desfeitas copiando de volta o arquivo sa
 assinatura das URLs de envio do armazenamento em memória do teste foi trocada por
 `[removido]`.
 
+## Correção da revisão independente (Opus), 26/10/2026
+
+Veredito do revisor: APROVADO COM CORREÇÕES. Antes de medir, o ramo recebeu o merge de
+`origin/v2/f00-pos` (conflitos só de contagem no README e no COLOCAR-DE-PE, e no
+`INDEX.md` da pasta da etapa, regenerado com `api/` e `painel/`).
+
+### Fatos
+
+1. **Ofício enviado sem desfecho (bloqueava o merge).** O passo 3 de
+   `POST /oficios/:id/envio` (`dc360/apps/api/src/rotas/oficios.ts`), que grava o desfecho
+   e o `oficio_enviado`, passava pela reconferência: a conta desativada (ou as sessões
+   encerradas) durante a chamada ao provedor fazia o email sair, a resposta ser 403 e a
+   tentativa ficar `enviando` sem recibo e sem evento na trilha. Agora o passo 3 usa
+   `comTenantDeFatoConsumado` (`dc360/apps/api/src/auth/vigencia.ts`), que roda a transação
+   sem reconferir, com o porquê escrito no código: o envio foi autorizado no passo 1, já
+   reconferido, e recusar o registro não desfaz o email. O passo 1 continua reconferido.
+   Teste novo `dc360/apps/api/test/oficio-enviado-contra-desativacao.test.ts` (2 casos:
+   desativação e encerramento de sessões com o provedor segurado). Sem o conserto, 2 de 2
+   reprovam (403 e 401 com o email já entregue; `11-oficio-SEM-o-conserto.txt`); com ele,
+   2 de 2: resposta 202, `oficio_envios` com `entregue` e o recibo do provedor, um
+   `oficio_enviado` na trilha, e o reenvio seguinte recusado sem chegar ao provedor.
+2. **Teto de espera por trava.** Toda transação de pedido de escrita (no embrulho, antes
+   da `vigencia_de_quem_escreve`) e a conferência de fora (`lerVigencia`) fazem
+   `SET LOCAL lock_timeout = '5s'`. O 55P03 vira 503 `servidor_ocupado` com `retry-after: 2`
+   (`servidor.ts`), que a fila do campo trata como temporário; o 40P01 dos dois impasses
+   raros da 052 sai com o mesmo 503, em vez de 500 (nada é gravado nos dois casos).
+   Dois casos novos no bloco Postgres de `escrita-contra-desativacao.test.ts`: a linha da
+   pessoa presa por outra transação depois da conferência (9) e antes do pedido (10); os
+   dois respondem 503 em cerca de 5 s e nada é gravado. Sem o `lock_timeout`, os dois
+   ficam pendurados até o tempo limite do teste, 60 s (`13-lock-timeout-SEM-o-teto.txt`).
+   `idle_in_transaction_session_timeout` no papel `dc360_app` NÃO foi posto e não há
+   migração 054: a API entra com outro papel de login e faz `SET LOCAL ROLE dc360_app`, e
+   `ALTER ROLE ... SET` só vale para quem entra com o papel; a migração não teria efeito.
+   O papel do banco em produção não foi tocado.
+3. **Dívidas** DV-48 a DV-52 em `docs/roadmap-v2/dividas.md` (achados 3 a 7 do revisor:
+   conferência de fora que trava, `semTenant` sem guarda, reserva abandonada reativada
+   fora do teto por pessoa, provas que faltam da H29 com os 40P01 não medidos, coluna
+   `municipio_existe` sempre verdadeira), com dono e prazo.
+4. `apps/api/PENDENCIAS.md` registra os três ajustes; `scripts/baseline.mjs` ganha
+   `V2-F00-POS-api-revisao` (+2 na contagem estática da API, os dois casos de Postgres
+   real ficam fora pela política T42); README e COLOCAR-DE-PE com as contagens novas.
+
+### Comandos e saídas da correção
+
+| Comando | Resultado | Saída |
+| --- | --- | --- |
+| `npm run typecheck` | código 0 | `14-typecheck-revisao.txt` |
+| `npm run test:isolamento` | 14 arquivos, 345 aprovados e 3 pulados, código 0 | `15-test-isolamento-revisao.txt` |
+| suíte inteira da API com Postgres real (`DC360_POSTGRES_DE_PROVA`) | 110 arquivos, 1781 aprovados, 0 reprovados, código 0 | `16-test-api-completa-revisao.txt` |
+| `escrita-contra-desativacao`, `oficio-enviado-contra-desativacao` e `renovacao-contra-encerramento`, com Postgres real | 3 arquivos, 71 de 71 | `12-corridas-COM-a-revisao.txt` |
+| `npm run conferir:numeros` | código 0, "Todos os números da documentação batem com a realidade" (API 1735, total 3676, com o aplicativo 5673) | `17-conferir-numeros-revisao.txt` |
+| `npm run test:scripts` | 362 testes: 355 aprovados, 7 pulados, 0 reprovados, código 0 | `18-test-scripts-revisao.txt` |
+
+Duas rodadas anteriores da suíte inteira, com a máquina carregada por outras sessões (58
+processos `node.exe`), tiveram um reprovado cada, e os dois passam rodados sozinhos:
+`segundo-fator.test.ts` ("o teto de tentativas do código é separado do teto da senha", tempo
+limite de 30 s estourado; sozinho, 3,9 s) e `desinterdicao.test.ts` (login com 500 no
+`beforeAll`, que é PGlite e não passa pelo embrulho de escrita; sozinho, 22 de 22). As
+saídas dessas duas rodadas não foram arquivadas; o resultado da rodada arquivada está na
+tabela.
+
 ## Limitações
 
 - A rajada da H29 neste Windows termina sempre com a desativação ganhando (o scrypt aqui
@@ -149,31 +210,27 @@ assinatura das URLs de envio do armazenamento em memória do teste foi trocada p
   pelos casos 5 a 7, segurados e conferidos em `pg_locks`, e não pela rajada.
 - Custo aceito da H29: as escritas da MESMA pessoa se enfileiram (a linha dela fica presa
   até o COMMIT de cada uma), e a escrita espera a renovação da própria cadeia. Dois casos
-  raros fecham ciclo e o Postgres mata uma transação com 40P01 (500, sem gravar nada):
+  raros fecham ciclo e o Postgres desfaz uma transação com 40P01 (sem gravar nada; desde a
+  correção da revisão a resposta é 503 `servidor_ocupado`, e não 500):
   duas pessoas que se desativam ou se editam uma à outra no mesmo instante, e quem
   administra mudando a retenção do município no instante em que o console o suspende ou
-  em que ela mesma entra por outro aparelho. Não foram medidos; estão escritos na 052 e em
-  `apps/api/PENDENCIAS.md`.
+  em que ela mesma entra por outro aparelho. Não foram medidos (DV-51); estão escritos na
+  052 e em `apps/api/PENDENCIAS.md`.
 - `semTenant` não reconfere (login, renovação, o que vem antes do município). As rotas
   autenticadas usam `comTenant`; uma rota futura que escrevesse por `semTenant` depois de
-  `exigirAutenticacao` ficaria fora da reconferência.
+  `exigirAutenticacao` ficaria fora da reconferência (DV-49).
 - H04: reserva aberta de conta desativada continua ocupando o teto do município até a
   varredura de órfão (até 30 dias), mas agora no máximo 90 MB por pessoa. Uma pessoa que
   perder seis fotos de 15 MB no meio do envio fica com o envio dela parado (429) até a
   varredura abandonar as reservas; o padrão foi escolhido para isso ser improvável (45 fotos
-  típicas). O teto por pessoa não limita foto CONFIRMADA (bytes reais, com trilha).
-- `npm run test:scripts`: o único reprovado é `e2e-porta-ocupada.test.mjs` ("recusa
-  subir com a porta da API ocupada"), com `EADDRINUSE 127.0.0.1:3691`: a porta estava
-  ocupada nesta máquina por um `node.exe` de outra sessão (PID 38992, conferido com
-  `netstat -ano`), e o teste precisa abrir a porta ele mesmo. Não toca nada deste ramo.
-  Os testes de `.env.example` e de configuração (`apps/api/test/config.test.ts`) passam
-  na suíte da API, e `conferir-indices-de-evidencia` passa com o `INDEX.md` novo.
-- `conferir:numeros` reprova pela linha de base de `test:scripts` (+3 casos), que NÃO é
-  deste ramo: veio do commit `f87082e8` (V2-F00-POS, o arquivo de serviços do Google fora
-  do repositório), que acrescentou testes em `dc360/scripts/` sem a linha em
-  `TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS`. Não mexi para não brigar com o ramo dono dele.
-- A pasta da etapa `V2-F00-POS/` ganhou um `INDEX.md` que lista só os arquivos desta pasta
-  `api/` (o conferidor exige índice na pasta da etapa); se outro ramo da V2-F00-POS
-  acrescentar arquivos na mesma pasta, o índice precisa ser unido no merge.
+  típicas). O teto por pessoa não limita foto CONFIRMADA (bytes reais, com trilha), e a
+  reserva abandonada que volta pela mesma chave escapa dele (DV-50).
+- Primeira entrega (antes da revisão): `npm run test:scripts` teve um reprovado por
+  ambiente (`e2e-porta-ocupada.test.mjs`, porta 3691 ocupada por um `node.exe` de outra
+  sessão), e `conferir:numeros` reprovava pela linha de base de `test:scripts` (+3 do commit
+  `f87082e8`). Os dois ficaram resolvidos na correção da revisão: a porta estava livre, e o
+  merge de `origin/v2/f00-pos` trouxe as linhas da linha de base (ver a seção da correção).
+- O `INDEX.md` da pasta da etapa `V2-F00-POS/` lista `api/` e `painel/` (regenerado no
+  merge); se outro ramo acrescentar arquivos na mesma pasta, o índice precisa ser unido.
 - Não rodados aqui: `npm run test:e2e`, `test:campo`, o CI do GitHub e qualquer
   conferência em aparelho. Nenhuma tela mudou.

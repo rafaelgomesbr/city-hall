@@ -1,0 +1,90 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/db
+
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 7ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 10700ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 11197ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 14320ms
+   ✓ A trava e as permissões > cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT  527ms
+   ✓ A trava e as permissões > a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console  572ms
+   ✓ A trava e as permissões > a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios  966ms
+   ✓ abrir_sessao recusa herdar família encerrada > a família encerrada por qualquer outro motivo é recusada com a mesma mensagem da família que não existe, e nada é gravado  831ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 18773ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 19166ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 22289ms
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 22796ms
+   ✓ Gerar os codigos: console_renovar_codigos > lista vazia, curta, repetida ou com hash cru e recusada com DC361, e nada e escrito  501ms
+   ✓ Consumir: console_consumir_recuperacao > codigo de operador inativo e recusado com DC365, e o codigo nao e gasto  329ms
+ ✓ test/carga.test.ts (15 tests) 29840ms
+   ✓ Volume: 200 ocorrências atravessando a paginação > as 200 aparecem uma vez cada ao longo das páginas, nenhuma repete e nenhuma some  470ms
+   ✓ Volume: 200 ocorrências atravessando a paginação > nenhuma ocorrência se perde quando alguém tria entre uma página e a outra  691ms
+   ✓ Volume: 200 ocorrências atravessando a paginação > a contagem total bate com o que as páginas entregaram  662ms
+   ✓ Volume: 200 ocorrências atravessando a paginação > o mapa devolve todos os pontos ao longo das páginas e conta os que não desenha  692ms
+   ✓ Cinco aparelhos sincronizando ao mesmo tempo > cinco vistorias chegando juntas: nenhuma se perde e nenhuma duplica  834ms
+   ✓ Cinco aparelhos sincronizando ao mesmo tempo > o mesmo aparelho reenviando a mesma coleta não cria segunda vistoria  1196ms
+   ✓ Dois municípios sob concorrência, agora com volume > sob disputa da mesma conexão, cada município conta só as próprias  2110ms
+   ✓ Dois municípios sob concorrência, agora com volume > paginação concorrente dos dois municípios não mistura ocorrência  805ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 44009ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  15225ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  18679ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 40603ms
+   ✓ Os operadores do console, e o teto que a primeira conta impoe > operador nao altera o dono, dono altera operador, operador altera so a si mesmo  574ms
+   ✓ Suspender e reativar o acesso de um municipio > o papel de aplicacao nao limpa a propria suspensao, nem toca nas colunas do fornecedor  330ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > agendar suspende na hora e escreve no livro com sete dias  318ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > executar antes do prazo nao faz nada  2882ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > cancelar dentro do prazo impede a execucao, e NAO reativa o acesso sozinho  2580ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > escrever no livro por fora da funcao nao aciona o relogio: ele exige o estado na organizacao  1589ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > vencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens  1226ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar  2627ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > concluir exige o banco apagado: no vizinho intacto, recusa e nao toca em nada  752ms
+   ✓ Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade > a funcao de eliminar ESTOURA nomeando a tabela, e nenhuma linha sai  1050ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 45459ms
+   ✓ Busca com tolerancia a erro, 'com pg_trgm (producao)' > a chave de busca de cada tabela > acompanha a minimização por prazo: o nome removido sai da chave sozinho  365ms
+   ✓ Busca com tolerancia a erro, 'com pg_trgm (producao)' > isolamento: a tolerância a erro não atravessa o município > o teto corta e a ordem é estável  301ms
+   ✓ Busca com tolerancia a erro, 'com pg_trgm (producao)' > registro de consulta > aceita o recurso 'busca' e continua recusando recurso desconhecido  373ms
+   ✓ Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' > a chave de busca de cada tabela > acompanha a minimização por prazo: o nome removido sai da chave sozinho  356ms
+ ✓ test/migrar.test.ts (17 tests) 178111ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  6493ms
+   ✓ Aplicação > rodar de novo não faz nada  9914ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  9438ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  13051ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  9762ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  8483ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  8563ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  11995ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  12496ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  9810ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  10093ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  8257ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  15433ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  14580ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  9182ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  10074ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  10464ms
+ ✓ test/isolamento.test.ts (137 tests) 293356ms
+   ✓ CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada  867ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto  1160ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id  1714ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > nenhuma tabela de prova tem policy que alcance DELETE  1185ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  5337ms
+   ✓ Regras de negócio garantidas pelo banco > a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040)  431ms
+   ✓ Isolamento sob concorrência na mesma conexão > duas leituras concorrentes de municípios diferentes não trocam de contexto  898ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve  463ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  9747ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  11131ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  231183ms
+   ✓ Metricas escritas pelo proprio municipio > nada que identifique pessoa ou imovel entra no que o console le  323ms
+
+ Test Files  14 passed (14)
+      Tests  345 passed | 3 skipped (348)
+   Start at  18:14:43
+   Duration  299.77s (transform 6.88s, setup 0ms, collect 43.90s, tests 750.63s, environment 5ms, prepare 5.20s)
+

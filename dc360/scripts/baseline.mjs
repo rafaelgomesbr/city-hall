@@ -560,6 +560,16 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     contagem. Nenhuma falha nova nem pulo.
   */
   "V2-F00-POS-api": { total: 14, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-POS, correção da revisão do ramo da API (2026-10-26):
+    `apps/api/test/oficio-enviado-contra-desativacao.test.ts` e novo, com 2
+    casos (o desfecho e o `oficio_enviado` gravados quando a conta e
+    desativada, ou as sessoes encerradas, durante a chamada ao provedor). Os 2
+    casos novos de `escrita-contra-desativacao.test.ts` (o `lock_timeout`
+    virando 503) ficam no bloco de Postgres real, fora da contagem estatica.
+    Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-POS-api-revisao": { total: 2, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

@@ -235,10 +235,13 @@ function auxiliares(cenario: () => Cenario) {
 }
 
 /** A transação era só a conferência de `exigirAutenticacao` da Bruna. */
-const soAConferenciaDaBruna = (chamadas: Chamada[]) =>
-  chamadas.length === 1
-  && chamadas[0]!.sql.includes("vigencia_de_quem_escreve(")
-  && chamadas[0]!.params?.[0] === BRUNA;
+const soAConferenciaDaBruna = (todas: Chamada[]) => {
+  // O `SET LOCAL lock_timeout` que abre a conferência não conta como consulta.
+  const chamadas = todas.filter((c) => !c.sql.startsWith("SET LOCAL"));
+  return chamadas.length === 1
+    && chamadas[0]!.sql.includes("vigencia_de_quem_escreve(")
+    && chamadas[0]!.params?.[0] === BRUNA;
+};
 
 /**
  * Ordem 1: a reação confirma inteira entre a conferência e a transação da
@@ -538,4 +541,70 @@ describe.skipIf(!URL_DE_PROVA)("Escrita em voo contra a perda do direito de escr
     console.info(`rajada da H29: ${gravadas} de 8 escritas gravaram, ${violacoes.length} depois da desativação`);
     expect(violacoes, violacoes.join("; ")).toEqual([]);
   }, 120_000);
+
+  /*
+    O TETO DE ESPERA POR TRAVA (achado da revisão de 26/10/2026). Uma transação
+    de fora segura a linha da Bruna e não solta (é o processo travado, ou a
+    conexão esquecida aberta). Sem teto, o pedido dela esperaria para sempre,
+    segurando uma conexão do pool; com `lock_timeout`, o Postgres desiste em
+    cinco segundos e a resposta é 503 `servidor_ocupado`, que a fila do aparelho
+    trata como temporário. Nada é gravado. Dois pontos de espera: a
+    reconferência dentro da transação da escrita (9) e a conferência de
+    `exigirAutenticacao` (10).
+  */
+  async function segurarLinhaDaBruna(): Promise<pg.Client> {
+    const outro = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
+    await outro.connect();
+    await outro.query("BEGIN");
+    await outro.query("SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE", [BRUNA]);
+    return outro;
+  }
+
+  it("9. a linha da pessoa presa por outra transação depois da conferência: a escrita desiste em 5 s com 503 e nada é gravado", async () => {
+    const token = await a.prepararBruna();
+    let outro: pg.Client | null = null;
+    grampo.atual = {
+      depois: async (chamadas) => {
+        if (outro || !soAConferenciaDaBruna(chamadas)) return;
+        outro = await segurarLinhaDaBruna();
+      },
+    };
+    const { email, pedido } = a.criarConta(token);
+    try {
+      const inicio = performance.now();
+      const r = await pedido;
+      const esperou = performance.now() - inicio;
+      expect(outro, "a linha não chegou a ser presa").not.toBeNull();
+      expect(r.statusCode, r.body).toBe(503);
+      expect(r.json().erro).toBe("servidor_ocupado");
+      expect(r.headers["retry-after"]).toBe("2");
+      expect(esperou).toBeGreaterThanOrEqual(4_500);
+      expect(await a.contasCriadas(email)).toBe(0);
+    } finally {
+      grampo.atual = null;
+      const preso = outro as pg.Client | null;
+      if (preso) {
+        await preso.query("ROLLBACK");
+        await preso.end();
+      }
+    }
+  }, 60_000);
+
+  it("10. a linha da pessoa presa antes do pedido: a conferência de fora também desiste em 5 s com 503", async () => {
+    const token = await a.prepararBruna();
+    const outro = await segurarLinhaDaBruna();
+    try {
+      const { email, pedido } = a.criarConta(token);
+      const r = await pedido;
+      expect(r.statusCode, r.body).toBe(503);
+      expect(r.json().erro).toBe("servidor_ocupado");
+      expect(await a.contasCriadas(email)).toBe(0);
+    } finally {
+      await outro.query("ROLLBACK");
+      await outro.end();
+    }
+    // Solta a linha, a mesma escrita passa.
+    const depois = a.criarConta(token);
+    expect((await depois.pedido).statusCode).toBe(201);
+  }, 60_000);
 });

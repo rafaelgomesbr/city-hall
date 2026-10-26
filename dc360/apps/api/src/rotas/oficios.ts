@@ -5,6 +5,7 @@ import type { Config } from "../config.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 import { gerarTokenRenovacao, hashDoToken } from "../auth/tokens.js";
 import type { Notificador } from "../auth/notificador.js";
+import { comTenantDeFatoConsumado } from "../auth/vigencia.js";
 import { enderecoDoCliente } from "../rede.js";
 import {
   mensagemDeOficio, oficioDeEncaminhamento, type DadosDoOficio,
@@ -541,8 +542,17 @@ export async function rotasOficios(
       falha = erro instanceof Error ? erro.message : String(erro);
     }
 
-    // Passo 3: o desfecho, sempre, inclusive quando falhou.
-    await banco.comTenant(quem.organizacaoId, async (c) => {
+    /*
+      Passo 3: o desfecho, sempre, inclusive quando falhou.
+
+      SEM RECONFERIR A VIGÊNCIA (`comTenantDeFatoConsumado`): o envio foi
+      autorizado no passo 1, sob a reconferência, e o email já saiu (ou já
+      falhou) no passo 2. Se a conta de quem enviou foi desativada, ou a
+      sessão encerrada, enquanto o provedor respondia, recusar aqui não
+      desfaria o email: só deixaria a tentativa em `enviando` sem recibo e a
+      trilha sem o `oficio_enviado` de um envio que aconteceu.
+    */
+    await comTenantDeFatoConsumado(banco, quem.organizacaoId, async (c) => {
       await c.query(
         "UPDATE oficio_envios SET desfecho = $2, detalhe = $3, provedor_id = $4 WHERE id = $1",
         [
