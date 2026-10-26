@@ -1,0 +1,26 @@
+
+ RUN  v3.2.7 <repo>/dc360/db
+
+ DEPRECATED  'basic' reporter is deprecated and will be removed in Vitest v3.
+Remove 'basic' from 'reporters' option. To match 'basic' reporter 100%, use configuration:
+{
+  "test": {
+    "reporters": [
+      [
+        "default",
+        {
+          "summary": false
+        }
+      ]
+    ]
+  }
+}
+ ✓ test/endurecer-extensao.test.ts (9 tests) 6038ms
+   ✓ sem a extensão instalada > o arquivo inteiro roda num Postgres comum, sem os papéis do provedor  2863ms
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  01:11:57
+   Duration  8.00s (transform 144ms, setup 0ms, collect 209ms, tests 6.04s, environment 0ms, prepare 889ms)
+
