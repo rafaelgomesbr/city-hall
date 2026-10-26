@@ -1,0 +1,9 @@
+corrigido: apps/api/src/documentos/folha.ts / @typescript-eslint/no-base-to-string
+aberto:    apps/api/src/arquivo-novo-com-defeito.ts / @typescript-eslint/no-base-to-string
+lint-teto.json gravado: 431 supressões.
+--- conferir (total e regra iguais: verde)
+OK: lint-teto.json confere com as baselines (431 supressões).
+--- contra-base origin/v2/f01
+REPROVADO contra origin/v2/f01 (1):
+- monorepo: apps/api/src/arquivo-novo-com-defeito.ts regra @typescript-eslint/no-base-to-string subiu: 0 na base, 1 aqui (par arquivo+regra novo na baseline). Corrija o achado em vez de baselinar.
+codigo de saida: 1

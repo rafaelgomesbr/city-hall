@@ -1,0 +1,21 @@
+### npm run lint
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+### npm run lint:teto
+> node scripts/lint-teto.mjs conferir
+
+OK: lint-teto.json confere com as baselines (431 supressões).
+### npm run formato:conferir
+> node scripts/formato-conferir.mjs
+
+OK: 795 arquivo(s) de código conferidos; 664 na baseline (só desce).
+### npm run conferir:numeros
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.
