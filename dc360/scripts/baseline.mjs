@@ -886,6 +886,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-4B": { total: 11, falhas: 0, puladas: 0 },
   // V2-F02-E05, parte 4A (contrato cliente x rota): `apps/api/test/contrato-cliente-rota.test.ts` e novo, com 82 casos (o painel, o campo com a fila offline e o console lidos como texto e confrontados com as rotas /v1 do servidor montado: caminho, metodo, corpo e consulta contra o esquema do registro, pedido sem token, ancora de chamadas por arquivo; a varredura que reprova fetch solto fora da base e das duas URLs assinadas declaradas; 18 casos sinteticos, entre eles POST /pacote.zip, GET contra rota POST e chamada do campo sem rota; o relatorio das rotas /v1 sem cliente). `contrato-do-painel.test.ts` e `superficie.test.ts` passaram a usar `apoio/rotas.ts` e `apoio/extrair-chamadas.ts`, sem caso novo nem removido.
   "V2-F02-E05": { total: 82, falhas: 0, puladas: 0 },
+  // V2-F02-E04, correção 1 (revisão independente dos lotes 3 e 4): `openapi-versao-do-aplicativo.test.ts` é novo, com 5 casos (toda operação de /v1, menos a da versão mínima, declara o cabeçalho opcional x-app-version e o 426 com o corpo { erro, mensagem, versaoMinima }; a entrada que declara o 426 por conta própria faz o gerador falhar; e o documento conferido contra o servidor real com mínimo configurado, operação por operação, por inject). `openapi-regras.test.ts` ganhou a chave 426 no caso das respostas por status, sem caso novo.
+  "V2-F02-E04-parte-4B-correcao-1": { total: 5, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

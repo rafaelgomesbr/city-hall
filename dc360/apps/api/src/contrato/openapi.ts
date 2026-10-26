@@ -1,5 +1,11 @@
 import { z, type ZodType } from "zod";
-import { CODIGOS_DE_ERRO, erroDaApiSchema, type CodigoDeErro } from "@dc360/shared";
+import {
+  CABECALHO_DE_VERSAO_DO_APLICATIVO,
+  CODIGOS_DE_ERRO,
+  erroDaApiSchema,
+  type CodigoDeErro,
+} from "@dc360/shared";
+import { ROTA_DA_VERSAO_MINIMA } from "../versao-do-aplicativo.js";
 import {
   GRUPOS,
   ROTAS_DO_CONTRATO,
@@ -36,6 +42,37 @@ export type DocumentoOpenApi = {
 
 const SEM_RESPOSTA =
   "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md).";
+
+/**
+ * O corpo do 426 que o gancho do escopo `/v1` devolve (`recusarVersaoAntiga` em
+ * `versao-do-aplicativo.ts`): sem dado de município nem de pessoa. Em `/v1` o
+ * `versaoMinima` sempre vem (o gancho só recusa quando há mínimo configurado).
+ */
+export const versaoDoAplicativoAntigaSchema = z.object({
+  erro: z.literal("versao_do_aplicativo_antiga"),
+  mensagem: z.string(),
+  versaoMinima: z.string(),
+});
+
+const CABECALHO_DE_VERSAO_NO_DOCUMENTO = {
+  name: CABECALHO_DE_VERSAO_DO_APLICATIVO,
+  in: "header",
+  required: false,
+  description:
+    "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` " +
+    "(por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. " +
+    "Ausente ou ilegível: o pedido segue normalmente.",
+  schema: { type: "string" },
+} as const;
+
+/**
+ * A regra do gancho de versão: vale para toda operação sob `/v1`, MENOS a rota
+ * pública da versão mínima (é por ela que o aplicativo velho descobre o que
+ * instalar, então nunca é recusada). Derivada do mesmo padrão que o gancho usa.
+ */
+function estaSobOGanchoDeVersao(r: RotaComGrupo): boolean {
+  return r.caminho !== ROTA_DA_VERSAO_MINIMA;
+}
 
 function esquemaJson(esquema: ZodType, io: "input" | "output"): Json {
   const bruto = z.toJSONSchema(esquema, {
@@ -137,6 +174,27 @@ function respostasDe(r: RotaComGrupo): Json {
       "x-codigos-de-erro": codigos,
       content: {
         "application/json": { schema: { $ref: "#/components/schemas/ErroDaApi" } },
+      },
+    };
+  }
+
+  /* O 426 do gancho de versão: global e derivado, nunca declarado entrada a entrada. */
+  if (estaSobOGanchoDeVersao(r)) {
+    if ("426" in respostas) {
+      throw new Error(
+        `${chave}: o status 426 é do gancho de versão do aplicativo e colide com uma resposta da entrada`,
+      );
+    }
+    respostas["426"] = {
+      description:
+        `versao_do_aplicativo_antiga: ${CODIGOS_DE_ERRO.versao_do_aplicativo_antiga.titulo}. ` +
+        "Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está " +
+        "abaixo do mínimo configurado para o aplicativo.",
+      "x-codigos-de-erro": ["versao_do_aplicativo_antiga"],
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/VersaoDoAplicativoAntiga" },
+        },
       },
     };
   }
@@ -327,7 +385,11 @@ function operacaoDe(r: RotaComGrupo): Json {
     );
   }
 
-  const parametros = [...doCaminho, ...(r.consulta ? parametrosDe(r.consulta, "query") : [])];
+  const parametros: Json[] = [
+    ...doCaminho,
+    ...(r.consulta ? parametrosDe(r.consulta, "query") : []),
+    ...(estaSobOGanchoDeVersao(r) ? [{ ...CABECALHO_DE_VERSAO_NO_DOCUMENTO }] : []),
+  ];
   const regras = regrasAdicionaisDe(r);
   const operacao: Json = { tags: [r.grupo], summary: r.resumo };
   if (regras.length > 0) operacao.description = descricaoDasRegras(regras);
@@ -376,7 +438,12 @@ export function gerarOpenApi(
         "`x-rotas-pendentes`; operação sem resposta descrita leva `x-resposta-pendente`.",
     },
     paths,
-    components: { schemas: { ErroDaApi: esquemaJson(erroDaApiSchema, "output") } },
+    components: {
+      schemas: {
+        ErroDaApi: esquemaJson(erroDaApiSchema, "output"),
+        VersaoDoAplicativoAntiga: esquemaJson(versaoDoAplicativoAntigaSchema, "output"),
+      },
+    },
     "x-rotas-pendentes": [...pendentes].sort(),
   };
 }

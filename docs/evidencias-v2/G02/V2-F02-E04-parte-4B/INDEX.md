@@ -18,3 +18,7 @@
 | saidas/14-conferir-numeros.txt | 9e9e38a7f82cb1aeb81e6a417bf33e4df58dfcda2ce168e98c858277b5208fd5 |
 | saidas/15-baseline-test.txt | d2850eec72739a20cdc38164bd041946e74d132e46e5b127fad8c96de1e96f18 |
 | saidas/16-test-scripts.txt | 3b63cc7fedcdae7cc0ed8b6ca82812febd55d1541dc3e818096aa47ee220782f |
+| correcao-1/RESUMO.md | 0d26150922aa0d671f1bdf439abd34884417874f32a9d7886fbbc82d1968b54a |
+| correcao-1/saidas/01-item1-ANTES.txt | 55348e043e3712f11cd95d8a4be4440bd66772c439a88e68966e085cba06aabb |
+| correcao-1/saidas/02-item1-DEPOIS.txt | ce324d711f9b269bc134211894724c6b807d5832806fb212d6e476f8fe286c0e |
+| correcao-1/saidas/03-trecho-do-v1.txt | ae287bcc3e14d86ccc851298f21c4030ea44017e63f200ee0b4ddabc9d9e9f63 |
