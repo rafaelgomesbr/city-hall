@@ -495,6 +495,56 @@ export type CodigoDeErro = keyof typeof CODIGOS_DE_ERRO;
  * no mesmo commit.
  */
 export const CODIGOS_RESERVADOS = {
+  /*
+    F03 (V2-F03, parte 0C): códigos que a fase de identidade vai emitir. Este bloco
+    fica NO INÍCIO da lista, longe das linhas `versao_do_aplicativo_*` que a F02
+    move. Status e categoria são a proposta do roadmap; a etapa dona confirma ao
+    emitir e então move a linha para `CODIGOS_DE_ERRO` no mesmo commit.
+    Não entram aqui os códigos que a fase só reaproveita: `segundo_fator_desligado`
+    (503, E11) e `usuario_repetido` (409, E09) já são emitidos.
+  */
+  /** V2-F03-E04: `PATCH /usuarios/:id` recusa mudar o papel de ou para `usuario_orgao`. */
+  papel_nao_se_converte: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Papel de servidor e usuario_orgao não se convertem",
+  },
+  /**
+   * V2-F03-E11 (reset do segundo fator) e V2-F03-E08 (redefinição de senha, decisão
+   * H-a): a pessoa tem conta ativa em outro município, e um município não mexe na
+   * credencial dela.
+   */
+  pessoa_em_varios_municipios: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Pessoa com conta ativa em mais de um município",
+  },
+  /**
+   * V2-F03-E10: convite usado, vencido, reemitido ou aceito com a sessão de outra
+   * pessoa. Um código e um status só para todos os casos, para o link não virar
+   * oráculo.
+   */
+  convite_invalido: {
+    status: 404,
+    categoria: "permanente",
+    titulo: "Convite inválido, usado ou vencido",
+  },
+  /**
+   * V2-F03-E16: pessoa com várias contas entrando por um aplicativo abaixo de
+   * `VERSAO_ESCOLHA_DE_MUNICIPIO`, que não sabe escolher o município. Resolve
+   * atualizando o aplicativo.
+   */
+  escolha_de_municipio_obrigatoria: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Várias contas: este aplicativo não sabe escolher o município",
+  },
+  /** V2-F03-E17: vínculo de órgão externo sem o termo aceito (convite e aceite). */
+  termo_nao_aceito: {
+    status: 422,
+    categoria: "corrigir",
+    titulo: "Termo do órgão externo ainda não aceito",
+  },
   /** V2-F02-E08: o aplicativo está abaixo da versão mínima aceita (426). */
   versao_do_aplicativo_antiga: {
     status: 426,
