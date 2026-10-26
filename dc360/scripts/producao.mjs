@@ -11,7 +11,7 @@
  */
 import { execFileSync } from "node:child_process";
 
-/** Onde a senha mora no chaveiro. Ver `--ajuda`. */
+/** Onde a senha mora no chaveiro (Mac) ou no Gerenciador de Credenciais (Windows). Ver `--ajuda`. */
 export const CONTA = "dc360";
 export const COFRE = "senha-do-banco-dc360";
 
@@ -70,23 +70,67 @@ export function montarUrl(senha, host = HOST) {
     + `@${host}:${PORTA}/postgres?sslmode=verify-full`;
 }
 
-export function senhaDoChaveiro() {
-  try {
-    return execFileSync(
-      "security",
-      ["find-generic-password", "-a", CONTA, "-s", COFRE, "-w"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-    ).replace(/\n$/, "");
-  } catch {
-    console.error(
-      `\nNão achei a senha do banco no chaveiro do Mac.\n\n`
-      + `Guarde ela primeiro com o comando abaixo. Ele vai PERGUNTAR a senha e\n`
-      + `pedir de novo para conferir, e ela não aparece na tela nem fica no\n`
-      + `histórico do terminal:\n\n`
-      + `  security add-generic-password -a ${CONTA} -s ${COFRE} -w\n\n`
+/*
+  No Windows o chaveiro é o Gerenciador de Credenciais, lido pelo cofre do
+  Windows Runtime (`PasswordVault`), que o PowerShell 5.1 de toda instalação
+  alcança sem módulo extra. Entrou em 26/10/2026, quando a migração do G00
+  precisou rodar de uma máquina Windows e a senha só existia no chaveiro do
+  Mac. A saída vai em UTF-8 de propósito: na página de código do console, uma
+  senha com acento chegaria trocada, e o erro que sai é "senha errada".
+*/
+const COFRE_DO_WINDOWS =
+  "[void][Windows.Security.Credentials.PasswordVault,Windows.Security.Credentials,ContentType=WindowsRuntime];"
+  + "$cofre=New-Object Windows.Security.Credentials.PasswordVault;";
+
+/**
+ * O comando que lê a senha, por plataforma. Função pura e exportada para o
+ * teste conferir que nenhuma das duas leva a senha na linha de comando.
+ */
+export function comandoDeLeitura(plataforma = process.platform) {
+  if (plataforma === "win32") {
+    return {
+      programa: "powershell.exe",
+      argumentos: [
+        "-NoProfile", "-NonInteractive", "-Command",
+        "$ErrorActionPreference='Stop';[Console]::OutputEncoding=[Text.Encoding]::UTF8;"
+        + COFRE_DO_WINDOWS
+        + `$c=$cofre.Retrieve('${COFRE}','${CONTA}');$c.RetrievePassword();[Console]::Out.Write($c.Password)`,
+      ],
+    };
+  }
+  return { programa: "security", argumentos: ["find-generic-password", "-a", CONTA, "-s", COFRE, "-w"] };
+}
+
+/** Como guardar a senha, por plataforma. Os dois PERGUNTAM, sem eco nem histórico. */
+export function comoGuardar(plataforma = process.platform) {
+  if (plataforma === "win32") {
+    return `\nNão achei a senha do banco no Gerenciador de Credenciais do Windows.\n\n`
+      + `Guarde ela primeiro: abra o PowerShell e cole o comando abaixo. Ele vai\n`
+      + `PERGUNTAR a senha, sem mostrar o que você digita, e ela não fica no\n`
+      + `histórico:\n\n`
+      + `  $s=Read-Host -AsSecureString 'Senha do banco'; ${COFRE_DO_WINDOWS}`
+      + `$cofre.Add((New-Object Windows.Security.Credentials.PasswordCredential('${COFRE}','${CONTA}',[Net.NetworkCredential]::new('',$s).Password)))\n\n`
       + `A senha é a do banco, que se gera no painel da Supabase em\n`
-      + `Database > Settings > Reset database password.\n`,
-    );
+      + `Database > Settings > Reset database password.\n`;
+  }
+  return `\nNão achei a senha do banco no chaveiro do Mac.\n\n`
+    + `Guarde ela primeiro com o comando abaixo. Ele vai PERGUNTAR a senha e\n`
+    + `pedir de novo para conferir, e ela não aparece na tela nem fica no\n`
+    + `histórico do terminal:\n\n`
+    + `  security add-generic-password -a ${CONTA} -s ${COFRE} -w\n\n`
+    + `A senha é a do banco, que se gera no painel da Supabase em\n`
+    + `Database > Settings > Reset database password.\n`;
+}
+
+export function senhaDoChaveiro({ plataforma = process.platform, executar = execFileSync } = {}) {
+  const { programa, argumentos } = comandoDeLeitura(plataforma);
+  try {
+    const senha = executar(programa, argumentos, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+      .replace(/\r?\n$/, "");
+    if (senha === "") throw new Error("vazia");
+    return senha;
+  } catch {
+    console.error(comoGuardar(plataforma));
     process.exit(1);
   }
 }
