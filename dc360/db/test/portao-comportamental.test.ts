@@ -41,6 +41,7 @@ import {
   provarTabela,
   semear,
   tabelasDaProva,
+  TIPOS_PROPRIOS,
   type BancoDaProva,
   type ContribuicaoDoCatalogo,
   type FuncaoPrivilegiada,
@@ -391,8 +392,12 @@ describe("item 6: sequências, tipos, dono e privilégio padrão", () => {
   it("sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa", async () => {
     const abrir = "CREATE SEQUENCE sonda_seq; GRANT USAGE ON SEQUENCE sonda_seq TO dc360_app";
     const fechar = "DROP SEQUENCE sonda_seq";
+    // Os tipos próprios REAIS entram nas duas chamadas: desde a 053 o banco tem os três
+    // domínios de papel, e a sonda é da sequência, não do catálogo de tipos.
     expect(
-      (await comBuraco(abrir, fechar, () => conferirSequenciasETipos(db, [], []))).join("\n"),
+      (await comBuraco(abrir, fechar, () => conferirSequenciasETipos(db, [], TIPOS_PROPRIOS))).join(
+        "\n",
+      ),
     ).toMatch(/sequência sonda_seq: .*a mais: dc360_app:USAGE/);
     const declarada = {
       sequencia: "sonda_seq",
@@ -401,7 +406,9 @@ describe("item 6: sequências, tipos, dono e privilégio padrão", () => {
       motivo: "Sonda: sequência declarada com o privilégio que ela tem.",
     };
     expect(
-      await comBuraco(abrir, fechar, () => conferirSequenciasETipos(db, [declarada], [])),
+      await comBuraco(abrir, fechar, () =>
+        conferirSequenciasETipos(db, [declarada], TIPOS_PROPRIOS),
+      ),
     ).toEqual([]);
   });
 
