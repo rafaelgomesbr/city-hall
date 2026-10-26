@@ -431,11 +431,26 @@ export async function construirServidor(
     frameworkErrors: (erro, req, enviada) => {
       // O tipo do Fastify aqui trava `send` num corpo `never`; o objeto é a resposta de sempre.
       const resposta = enviada as unknown as FastifyReply;
-      const comum = {
+      const origem = req.headers.origin;
+      const comum: Record<string, string> = {
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",
         "x-request-id": req.id,
+        // A resposta muda conforme a origem; sem isto um cache serviria a de uma origem a outra.
+        vary: "Origin",
       };
+      /*
+        A MESMA regra de CORS das demais respostas (`@fastify/cors`, registrado
+        abaixo com `origin: config.origens`): o plugin não roda nesta fase, e sem
+        o cabeçalho o painel, numa origem permitida, não lê o corpo e mostra
+        "sem conexão" em vez da mensagem do catálogo. Só a origem escrita na lista
+        recebe; qualquer outra fica sem cabeçalho de CORS, como antes.
+      */
+      if (typeof origem === "string" && config.origens.includes(origem)) {
+        comum["access-control-allow-origin"] = origem;
+        comum["access-control-allow-credentials"] = "true";
+        comum["access-control-expose-headers"] = "x-request-id";
+      }
       // 400 é o endereço malformado, 414 o parâmetro longo demais, e o resto a restrição assíncrona (500).
       if (erro.statusCode === 400) {
         void resposta.code(400).headers(comum).send({

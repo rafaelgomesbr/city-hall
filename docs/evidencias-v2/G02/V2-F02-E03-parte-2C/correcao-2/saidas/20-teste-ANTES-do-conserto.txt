@@ -1,0 +1,43 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-ac57823c1c5f9cd0d/dc360/apps/api[39m
+
+ [31m❯[39m test/cors-dos-erros-do-fastify.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 6698[2mms[22m[39m
+[31m   [31m×[31m 'endereço malformado (400 url_invalida)'[2m > [22morigem permitida recebe o cabeçalho e pode ler o corpo[39m[33m 409[2mms[22m[39m
+[31m     → expected undefined to be 'http://localhost:4691' // Object.is equality[39m
+   [32m✓[39m 'endereço malformado (400 url_invalida)'[2m > [22morigem fora da lista não recebe o cabeçalho[32m 1[2mms[22m[39m
+   [32m✓[39m 'endereço malformado (400 url_invalida)'[2m > [22msem origem (curl, aplicativo) não ganha cabeçalho de CORS[32m 1[2mms[22m[39m
+   [32m✓[39m 'endereço malformado (400 url_invalida)'[2m > [22mo corpo e os demais cabeçalhos continuam os de antes[32m 1[2mms[22m[39m
+[31m   [31m×[31m 'parâmetro de 150 caracteres (414 para…'[2m > [22morigem permitida recebe o cabeçalho e pode ler o corpo[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'http://localhost:4691' // Object.is equality[39m
+   [32m✓[39m 'parâmetro de 150 caracteres (414 para…'[2m > [22morigem fora da lista não recebe o cabeçalho[32m 1[2mms[22m[39m
+   [32m✓[39m 'parâmetro de 150 caracteres (414 para…'[2m > [22msem origem (curl, aplicativo) não ganha cabeçalho de CORS[32m 1[2mms[22m[39m
+   [32m✓[39m 'parâmetro de 150 caracteres (414 para…'[2m > [22mo corpo e os demais cabeçalhos continuam os de antes[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/cors-dos-erros-do-fastify.test.ts[2m > [22m'endereço malformado (400 url_invalida)'[2m > [22morigem permitida recebe o cabeçalho e pode ler o corpo
+[41m[1m FAIL [22m[49m test/cors-dos-erros-do-fastify.test.ts[2m > [22m'parâmetro de 150 caracteres (414 para…'[2m > [22morigem permitida recebe o cabeçalho e pode ler o corpo
+[31m[1mAssertionError[22m: expected undefined to be 'http://localhost:4691' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"http://localhost:4691"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/cors-dos-erros-do-fastify.test.ts:[2m72:56[22m[39m
+    [90m 70| [39m      [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m(status)[33m;[39m
+    [90m 71| [39m      [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m(erro)[33m;[39m
+    [90m 72| [39m      expect(r.headers["access-control-allow-origin"]).toBe(ORIGEM_DO_…
+    [90m   | [39m                                                       [31m^[39m
+    [90m 73| [39m      expect(r.headers["access-control-allow-credentials"]).toBe("true…
+    [90m 74| [39m      expect(String(r.headers["access-control-expose-headers"]).toLowe…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 03:39:56
+[2m   Duration [22m 14.99s[2m (transform 1.13s, setup 1.81s, collect 5.87s, tests 6.70s, environment 0ms, prepare 207ms)[22m
+
