@@ -151,14 +151,6 @@ test("nenhuma variável de segredo da matriz tem valor, e a organização não �
   for (const app of APPS) {
     for (const v of MATRIZ.apps[app].variaveis) {
       if (v.onde === "segredo") assert.equal(v.valores, undefined, `${app}.${v.nome}`);
-      /*
-        A ÚNICA exceção, por nome: `VERSAO_ESCOLHA_DE_MUNICIPIO` (V2-F03-E16,
-        declarada na abertura da API da F03, parte 1C) é a VERSÃO mínima do
-        aplicativo que sabe escolher o município no login, `maior.menor.correção`.
-        Não diz de qual município ou organização o processo é. Outro nome com
-        ORGANIZACAO, MUNICIPIO ou TENANT continua reprovando.
-      */
-      if (v.nome === "VERSAO_ESCOLHA_DE_MUNICIPIO") continue;
       assert.doesNotMatch(
         v.nome,
         /ORGANIZACAO|MUNICIPIO|TENANT/,

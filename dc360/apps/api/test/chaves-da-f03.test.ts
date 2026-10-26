@@ -56,7 +56,7 @@ describe("Padrão fechado e sem efeito", () => {
     const c = carregarConfig(dev());
     expect(c.PORTAL_ATIVO).toBe("nao");
     expect(c.ACEITA_SUB_DE_CONTA_ATE).toBeUndefined();
-    expect(c.VERSAO_ESCOLHA_DE_MUNICIPIO).toBeUndefined();
+    expect(c.VERSAO_DO_LOGIN_EM_DOIS_PASSOS).toBeUndefined();
     expect(c.MFA_VIGENCIA_MINUTOS).toBe(0);
     expect(c.COTAS_PERSISTENTES).toBe("nao");
     expect(c.COTAS_SEGREDO).toBeUndefined();
@@ -70,12 +70,12 @@ describe("Padrão fechado e sem efeito", () => {
     const c = carregarConfig(
       dev({
         ACEITA_SUB_DE_CONTA_ATE: "",
-        VERSAO_ESCOLHA_DE_MUNICIPIO: "",
+        VERSAO_DO_LOGIN_EM_DOIS_PASSOS: "",
         COTAS_SEGREDO: "",
       }),
     );
     expect(c.ACEITA_SUB_DE_CONTA_ATE).toBeUndefined();
-    expect(c.VERSAO_ESCOLHA_DE_MUNICIPIO).toBeUndefined();
+    expect(c.VERSAO_DO_LOGIN_EM_DOIS_PASSOS).toBeUndefined();
     expect(c.COTAS_SEGREDO).toBeUndefined();
   });
 
@@ -83,14 +83,14 @@ describe("Padrão fechado e sem efeito", () => {
     const c = carregarConfig(
       dev({
         ACEITA_SUB_DE_CONTA_ATE: "2027-03-31",
-        VERSAO_ESCOLHA_DE_MUNICIPIO: "1.7.0",
+        VERSAO_DO_LOGIN_EM_DOIS_PASSOS: "1.7.0",
         MFA_VIGENCIA_MINUTOS: "15",
         COTAS_PERSISTENTES: "sim",
         COTAS_SEGREDO: SEGREDO_DAS_COTAS,
       }),
     );
     expect(c.ACEITA_SUB_DE_CONTA_ATE).toBe("2027-03-31");
-    expect(c.VERSAO_ESCOLHA_DE_MUNICIPIO).toBe("1.7.0");
+    expect(c.VERSAO_DO_LOGIN_EM_DOIS_PASSOS).toBe("1.7.0");
     expect(c.MFA_VIGENCIA_MINUTOS).toBe(15);
     expect(c.COTAS_PERSISTENTES).toBe("sim");
     expect(c.COTAS_SEGREDO).toBe(SEGREDO_DAS_COTAS);
@@ -177,11 +177,11 @@ describe("Formatos", () => {
   });
 
   it("versão fora do formato derruba a partida", () => {
-    expect(() => carregarConfig(dev({ VERSAO_ESCOLHA_DE_MUNICIPIO: "1.7" }))).toThrow(
-      /VERSAO_ESCOLHA_DE_MUNICIPIO/,
+    expect(() => carregarConfig(dev({ VERSAO_DO_LOGIN_EM_DOIS_PASSOS: "1.7" }))).toThrow(
+      /VERSAO_DO_LOGIN_EM_DOIS_PASSOS/,
     );
-    expect(() => carregarConfig(dev({ VERSAO_ESCOLHA_DE_MUNICIPIO: "v1.7.0" }))).toThrow(
-      /VERSAO_ESCOLHA_DE_MUNICIPIO/,
+    expect(() => carregarConfig(dev({ VERSAO_DO_LOGIN_EM_DOIS_PASSOS: "v1.7.0" }))).toThrow(
+      /VERSAO_DO_LOGIN_EM_DOIS_PASSOS/,
     );
   });
 

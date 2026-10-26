@@ -472,13 +472,18 @@ const esquema = z.object({
   ),
 
   /**
-   * A versão mínima do aplicativo que sabe ESCOLHER o município no login
+   * A versão do LOGIN EM DOIS PASSOS: a versão mínima do aplicativo que sabe
+   * ESCOLHER o município no login
    * (E16), em `maior.menor.correção`. Abaixo dela, quem tem conta em mais de
    * um município recebe 409 `escolha_de_municipio_obrigatoria`. Vazia, que é
    * o padrão, não declara versão nenhuma: o que a ausência significa é da E16.
    * Valor fora do formato derruba a partida, como `VERSAO_MINIMA_CAMPO`.
+   *
+   * O nome NÃO é o do plano e da ADR 0009 (`VERSAO_ESCOLHA_DE_MUNICIPIO`): o
+   * guarda de isolamento reprova variável de configuração com MUNICIPIO,
+   * ORGANIZACAO ou TENANT no nome, e não se abre exceção nele.
    */
-  VERSAO_ESCOLHA_DE_MUNICIPIO: vazioEhAusente(
+  VERSAO_DO_LOGIN_EM_DOIS_PASSOS: vazioEhAusente(
     z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional(),
   ),
 

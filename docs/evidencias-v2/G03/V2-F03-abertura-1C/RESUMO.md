@@ -28,16 +28,16 @@ Todas com padrão fechado e nenhum efeito: nenhum código de negócio lê o valo
 | --- | --- | --- |
 | `PORTAL_ATIVO` | `sim`/`nao`, `nao` | `sim` sem `SEGUNDO_FATOR_ATIVO=sim` recusa a partida, em qualquer ambiente |
 | `ACEITA_SUB_DE_CONTA_ATE` | `AAAA-MM-DD`, vazia (fechada) | data inexistente recusa |
-| `VERSAO_ESCOLHA_DE_MUNICIPIO` | `maior.menor.correção`, vazia | fora do formato recusa |
+| `VERSAO_DO_LOGIN_EM_DOIS_PASSOS` | `maior.menor.correção`, vazia | fora do formato recusa |
 | `MFA_VIGENCIA_MINUTOS` | inteiro 0 a 1440, `0` | RESERVADA e sem efeito: a ADR 0009 corrigida diz que a troca de município pede prova nova e nada é herdado; só teria efeito se o Rafael aceitar o risco (CP-50 pergunta 2, H107) |
 | `COTAS_PERSISTENTES` | `sim`/`nao`, `nao` | em produção `sim` sem `COTAS_SEGREDO` recusa |
 | `COTAS_SEGREDO` | segredo, mínimo 32 caracteres, vazio é ausente | exigido em produção quando as cotas estão ligadas; na matriz é `onde: segredo` |
 
 `scripts/ambientes.json` ganhou as seis (nenhuma com `valores` fixos, para a 2A poder pôr `PORTAL_ATIVO=sim` no `fly.hml.toml` sem editar a matriz); `conferir-ambiente.mjs` confere o repositório. Não declarei chave de fila de envio: a 1C não precisou de nenhuma (convite e recuperação usam as chaves de e-mail e notificador que já existem).
 
-### Duas exceções por nome que a chave `VERSAO_ESCOLHA_DE_MUNICIPIO` exigiu
+### Nome da chave da versão do login
 
-Dois guardas reprovavam qualquer variável de configuração com `MUNICIPIO` no nome ("a organização vem do token, não da configuração"): `apps/api/test/contrato-de-ambiente.test.ts` e `scripts/conferir-ambiente.test.mjs`. O nome da chave é fixado pelo plano e pela ADR e ela é a VERSÃO mínima de um aplicativo, não um seletor de município. Cada guarda ganhou uma lista de exceção com UM nome e a razão escrita; nome novo com `ORGANIZACAO`, `MUNICIPIO` ou `TENANT` continua reprovando. Nenhum caso mudou de resultado (o do api ganhou uma asserção a mais dentro do mesmo caso).
+O plano e a ADR 0009 chamam a chave `VERSAO_ESCOLHA_DE_MUNICIPIO`, mas dois guardas de isolamento (`apps/api/test/contrato-de-ambiente.test.ts` e `scripts/conferir-ambiente.test.mjs`) reprovam variável de configuração com `MUNICIPIO`, `ORGANIZACAO` ou `TENANT` no nome. Por ordem do orquestrador, a chave foi RENOMEADA para `VERSAO_DO_LOGIN_EM_DOIS_PASSOS` e os dois guardas ficaram exatamente como eram (nenhuma exceção aberta). O significado não mudou: a versão mínima do aplicativo que sabe escolher o município no login.
 
 ## Testes novos
 
@@ -81,5 +81,5 @@ Dois guardas reprovavam qualquer variável de configuração com `MUNICIPIO` no 
 - **Linha do STATUS sugerida:** `V2-F03-abertura-1C | IMPLEMENTADA (não é etapa) | candidato no ramo trab/f03-1c-abertura-api | autenticação em auth/autenticacao-da-requisicao.ts, ponto conferirManifesto, limite-persistente, três módulos de rota e três grupos de contrato vazios, seis chaves da F03 | falta validação`.
 - **A PARTIR DAQUI `servidor.ts` e `config.ts` ficam CONGELADOS na F03** (só correção de junção). Quem precisar de mais uma chave de configuração ou de mais um módulo de rota depois da 1C precisa de um pedido de reabertura. `auth/autenticacao-da-requisicao.ts` é da 1D, da 2A e da 3A, `auth/manifesto.ts` da 3B, `rotas/convites.ts` da 4B e da 5C.
 - **Dívidas pagas:** nenhuma. **Pendências humanas novas:** nenhuma.
-- **Mudança de plano / premissas:** (1) o plano não previa mover `NaoAutenticado`, `TrocaDeSenhaObrigatoria` e `ROTAS_ABERTAS_COM_SENHA_PROVISORIA`; moveram junto, reexportados. (2) Os dois guardas de "organização não é configuração" ganharam a exceção `VERSAO_ESCOLHA_DE_MUNICIPIO` (ver acima). (3) `DependenciasDasRotas` passou a ser exportado. (4) O `enum` de `papel` do contrato NÃO foi restrito (ver acima); a 2A não precisa mexer em `contrato/**` por causa dele. (5) Nenhuma divergência entre o plano e a ADR 0009 apareceu nesta parte.
+- **Mudança de plano / premissas:** (1) o plano não previa mover `NaoAutenticado`, `TrocaDeSenhaObrigatoria` e `ROTAS_ABERTAS_COM_SENHA_PROVISORIA`; moveram junto, reexportados. (2) **O nome da chave DIVERGE do plano e da ADR 0009**: `VERSAO_ESCOLHA_DE_MUNICIPIO` virou `VERSAO_DO_LOGIN_EM_DOIS_PASSOS`, para não afrouxar os dois guardas de isolamento ("organização não é configuração"), que ficaram intocados. O orquestrador atualiza o plano; a ADR 0009 e o comentário de `packages/shared/src/erros.ts` (código `escolha_de_municipio_obrigatoria`) ainda citam o nome antigo e ficam para quem for dono deles. (3) `DependenciasDasRotas` passou a ser exportado. (4) O `enum` de `papel` do contrato NÃO foi restrito (ver acima); a 2A não precisa mexer em `contrato/**` por causa dele. (5) Nenhuma divergência entre o plano e a ADR 0009 apareceu nesta parte.
 - **Conflitos prováveis na junção:** com a 1D em `auth/autenticacao-da-requisicao.ts` (a 1D parte deste arquivo); com qualquer parte que mexa em `scripts/baseline.mjs` (uma linha no fim da tabela da API), nos totais do README e do `COLOCAR-DE-PE.md` (somar os casos novos de cada parte) e em `scripts/ambientes.json`.

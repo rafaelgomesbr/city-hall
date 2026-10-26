@@ -437,20 +437,7 @@ describe("a organização nunca vem de configuração", () => {
     const bloco = fonte.slice(fonte.indexOf("const esquema"), fonte.indexOf("export type Config"));
     const chaves = [...bloco.matchAll(/^\s{2}([A-Z][A-Z0-9_]+):/gm)].map((m) => m[1]!);
     expect(chaves.length).toBeGreaterThan(20);
-    /*
-      A ÚNICA exceção, por nome, e com a razão escrita: `VERSAO_ESCOLHA_DE_MUNICIPIO`
-      (V2-F03-E16, declarada na abertura da API da F03, parte 1C) é a VERSÃO
-      mínima do aplicativo que sabe escolher o município no login. Não diz
-      qual município nem de qual organização é o processo: o valor é
-      `maior.menor.correção`. A organização continua vindo só do token. Uma
-      variável nova com `ORGANIZACAO`, `MUNICIPIO` ou `TENANT` no nome, fora
-      esta, continua reprovando.
-    */
-    const EXCECOES = new Set(["VERSAO_ESCOLHA_DE_MUNICIPIO"]);
-    expect(
-      chaves.filter((k) => /ORGANIZACAO|MUNICIPIO|TENANT/.test(k) && !EXCECOES.has(k)),
-    ).toEqual([]);
-    expect(chaves).toContain("VERSAO_ESCOLHA_DE_MUNICIPIO");
+    expect(chaves.filter((k) => /ORGANIZACAO|MUNICIPIO|TENANT/.test(k))).toEqual([]);
   });
 });
 

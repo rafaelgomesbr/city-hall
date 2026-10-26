@@ -79,7 +79,7 @@
         { "nome": "SEGUNDO_FATOR_BLOQUEIO_MINUTOS", "onde": "env" },
         { "nome": "PORTAL_ATIVO", "onde": "env", "nota": "F03-1C: padrao nao; ligar e da V2-F03-E02, so em HML e so depois do G03; sim exige SEGUNDO_FATOR_ATIVO=sim" },
         { "nome": "ACEITA_SUB_DE_CONTA_ATE", "onde": "env", "nota": "F03-1C: vazia e fechada; so a V2-F03-E02 usa" },
-        { "nome": "VERSAO_ESCOLHA_DE_MUNICIPIO", "onde": "env", "nota": "F03-1C: vazia nao declara versao; so a V2-F03-E16 usa" },
+        { "nome": "VERSAO_DO_LOGIN_EM_DOIS_PASSOS", "onde": "env", "nota": "F03-1C: vazia nao declara versao; so a V2-F03-E16 usa" },
         { "nome": "MFA_VIGENCIA_MINUTOS", "onde": "env", "nota": "F03-1C: reservada e sem efeito (ADR 0009: a troca de municipio pede prova nova); manter 0" },
         { "nome": "COTAS_PERSISTENTES", "onde": "env", "nota": "F03-1C: padrao nao; ligar e da V2-F03-E17; sim em producao exige COTAS_SEGREDO" },
         { "nome": "COTAS_SEGREDO", "onde": "segredo", "nota": "F03-1C: so exigido com COTAS_PERSISTENTES=sim em producao (a partida confere); nunca no [env]" },
