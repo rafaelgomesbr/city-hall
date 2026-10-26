@@ -22,7 +22,7 @@ como conferir isso, em vez de supor.
 
 ## O que foi provado, e o que não foi
 
-**Quantas migrações.** A pasta `db/migrations/` tem hoje 51 (001 a 051) <!-- numeros: migracoes=51 -->. Os
+**Quantas migrações.** A pasta `db/migrations/` tem hoje 52 (001 a 051, e 055) <!-- numeros: migracoes=52 -->. Os
 números de migração abaixo são fatos datados: cada prova vale para a árvore em
 que rodou, e quem quiser o número de hoje conta os arquivos
 (`ls db/migrations | wc -l`). O roteiro não depende da quantidade: o `migrar`
@@ -239,7 +239,7 @@ super -p $PORTA_ORIGEM -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH
 ```
 
 O que se espera: o primeiro `migrar` imprime `aplicando 001_base.sql` até
-`aplicando 051_...sql` (a última da pasta; 51 hoje); o segundo imprime `Esquema
+`aplicando 055_...sql` (a última da pasta; 52 hoje); o segundo imprime `Esquema
 em dia.`; o terceiro, `Semeado com os dois municípios fictícios.`
 
 (Como a senha chega ao SQL. O shell lê o arquivo e a põe numa variável de

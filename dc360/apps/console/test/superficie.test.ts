@@ -158,8 +158,9 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       Em tabela de NEGÓCIO o papel do console continua sem INSERT, UPDATE ou
       DELETE (decisão 3 da ADR 0008). O que ele escreve é a tabela PRÓPRIA
       (`console_operadores`) e o que ele executa são funções concedidas por
-      nome: a de cadastrar prefeitura (036) e as quatro de suspender,
-      reativar, agendar e cancelar a eliminação (038).
+      nome: a de cadastrar prefeitura (036), as quatro de suspender,
+      reativar, agendar e cancelar a eliminação (038) e a de restaurar o
+      acesso do administrador de um município (055, decisão H06 B).
 
       Este caso guarda o tamanho dessa abertura pela lista de rotas, que é a
       parte que uma revisão de diff deixa passar. DELETE continua em ZERO, e
@@ -188,6 +189,7 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       "POST /municipios/:id/eliminacao/cancelar",
       "POST /municipios/:id/eliminar",
       "POST /municipios/:id/reativar",
+      "POST /municipios/:id/restaurar-acesso",
       "POST /municipios/:id/suspender",
       "POST /operadores",
       "POST /operadores/:id/desativar",

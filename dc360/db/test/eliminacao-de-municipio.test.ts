@@ -312,6 +312,19 @@ async function semearMunicipio(org: string, apelido: string): Promise<void> {
     [org, oc, u, eq],
   );
   await q("INSERT INTO metricas_municipio (organizacao_id, dia) VALUES ($1, current_date)", [org]);
+  /*
+    O registro do console das restaurações de acesso (055). Ele SAI com o
+    município, ao contrário do livro de eliminações: o motivo é texto livre do
+    fornecedor e pode citar a pessoa, e guardá-lo depois da saída seria reter
+    dado sem finalidade.
+  */
+  await q(
+    `INSERT INTO restauracoes_de_acesso
+       (organizacao_id, operador_id, operador_email, motivo, sessoes_encerradas, senha_provisoria_ate)
+     VALUES ($1, $2, 'dono@fornecedor.exemplo.com.br', 'Chamado semeado de restauracao', 1,
+             now() + interval '72 hours')`,
+    [org, DONO_ID],
+  );
 }
 
 /**
