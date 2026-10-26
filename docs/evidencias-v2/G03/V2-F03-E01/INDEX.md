@@ -21,3 +21,6 @@
 | correcao-4/RESUMO.md | f34573772a06d97c9fc2ea4daae788293d995fa5e0a82cdbb1696539a75cba3c |
 | correcao-4/gerar-estado.txt | b6d27a83ff5d82d97bbe9b7c49f483b869a75c70e97b84396bf3ca68bc4e4dc1 |
 | correcao-4/regras-de-conteudo.txt | e062738ae4c2a79d0ad2656222e612ea12163fb24b4abdd615e4e61a284f62c3 |
+| correcao-5/RESUMO.md | e9ae1cdac59f78217897c6e1e0b0a00b21ce4af0959f640a4e019d32848b0206 |
+| correcao-5/gerar-estado.txt | b6d27a83ff5d82d97bbe9b7c49f483b869a75c70e97b84396bf3ca68bc4e4dc1 |
+| correcao-5/regras-de-conteudo.txt | 866e19c403323cdb48783cdfbc7493b05331607fedbb668ecae91cf626789f54 |
