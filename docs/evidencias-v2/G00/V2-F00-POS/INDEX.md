@@ -1,7 +1,28 @@
 # INDEX
 
+Evidência da V2-F00-POS. O que cada arquivo prova está no RESUMO.md da subpasta (`api/`, `painel/`).
+
 | Arquivo | SHA-256 |
 | --- | --- |
+| api/01-h29-corrida-SEM-o-conserto.txt | 0fa080a29f878b05d15c32b8434050f90012278af38095e3009ad1394c31d98e |
+| api/02-h29-corrida-COM-o-conserto.txt | 9556a2103fbda483adfe2575d7ac291d8c940f10f98912c29c22e45bbdc43ee4 |
+| api/03-h04-reserva-por-pessoa-SEM-o-conserto.txt | 0b8e9c7e4bd8e3342912cbbb4806fc47a195be862aed1773bf03647b7732adc4 |
+| api/04-h04-reserva-por-pessoa-COM-o-conserto.txt | bc797a170fa1dbdcdcf3d9b588ff7c66a636e32377115119a15a034e242dc8d5 |
+| api/05-h04-rajada-paralela-SEM-a-linha-presa.txt | d19dcd26e02327259ebf72a4da3e76775d4237c6e546191771e14b5da553fc34 |
+| api/06-test-api-completa.txt | d73f55c66a06d7f05fc1efcc4bf812b27d56f491353da3c238f12ab79e78fc20 |
+| api/07-test-isolamento.txt | 8f3d08b4836d80428d5dd4046c9bcbb383f1bb7c2044cb10dbf204dba5b457c2 |
+| api/08-test-scripts.txt | bbd95b90eccb4574da4a0d56d7826e8c555fafa854be59a28515f058923d5ff1 |
+| api/09-typecheck.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| api/10-conferir-numeros.txt | b7eb33db360ab1c488ac6a385da3520adbffd92c014572ca27c12e6000e2e502 |
+| api/11-oficio-SEM-o-conserto.txt | 3b8e729e6717f684645bee1b392f36289d16b38db4486461c9f1cb59bf550cc4 |
+| api/12-corridas-COM-a-revisao.txt | 0c96221e4ed962ec29fba5938c68842527a31ab5f700366f86d34052956f2a6b |
+| api/13-lock-timeout-SEM-o-teto.txt | 9ffc54498beb7b6ff4c694ea3df1cd507f816973622b9fa39491fde859acd5c3 |
+| api/14-typecheck-revisao.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| api/15-test-isolamento-revisao.txt | 88b729e847e99d3c1ebbd48c2d9d56ae435c723e5685ddee78db2496ee88be20 |
+| api/16-test-api-completa-revisao.txt | f1801be6ea173c2d89e03d55ad472bb17db6572e00ef1a710041e4b8b0b7795d |
+| api/17-conferir-numeros-revisao.txt | f00b97b9f070aac9441a50441b0502c4935635fe446d9e443645bcd95fb3ca44 |
+| api/18-test-scripts-revisao.txt | b531301bab6690f1456e735c722dcf4793a87e3b464a715208817c049fae0579 |
+| api/RESUMO.md | 6aad3b381e1aec4350764f1dcfff58e792c6e876d75bdbf634250ff4f9cd3e4f |
 | painel/RESUMO.md | f46a63c57f4e75df733ebb4d11f7f050b286cd7d0ebd4eeae0913ddfcde8a0ea |
 | painel/capturas/h05-claro-1280-3-depois-do-esc-a-janela-continua.png | f30adf4e7a0dcce8502045c3483e608afd6600ebbcdf948c500e9b07005b8b8c |
 | painel/capturas/h05-claro-320-3-depois-do-esc-a-janela-continua.png | c00cb3c03cdd6dbacf1f0ef6894af6447829d37e303e6d9672bab3243e1547c3 |

@@ -1,0 +1,162 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/apps/api
+
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > é o menor entre o configurado e um décimo da margem, e nunca menos que uma foto no máximo 2ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > o padrão é 90 MB (seis fotos no teto por arquivo), configurável, e não aceita menos que uma foto 7ms
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 1. a rajada do achado: num município de 1 GiB, o Diego reserva seis fotos de 15 MB e a sétima leva 429; a Carla continua enviando 4571ms
+   → reservas aceitas do mesmo agente, sem subir byte nenhum: expected 102 to be 6 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 2. no teto, repetir o pedido da MESMA foto (mesma chave) continua respondendo a mesma reserva 406ms
+   → expected 201 to be 429 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 3. reserva abandonada pela varredura de órfão deixa de contar 411ms
+   → expected 201 to be 429 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 4. município sem teto contratado (o estado de hoje): vale o configurado, 90 MB 470ms
+   → {"evidenciaId":"729fcee1-bef2-474a-a786-2696781fb0fd","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/11111111-1111-4111-8111-0000000000c1/mvphuebl-a2ccdfe2-IMG_0125.jpg","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1793034388&assinatura=[removido]&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c1%2Fmvphuebl-a2ccdfe2-IMG_0125.jpg","cabecalhos":{"content-type":"image/jpeg","content-length":"15728640","if-none-match":"*"},"expiraEm":"2026-10-26T17:06:28.667Z","armazenamento":{"bytesUsados":110100480,"tetoBytes":null,"margemBytes":null,"situacao":"sem_teto"}}: expected 201 to be 429 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Foto concluída libera a reserva da pessoa (PGlite, teto configurado no mínimo) > 5. com 15 MB configurados, a foto pequena aberta impede a de 15 MB; subida e confirmada, a de 15 MB passa 88ms
+   → expected 201 to be 429 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Configurado acima de um décimo da margem, vale o décimo (PGlite, 1024 MB configurados) > 6. com 1 GiB de teto e 1024 MB configurados, ninguém segura mais que um décimo da margem (153,6 MB) 333ms
+   → {"evidenciaId":"4ec34b19-03da-4ac3-9a75-e6622edf3bbd","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/11111111-1111-4111-8111-0000000000c1/mvphujzf-79aa466a-IMG_0138.jpg","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1793034395&assinatura=[removido]&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c1%2Fmvphujzf-79aa466a-IMG_0138.jpg","cabecalhos":{"content-type":"image/jpeg","content-length":"15728640","if-none-match":"*"},"expiraEm":"2026-10-26T17:06:35.987Z","armazenamento":{"bytesUsados":173015040,"tetoBytes":1073741824,"margemBytes":1610612736,"situacao":"normal"}}: expected 201 to be 429 // Object.is equality
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 7. vinte pedidos de 15 MB do mesmo agente AO MESMO TEMPO: exatamente seis passam, e a colega continua enviando 910ms
+   → a rajada em paralelo passou por uma folga que só cabia seis: expected 20 to be 6 // Object.is equality
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 8. o índice parcial da migração 053 existe e cobre só as reservas abertas 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 1. a rajada do achado: num município de 1 GiB, o Diego reserva seis fotos de 15 MB e a sétima leva 429; a Carla continua enviando
+AssertionError: reservas aceitas do mesmo agente, sem subir byte nenhum: expected 102 to be 6 // Object.is equality
+
+- Expected
++ Received
+
+- 6
++ 102
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:187:80
+    185|       break;
+    186|     }
+    187|     expect(aceitas, "reservas aceitas do mesmo agente, sem subir byte …
+       |                                                                                ^
+    188|     expect(recusa?.statusCode, recusa?.body).toBe(429);
+    189|     expect(recusa?.json().erro).toBe("reservas_de_envio_da_pessoa");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 2. no teto, repetir o pedido da MESMA foto (mesma chave) continua respondendo a mesma reserva
+AssertionError: expected 201 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 201
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:210:65
+    208|     expect(repetida.statusCode, repetida.body).toBe(201);
+    209|     expect(repetida.json().evidenciaId).toBe(ids[2]);
+    210|     expect((await a.autorizar(tokenDiego, 15 * MB)).statusCode).toBe(4…
+       |                                                                 ^
+    211|   }, 120_000);
+    212| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 3. reserva abandonada pela varredura de órfão deixa de contar
+AssertionError: expected 201 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 201
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:217:65
+    215|     const ids: string[] = [];
+    216|     for (let i = 0; i < 6; i += 1) ids.push((await a.autorizar(tokenDi…
+    217|     expect((await a.autorizar(tokenDiego, 15 * MB)).statusCode).toBe(4…
+       |                                                                 ^
+    218|     await mem.bruto.query(
+    219|       "UPDATE evidencias SET abandonada_em = now(), abandono_motivo = …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 4. município sem teto contratado (o estado de hoje): vale o configurado, 90 MB
+AssertionError: {"evidenciaId":"729fcee1-bef2-474a-a786-2696781fb0fd","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/11111111-1111-4111-8111-0000000000c1/mvphuebl-a2ccdfe2-IMG_0125.jpg","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1793034388&assinatura=[removido]&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c1%2Fmvphuebl-a2ccdfe2-IMG_0125.jpg","cabecalhos":{"content-type":"image/jpeg","content-length":"15728640","if-none-match":"*"},"expiraEm":"2026-10-26T17:06:28.667Z","armazenamento":{"bytesUsados":110100480,"tetoBytes":null,"margemBytes":null,"situacao":"sem_teto"}}: expected 201 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 201
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:228:44
+    226|     for (let i = 0; i < 6; i += 1) expect((await a.autorizar(tokenDieg…
+    227|     const recusa = await a.autorizar(tokenDiego, 15 * MB);
+    228|     expect(recusa.statusCode, recusa.body).toBe(429);
+       |                                            ^
+    229|   }, 120_000);
+    230| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Foto concluída libera a reserva da pessoa (PGlite, teto configurado no mínimo) > 5. com 15 MB configurados, a foto pequena aberta impede a de 15 MB; subida e confirmada, a de 15 MB passa
+AssertionError: expected 201 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 201
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:262:65
+    260|     const pequena = await a.autorizar(tokenDiego, PIXEL_PNG.length);
+    261|     expect(pequena.statusCode, pequena.body).toBe(201);
+    262|     expect((await a.autorizar(tokenDiego, 15 * MB)).statusCode).toBe(4…
+       |                                                                 ^
+    263| 
+    264|     const alvo = new URL(pequena.json().url);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Configurado acima de um décimo da margem, vale o décimo (PGlite, 1024 MB configurados) > 6. com 1 GiB de teto e 1024 MB configurados, ninguém segura mais que um décimo da margem (153,6 MB)
+AssertionError: {"evidenciaId":"4ec34b19-03da-4ac3-9a75-e6622edf3bbd","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/11111111-1111-4111-8111-0000000000c1/mvphujzf-79aa466a-IMG_0138.jpg","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1793034395&assinatura=[removido]&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c1%2Fmvphujzf-79aa466a-IMG_0138.jpg","cabecalhos":{"content-type":"image/jpeg","content-length":"15728640","if-none-match":"*"},"expiraEm":"2026-10-26T17:06:35.987Z","armazenamento":{"bytesUsados":173015040,"tetoBytes":1073741824,"margemBytes":1610612736,"situacao":"normal"}}: expected 201 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 201
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:322:44
+    320|     }
+    321|     const recusa = await a.autorizar(tokenDiego, 15 * MB);
+    322|     expect(recusa.statusCode, recusa.body).toBe(429);
+       |                                            ^
+    323|     expect(recusa.json().erro).toBe("reservas_de_envio_da_pessoa");
+    324|     // Sem teto contratado não há margem a dividir: vale o configurado.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 7. vinte pedidos de 15 MB do mesmo agente AO MESMO TEMPO: exatamente seis passam, e a colega continua enviando
+AssertionError: a rajada em paralelo passou por uma folga que só cabia seis: expected 20 to be 6 // Object.is equality
+
+- Expected
++ Received
+
+- 6
++ 20
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:401:84
+    399|     const outras = respostas.filter((r) => r.statusCode !== 201 && r.s…
+    400|     expect(outras.map((r) => `${r.statusCode} ${r.body}`)).toEqual([]);
+    401|     expect(aceitas, "a rajada em paralelo passou por uma folga que só …
+       |                                                                                    ^
+    402|     expect(recusadas.length).toBe(14);
+    403|     expect(recusadas.every((r) => r.json().erro === "reservas_de_envio…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 3 passed (10)
+   Start at  13:51:16
+   Duration  29.07s (transform 632ms, setup 684ms, collect 2.15s, tests 25.41s, environment 0ms, prepare 218ms)
+

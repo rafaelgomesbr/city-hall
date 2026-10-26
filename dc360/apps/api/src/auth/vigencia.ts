@@ -1,5 +1,6 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { CODIGOS_DE_ERRO_DE_ACESSO, type Papel } from "@dc360/shared";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import type { ConteudoAcesso } from "./tokens.js";
 import { AcessoSuspenso } from "./suspensao.js";
 import { ContaDesativada } from "./conta-desativada.js";
@@ -20,6 +21,15 @@ import { FalhaAutenticacao } from "./servico.js";
  * na mesma ida e sob o mesmo RLS, mais três perguntas: a conta está ativa, o
  * papel é o do token, a sessão do token está de pé. E uma quarta, da
  * migração 046: a senha ainda é provisória, e até quando.
+ *
+ * E A MESMA PERGUNTA É REFEITA DENTRO DA TRANSAÇÃO QUE GRAVA (H29, migração
+ * 052). Conferida só aqui, numa transação própria, ela valia para o instante
+ * da conferência, e a escrita da rota confirmava depois, em outra transação:
+ * a desativação, o rebaixamento ou o encerramento que confirmasse no meio não
+ * a alcançava. Hoje a consulta é `vigencia_de_quem_escreve`, que segura a
+ * linha da pessoa e a trava dela antes de reler, e o `Banco` das rotas a
+ * chama como primeiro comando de toda transação de um pedido de escrita
+ * (`bancoQueReconfereAEscrita`, no fim deste arquivo).
  *
  * A SESSÃO ROTACIONADA SÓ VALE ENQUANTO A CADEIA DELA VIVE. Renovar revoga
  * a sessão antiga com motivo `rotacionada na renovacao` e abre outra; o token
@@ -93,47 +103,154 @@ export async function lerVigencia(
   conteudo: Pick<ConteudoAcesso, "sub" | "org" | "sid">,
 ): Promise<Vigencia> {
   return banco.comTenant(conteudo.org, async (c) => {
-    const r = await c.query<{
-      suspenso: boolean;
-      ativo: boolean | null;
-      papel: Papel | null;
-      senha_provisoria_ate: string | null;
-      sessao_viva: boolean;
-    }>(
-      `SELECT (o.acesso_suspenso_em IS NOT NULL OR o.eliminada_em IS NOT NULL) AS suspenso,
-              u.ativo, u.papel, u.senha_provisoria_ate,
-              EXISTS (
-                SELECT 1 FROM sessoes s
-                 WHERE s.id = $2 AND s.usuario_id = u.id
-                   AND (s.revogada_em IS NULL
-                        OR (s.motivo_revogacao = 'rotacionada na renovacao'
-                            AND EXISTS (
-                              SELECT 1 FROM sessoes v
-                               WHERE v.familia_id = s.familia_id
-                                 AND v.revogada_em IS NULL
-                            )))
-              ) AS sessao_viva
-         FROM organizacoes o
-         LEFT JOIN usuarios u ON u.id = $1 AND u.organizacao_id = o.id
-        WHERE o.id = $3`,
-      [conteudo.sub, conteudo.sid, conteudo.org],
-    );
-    const linha = r.rows[0];
-    if (!linha) {
-      return {
-        acesso: "inexistente", usuarioAtivo: false, contaDesativada: false, papel: null,
-        sessaoViva: false, senhaProvisoriaAte: null,
-      };
-    }
-    return {
-      acesso: linha.suspenso ? "suspenso" : "ativo",
-      usuarioAtivo: linha.ativo === true,
-      contaDesativada: linha.ativo === false,
-      papel: linha.papel,
-      sessaoViva: linha.sessao_viva,
-      senhaProvisoriaAte: linha.senha_provisoria_ate ? new Date(linha.senha_provisoria_ate) : null,
-    };
+    // O mesmo teto de espera da reconferência (ver `bancoQueReconfereAEscrita`):
+    // esta conferência também espera a linha e a trava da pessoa.
+    await c.query(`SET LOCAL lock_timeout = '${TEMPO_MAXIMO_DE_ESPERA_POR_TRAVA}'`);
+    return lerVigenciaNaTransacao(c, conteudo);
   });
+}
+
+/**
+ * A mesma pergunta, DENTRO de uma transação já aberta no município do token.
+ *
+ * Quem responde é `vigencia_de_quem_escreve` (migração 052): segura a linha da
+ * pessoa em `usuarios`, toma a trava dela (049) e só então relê. Usada pela
+ * conferência de `exigirAutenticacao` (numa transação curta, só para dar a
+ * resposta certa antes de a rota gastar trabalho) e, o que fecha a H29, como
+ * primeiro comando de toda transação de um pedido de escrita
+ * (`bancoQueReconfereAEscrita`, abaixo). Uma consulta só, nos dois lugares:
+ * duas cópias da regra de "sessão de pé" divergiriam em silêncio.
+ */
+export async function lerVigenciaNaTransacao(
+  c: Consulta,
+  conteudo: Pick<ConteudoAcesso, "sub" | "sid">,
+): Promise<Vigencia> {
+  const r = await c.query<{
+    suspenso: boolean;
+    ativo: boolean | null;
+    papel: Papel | null;
+    senha_provisoria_ate: string | Date | null;
+    sessao_viva: boolean;
+  }>(
+    `SELECT suspenso, ativo, papel, senha_provisoria_ate, sessao_viva
+       FROM vigencia_de_quem_escreve($1, $2)`,
+    [conteudo.sub, conteudo.sid],
+  );
+  const linha = r.rows[0];
+  if (!linha) {
+    return {
+      acesso: "inexistente", usuarioAtivo: false, contaDesativada: false, papel: null,
+      sessaoViva: false, senhaProvisoriaAte: null,
+    };
+  }
+  return {
+    acesso: linha.suspenso ? "suspenso" : "ativo",
+    usuarioAtivo: linha.ativo === true,
+    contaDesativada: linha.ativo === false,
+    papel: linha.papel,
+    sessaoViva: linha.sessao_viva,
+    senhaProvisoriaAte: linha.senha_provisoria_ate ? new Date(linha.senha_provisoria_ate) : null,
+  };
+}
+
+/** Quem está escrevendo neste pedido, guardado por `exigirAutenticacao`. */
+export type EscritaEmCurso = {
+  conteudo: Pick<ConteudoAcesso, "sub" | "org" | "sid" | "papel">;
+  statusDaSuspensao: 403 | 503;
+};
+
+/**
+ * O `Banco` que as rotas recebem: em pedido de ESCRITA, toda transação começa
+ * reconferindo a vigência de quem escreve, sob a linha e a trava da pessoa.
+ *
+ * O DEFEITO QUE ISTO FECHA (H29, risco residual da V2-F00-E04, rodada 4,
+ * decidido pelo Rafael em 26/10/2026 para entrar agora): a conferência de
+ * `exigirAutenticacao` é uma transação, e a escrita da rota é OUTRA. Entre as
+ * duas cabe o scrypt de `POST /usuarios` (cerca de 100 ms), e o validador
+ * provou, em 8 de 8 rodadas em Postgres 17, uma administradora desativada
+ * criando uma conta administradora ativa até 223 ms DEPOIS de a desativação
+ * ter sido confirmada e respondida a quem desativou. A trilha mostrava
+ * `usuario_desativado` e só depois `usuario_criado`, com ela como autora.
+ *
+ * O CONSERTO mora no banco (`vigencia_de_quem_escreve`, migração 052) e é
+ * chamado AQUI, num lugar só, e não rota a rota: as rotas já não têm como
+ * consultar o banco sem passar por `comTenant`, então reconferir dentro dele
+ * cobre toda escrita de hoje e toda rota que nascer amanhã. A desativação, o
+ * rebaixamento e todo encerramento de sessão passam a ser serializados com a
+ * escrita: ou confirmaram antes, e a escrita é recusada com o mesmo erro que
+ * o pedido seguinte receberia; ou esperam a escrita confirmar, e ela entra na
+ * trilha ANTES deles.
+ *
+ * Quem diz "este pedido é escrita" é `exigirAutenticacao`, pela mesma regra
+ * que já decidia a primeira conferência (método, ou rota marcada com efeito),
+ * e o recado chega aqui por `escritaEmCurso`, que lê o contexto assíncrono do
+ * pedido (`servidor.ts`). Leitura pura não paga nada: sem escrita em curso, a
+ * transação é a de sempre. `semTenant` não muda: é o login, a renovação e o
+ * que acontece antes de existir um município no contexto.
+ */
+export function bancoQueReconfereAEscrita(
+  banco: Banco,
+  escritaEmCurso: () => EscritaEmCurso | null,
+): Banco {
+  return {
+    comTenant: (organizacaoId, execucao) => {
+      const escrita = escritaEmCurso();
+      if (!escrita || fatoConsumado.getStore() === true) return banco.comTenant(organizacaoId, execucao);
+      return banco.comTenant(organizacaoId, async (c) => {
+        /*
+          TEMPO MÁXIMO DE ESPERA POR TRAVA, para a transação inteira do pedido
+          de escrita (achado da revisão de 26/10/2026). A reconferência espera
+          a linha e a trava da pessoa, e o resto da transação pode esperar
+          outras linhas; sem teto, uma transação presa (um processo travado
+          segurando a linha) enfileirava todo pedido daquela pessoa até
+          esgotar o pool de conexões. Passado o teto, o Postgres desiste com
+          55P03, e `servidor.ts` responde 503 `servidor_ocupado`: a fila do
+          aparelho trata como temporário e tenta de novo, e nada foi gravado.
+          Cinco segundos é muito mais do que uma escrita legítima espera (a
+          renovação e a reconferência levam milissegundos).
+        */
+        await c.query(`SET LOCAL lock_timeout = '${TEMPO_MAXIMO_DE_ESPERA_POR_TRAVA}'`);
+        const vigencia = await lerVigenciaNaTransacao(c, escrita.conteudo);
+        exigirVigencia(vigencia, escrita.conteudo, escrita.statusDaSuspensao);
+        return execucao(c);
+      });
+    },
+    semTenant: (execucao) => banco.semTenant(execucao),
+    encerrar: () => banco.encerrar(),
+  };
+}
+
+/** O teto de espera por trava das transações de escrita. Ver `bancoQueReconfereAEscrita`. */
+export const TEMPO_MAXIMO_DE_ESPERA_POR_TRAVA = "5s";
+
+const fatoConsumado = new AsyncLocalStorage<true>();
+
+/**
+ * Uma transação que REGISTRA O DESFECHO de um ato já autorizado, sem reconferir
+ * a vigência de quem pediu.
+ *
+ * O CASO (achado da revisão de 26/10/2026, `rotas/oficios.ts`): o envio de
+ * ofício tem três passos. O primeiro, numa transação reconferida, autoriza e
+ * grava a tentativa; o segundo, fora de transação, entrega a mensagem ao
+ * provedor; o terceiro grava o desfecho e o evento `oficio_enviado`. Se a conta
+ * de quem enviou era desativada durante o segundo passo, a reconferência do
+ * terceiro recusava (403): o email já tinha saído, a tentativa ficava
+ * `enviando` para sempre, sem recibo do provedor, e a trilha não registrava o
+ * envio que aconteceu.
+ *
+ * O terceiro passo não é um ato novo: é o registro de um fato consumado, que o
+ * primeiro passo autorizou sob a reconferência. Recusá-lo não desfaz o email,
+ * só apaga o rastro. Por isso ele passa sem reconferir, e só ele: o nome é
+ * comprido de propósito, para quem for usar ter de dizer por quê. Não serve
+ * para pular a vigência de um ato; serve para não perder o registro de um ato
+ * que já aconteceu.
+ */
+export function comTenantDeFatoConsumado<T>(
+  banco: Banco,
+  organizacaoId: string,
+  execucao: (c: Consulta) => Promise<T>,
+): Promise<T> {
+  return fatoConsumado.run(true, () => banco.comTenant(organizacaoId, execucao));
 }
 
 export const MENSAGEM_DE_SESSAO_ENCERRADA = CODIGOS_DE_ERRO_DE_ACESSO.sessao_encerrada.mensagem;

@@ -112,6 +112,62 @@ export function frasePorTetoEstourado(): string {
 }
 
 /**
+ * Que fração da margem do município uma pessoa pode ter reservada: um décimo.
+ *
+ * É a garantia que a H04 pede ("um agente não esgota o teto dos colegas") dita
+ * em relação ao contrato, e não só em bytes. Com o padrão de
+ * `RESERVA_DE_ENVIO_POR_PESSOA_MB` (90 MB) ela não decide: o menor teto que o
+ * banco aceita é 1 GiB (`teto_de_armazenamento_plausivel`, migração 035), e um
+ * décimo da margem dele são 153,6 MB. Ela existe para o dia em que alguém
+ * configurar aquele número alto demais: dez pessoas com o balde de reservas
+ * cheio ao mesmo tempo, sem subir nada, continua sendo o mínimo para ocupar a
+ * margem inteira, e isso deixa de ser descuido de um aparelho para ser coisa
+ * que a coordenação vê.
+ */
+export const FRACAO_DA_MARGEM_POR_PESSOA = 10;
+
+/**
+ * Quantos bytes de envio uma pessoa pode ter reservados e não concluídos.
+ *
+ * O MENOR entre o teto configurado (`RESERVA_DE_ENVIO_POR_PESSOA_MB`) e um
+ * décimo da margem do município, mas NUNCA menos que uma foto no teto por
+ * arquivo: abaixo disso a foto grande ficaria presa no aparelho para sempre,
+ * e a fila só para de insistir quando a foto sai. Município sem teto
+ * contratado (`margemBytes` nulo, o estado de hoje) fica só com o configurado:
+ * lá o balde do município não se esgota, mas a reserva sem fim de uma pessoa
+ * passaria a esgotá-lo no dia em que o contrato fixasse número.
+ */
+export function tetoDeReservasDaPessoa(
+  configuradoBytes: number,
+  margemBytes: number | null,
+  umaFotoNoMaximo: number,
+): number {
+  const pelaMargem = margemBytes === null
+    ? configuradoBytes
+    : Math.floor(margemBytes / FRACAO_DA_MARGEM_POR_PESSOA);
+  return Math.max(umaFotoNoMaximo, Math.min(configuradoBytes, pelaMargem));
+}
+
+/**
+ * A frase de quem passou do teto de reservas POR PESSOA.
+ *
+ * Como a do teto do município, diz primeiro que nada se perdeu: a recusa sai
+ * com 429, que a fila do aparelho trata como temporário
+ * (`packages/campo/src/transporte.ts`), e a foto sobe sozinha quando as
+ * reservas anteriores da pessoa forem concluídas (ou abandonadas pela
+ * varredura de órfão). O que ela pede à pessoa é avisar, porque reserva
+ * acumulada sem envio quer dizer foto que não chegou.
+ */
+export function frasePorReservasDaPessoa(): string {
+  return (
+    "Você tem envios de foto autorizados e ainda não concluídos acima do limite "
+    + "por pessoa. A coleta continua guardada no aparelho e o envio vai ser "
+    + "tentado de novo sozinho, sem você precisar fazer nada. Se continuar, "
+    + "avise a coordenação."
+  );
+}
+
+/**
  * O recorte que sai pela API.
  *
  * `situacao` vem junto, e não é decoração: sem ela, a tela precisaria comparar

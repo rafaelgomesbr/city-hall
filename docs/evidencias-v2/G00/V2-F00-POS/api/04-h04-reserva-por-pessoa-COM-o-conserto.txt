@@ -1,0 +1,19 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/apps/api
+
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > é o menor entre o configurado e um décimo da margem, e nunca menos que uma foto no máximo 2ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > o padrão é 90 MB (seis fotos no teto por arquivo), configurável, e não aceita menos que uma foto 8ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 1. a rajada do achado: num município de 1 GiB, o Diego reserva seis fotos de 15 MB e a sétima leva 429; a Carla continua enviando 182ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 2. no teto, repetir o pedido da MESMA foto (mesma chave) continua respondendo a mesma reserva 101ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 3. reserva abandonada pela varredura de órfão deixa de contar 115ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 4. município sem teto contratado (o estado de hoje): vale o configurado, 90 MB 104ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Foto concluída libera a reserva da pessoa (PGlite, teto configurado no mínimo) > 5. com 15 MB configurados, a foto pequena aberta impede a de 15 MB; subida e confirmada, a de 15 MB passa 84ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Configurado acima de um décimo da margem, vale o décimo (PGlite, 1024 MB configurados) > 6. com 1 GiB de teto e 1024 MB configurados, ninguém segura mais que um décimo da margem (153,6 MB) 339ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 7. vinte pedidos de 15 MB do mesmo agente AO MESMO TEMPO: exatamente seis passam, e a colega continua enviando 471ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 8. o índice parcial da migração 053 existe e cobre só as reservas abertas 1ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  13:50:47
+   Duration  13.19s (transform 627ms, setup 595ms, collect 2.23s, tests 9.67s, environment 0ms, prepare 226ms)
+

@@ -95,7 +95,9 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  * O QUE NÃO PODE MUDAR, e também é cobrado aqui: a rotação não é expulsão. O
  * token de acesso emitido antes da renovação continua escrevendo pelos seus
  * quinze minutos, inclusive DURANTE a renovação (antes, a escrita que caía na
- * janela entre as duas transações levava 401 `sessao_encerrada`).
+ * janela entre as duas transações levava 401 `sessao_encerrada`). Desde a H29
+ * (migração 052) a escrita que chega no meio da renovação espera a trava da
+ * pessoa e escreve logo depois de a renovação confirmar.
  *
  * POR QUE O SEGUNDO BLOCO SÓ RODA COM POSTGRES: o PGlite tem uma conexão só e
  * serializa as transações, então ele não reproduz a corrida que a trava
@@ -1197,7 +1199,16 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     }, 120_000);
   }
 
-  it("5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve", async () => {
+  /*
+    Desde a H29 (migração 052) a escrita reconfere a vigência sob a trava da
+    pessoa, e a renovação segura essa trava até confirmar: a escrita que chega
+    no meio da renovação ESPERA a renovação (milissegundos, fora do teste) e só
+    então escreve, com a sessão antiga já rotacionada e a família de pé. Antes
+    ela escrevia sem esperar. O que não pode mudar continua cobrado: o token de
+    antes da renovação escreve, nunca leva 401. O caso exige ver a escrita
+    parada na trava consultiva antes de soltar a renovação.
+  */
+  it("5. a rotação não é expulsão: no meio da renovação, o token de antes dela espera a renovação confirmar e escreve", async () => {
     const h = await a.entrar();
     const janela = sinal();
     const solta = sinal();
@@ -1213,8 +1224,10 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     try {
       const renovacao = a.pedirRenovacao(h.renovacao);
       await janela.disparado;
-      const escrita = await a.escrever(h.acesso);
+      const pedidoDeEscrita = a.escrever(h.acesso);
+      await exigirQueTravou("a escrita com o token de antes da renovação", pedidoDeEscrita, "advisory");
       solta.disparar();
+      const escrita = await pedidoDeEscrita;
       expect(escrita.statusCode, escrita.body).toBe(200);
       const r = await renovacao;
       expect(r.statusCode, r.body).toBe(200);

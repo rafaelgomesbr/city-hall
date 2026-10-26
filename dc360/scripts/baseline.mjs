@@ -549,6 +549,27 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
   // V2-F00-E19, correção 11: `apps/api/test/campo-obrigatorio-ausente.test.ts` e novo, com 2 casos (o 422 real de `POST /ocorrencias` sem `tipo` e sem `canalEntrada` diz "Campo obrigatório" e nenhum "undefined" ou "null" sai no corpo; o enum presente e errado continua dizendo o valor e os aceitos).
   "V2-F00-E19-correcao-11": { total: 2, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-POS, consertos da API de 26/10/2026 (H29 A e H04 B): dois arquivos
+    novos. `apps/api/test/escrita-contra-desativacao.test.ts` conta 6 casos sem
+    Postgres (o bloco de Postgres real, 8 casos, pede `DC360_POSTGRES_DE_PROVA`
+    e fica fora da contagem estatica, politica T42), e
+    `apps/api/test/reserva-de-envio-por-pessoa.test.ts` conta 8 (mais 2 no
+    bloco de Postgres real). O caso 5 do bloco de Postgres real de
+    `renovacao-contra-encerramento.test.ts` mudou no lugar, sem mudar a
+    contagem. Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-POS-api": { total: 14, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-POS, correção da revisão do ramo da API (2026-10-26):
+    `apps/api/test/oficio-enviado-contra-desativacao.test.ts` e novo, com 2
+    casos (o desfecho e o `oficio_enviado` gravados quando a conta e
+    desativada, ou as sessoes encerradas, durante a chamada ao provedor). Os 2
+    casos novos de `escrita-contra-desativacao.test.ts` (o `lock_timeout`
+    virando 503) ficam no bloco de Postgres real, fora da contagem estatica.
+    Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-POS-api-revisao": { total: 2, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
