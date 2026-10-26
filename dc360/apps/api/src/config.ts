@@ -129,6 +129,20 @@ const esquema = z.object({
     .default("2027-12-31"),
 
   /**
+   * A versão mínima aceita do aplicativo de campo e do aplicativo do cidadão
+   * (V2-F02-E06), no formato `maior.menor.correção` (`1.3.0`). Vazia, que é o
+   * padrão, é SEM mínimo: nenhuma recusa por versão.
+   *
+   * Abaixo do mínimo, a API responde 426 `versao_do_aplicativo_antiga` em `/v1`
+   * ANTES de autenticar. O cabeçalho `X-App-Version` é declarado pelo cliente:
+   * isto serve à compatibilidade e nunca decide acesso. Um valor que não é
+   * versão derruba a partida: um mínimo digitado errado que desligasse a recusa
+   * em silêncio seria pior que não ter mínimo. Esvaziar a variável é o rollback.
+   */
+  VERSAO_MINIMA_CAMPO: vazioEhAusente(z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional()),
+  VERSAO_MINIMA_CIDADAO: vazioEhAusente(z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional()),
+
+  /**
    * Para onde sai o link de redefinição de senha.
    *
    * Vazias, o servidor cai no notificador que só anuncia no log. Isso é

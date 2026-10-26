@@ -60,6 +60,8 @@
         { "nome": "OFICIO_LINK_HORAS", "onde": "env" },
         { "nome": "OFICIO_MAX_ENVIOS", "onde": "env" },
         { "nome": "ESPELHO_LEGADO_ATE", "onde": "env" },
+        { "nome": "VERSAO_MINIMA_CAMPO", "onde": "env" },
+        { "nome": "VERSAO_MINIMA_CIDADAO", "onde": "env" },
         { "nome": "JWT_SEGREDO", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
         { "nome": "PUSH_ATIVO", "onde": "env", "valores": { "hml": "nao" } },
         { "nome": "VARREDURA_DE_ORFAOS_ATIVA", "onde": "env" },
