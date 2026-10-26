@@ -36,10 +36,13 @@ const idSchema = z.object({ id: z.string().uuid().transform((id) => id.toLowerCa
  * para a mensagem de erro chegar ao formulário em vez de "violates check
  * constraint".
  */
-const retencaoSchema = z.object({
+export const retencaoSchema = z.object({
   solicitanteDias: z.number().int().min(1).max(36500).nullable(),
   vulnerabilidadeDias: z.number().int().min(1).max(36500).nullable(),
 });
+
+/** O corpo de `PATCH /usuarios/:id/situacao`: ligar ou desligar a conta. */
+export const situacaoSchema = z.object({ ativo: z.boolean() });
 
 /*
   Os schemas vêm do pacote compartilhado, e não são redefinidos aqui. Antes
@@ -213,7 +216,7 @@ export async function rotasAdministracao(
   app.patch("/usuarios/:id/situacao", async (req) => {
     const quem = await autorizar(app, req, "gerenciar_usuarios");
     const { id } = idSchema.parse(req.params);
-    const { ativo } = z.object({ ativo: z.boolean() }).parse(req.body);
+    const { ativo } = situacaoSchema.parse(req.body);
 
     if (id === quem.usuarioId && !ativo) {
       throw new RegraDeNegocio(

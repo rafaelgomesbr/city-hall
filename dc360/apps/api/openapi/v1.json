@@ -6,6 +6,189 @@
     "description": "Contrato do /v1, gerado de apps/api/src/contrato. Documento derivado: não se edita à mão (npm run openapi --workspace @dc360/api). Rota registrada sem entrada aparece em `x-rotas-pendentes`; operação sem resposta descrita leva `x-resposta-pendente`."
   },
   "paths": {
+    "/v1/aparelhos": {
+      "post": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Registra (ou atualiza) o aparelho de quem está logado para receber notificação.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plataforma": {
+                    "type": "string",
+                    "enum": [
+                      "ios",
+                      "android"
+                    ]
+                  },
+                  "ficha": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "ambiente": {
+                    "type": "string",
+                    "enum": [
+                      "producao",
+                      "teste"
+                    ]
+                  }
+                },
+                "required": [
+                  "plataforma",
+                  "ficha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O identificador da linha do aparelho; a ficha de push nunca volta numa resposta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "registrado": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "registrado"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "push_desligado: Notificação por push desligada; push_android_desligado: Push para Android desligado",
+            "x-codigos-de-erro": [
+              "push_desligado",
+              "push_android_desligado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/aparelhos/revogar": {
+      "post": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Revoga o aparelho de quem está logado (204 mesmo quando não havia o que revogar).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ficha": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "ficha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Sem corpo."
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "push_desligado: Notificação por push desligada",
+            "x-codigos-de-erro": [
+              "push_desligado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/armazenamento/uso": {
       "get": {
         "tags": [
@@ -13,6 +196,64 @@
         ],
         "summary": "Quanto o município ocupa do armazenamento e qual é o teto dele.",
         "responses": {
+          "200": {
+            "description": "Bytes usados, teto e margem (nulos quando o município não tem teto) e a situação calculada pelo banco.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bytesUsados": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "tetoBytes": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "margemBytes": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "situacao": {
+                      "type": "string",
+                      "enum": [
+                        "sem_teto",
+                        "normal",
+                        "aviso",
+                        "acima_do_teto",
+                        "recusado"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "bytesUsados",
+                    "tetoBytes",
+                    "margemBytes",
+                    "situacao"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -38,12 +279,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/auth/encerrar-sessoes": {
@@ -82,6 +319,235 @@
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
               "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/entrar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Entra com email e senha (pública); a segunda etapa pode ser exigida.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 320,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "senha": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "email",
+                  "senha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A sessão (par de tokens e identidade) OU, quando a conta exige verificação em duas etapas, um desafio de propósito único que só abre a segunda etapa ou a ativação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "acesso": {
+                          "type": "string"
+                        },
+                        "renovacao": {
+                          "type": "string"
+                        },
+                        "expiraEm": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "usuario": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "nome": {
+                              "type": "string"
+                            },
+                            "matricula": {
+                              "type": "string"
+                            },
+                            "papel": {
+                              "type": "string",
+                              "enum": [
+                                "coordenador",
+                                "operador",
+                                "agente_campo",
+                                "administrador"
+                              ]
+                            },
+                            "organizacaoId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "organizacaoNome": {
+                              "type": "string"
+                            },
+                            "municipio": {
+                              "type": "string"
+                            },
+                            "uf": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nome",
+                            "matricula",
+                            "papel",
+                            "organizacaoId",
+                            "organizacaoNome",
+                            "municipio",
+                            "uf"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "codigosDeRecuperacaoRestantes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "entrouComCodigoDeRecuperacao": {
+                          "type": "boolean"
+                        },
+                        "trocaDeSenhaObrigatoria": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "acesso",
+                        "renovacao",
+                        "expiraEm",
+                        "usuario"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "segundoFator": {
+                          "type": "string",
+                          "enum": [
+                            "codigo",
+                            "ativacao"
+                          ]
+                        },
+                        "desafio": {
+                          "type": "string"
+                        },
+                        "expiraEm": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "mensagem": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "segundoFator",
+                        "desafio",
+                        "expiraEm",
+                        "mensagem"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "credenciais: E-mail ou senha não conferem; senha_provisoria_vencida: Senha provisória vencida",
+            "x-codigos-de-erro": [
+              "credenciais",
+              "senha_provisoria_vencida"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "excesso_de_requisicoes: Requisições demais",
+            "x-codigos-de-erro": [
+              "excesso_de_requisicoes"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -187,6 +653,636 @@
         }
       }
     },
+    "/v1/auth/recuperar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Pede o link de redefinição de senha por email (pública).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 320,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "A mesma frase exista a conta ou não: a rota não revela quais emails existem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "excesso_de_requisicoes: Requisições demais",
+            "x-codigos-de-erro": [
+              "excesso_de_requisicoes"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "recuperacao_desligada: Recuperação de senha por email desligada",
+            "x-codigos-de-erro": [
+              "recuperacao_desligada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/redefinir": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Redefine a senha com o token do link; nenhuma sessão nasce daqui (pública).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "senha": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "token",
+                  "senha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A frase de confirmação; quem redefiniu entra de novo com a senha nova.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sessao_encerrada: Sessão encerrada ou cadastro alterado",
+            "x-codigos-de-erro": [
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "excesso_de_requisicoes: Requisições demais",
+            "x-codigos-de-erro": [
+              "excesso_de_requisicoes"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "recuperacao_desligada: Recuperação de senha por email desligada",
+            "x-codigos-de-erro": [
+              "recuperacao_desligada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/renovar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Troca o token de renovação por um par novo; o usado é revogado (pública).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "renovacao": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "renovacao"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A sessão com o par de tokens novo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "acesso": {
+                      "type": "string"
+                    },
+                    "renovacao": {
+                      "type": "string"
+                    },
+                    "expiraEm": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "nome": {
+                          "type": "string"
+                        },
+                        "matricula": {
+                          "type": "string"
+                        },
+                        "papel": {
+                          "type": "string",
+                          "enum": [
+                            "coordenador",
+                            "operador",
+                            "agente_campo",
+                            "administrador"
+                          ]
+                        },
+                        "organizacaoId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "organizacaoNome": {
+                          "type": "string"
+                        },
+                        "municipio": {
+                          "type": "string"
+                        },
+                        "uf": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "nome",
+                        "matricula",
+                        "papel",
+                        "organizacaoId",
+                        "organizacaoNome",
+                        "municipio",
+                        "uf"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "codigosDeRecuperacaoRestantes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "entrouComCodigoDeRecuperacao": {
+                      "type": "boolean"
+                    },
+                    "trocaDeSenhaObrigatoria": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "acesso",
+                    "renovacao",
+                    "expiraEm",
+                    "usuario"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sessao_encerrada: Sessão encerrada ou cadastro alterado",
+            "x-codigos-de-erro": [
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "excesso_de_requisicoes: Requisições demais",
+            "x-codigos-de-erro": [
+              "excesso_de_requisicoes"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/sair": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Encerra a sessão (pública); com a ficha do aparelho, cala também a notificação dele.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "renovacao": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "ficha": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "renovacao"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Sem corpo, mesmo quando o token não existe (a rota não é oráculo de token)."
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/segundo-fator": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Segunda etapa do login: o código de seis dígitos ou um código de recuperação (pública).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "desafio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "codigo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "desafio",
+                  "codigo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A sessão, com quantos códigos de recuperação restam e se esta entrada gastou um.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "acesso": {
+                      "type": "string"
+                    },
+                    "renovacao": {
+                      "type": "string"
+                    },
+                    "expiraEm": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "nome": {
+                          "type": "string"
+                        },
+                        "matricula": {
+                          "type": "string"
+                        },
+                        "papel": {
+                          "type": "string",
+                          "enum": [
+                            "coordenador",
+                            "operador",
+                            "agente_campo",
+                            "administrador"
+                          ]
+                        },
+                        "organizacaoId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "organizacaoNome": {
+                          "type": "string"
+                        },
+                        "municipio": {
+                          "type": "string"
+                        },
+                        "uf": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "nome",
+                        "matricula",
+                        "papel",
+                        "organizacaoId",
+                        "organizacaoNome",
+                        "municipio",
+                        "uf"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "codigosDeRecuperacaoRestantes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "entrouComCodigoDeRecuperacao": {
+                      "type": "boolean"
+                    },
+                    "trocaDeSenhaObrigatoria": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "acesso",
+                    "renovacao",
+                    "expiraEm",
+                    "usuario"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "sessao_encerrada: Sessão encerrada ou cadastro alterado; credenciais: E-mail ou senha não conferem",
+            "x-codigos-de-erro": [
+              "sessao_encerrada",
+              "credenciais"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "excesso_de_requisicoes: Requisições demais; bloqueado: Tentativas de entrada demais",
+            "x-codigos-de-erro": [
+              "excesso_de_requisicoes",
+              "bloqueado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/sessoes": {
       "get": {
         "tags": [
@@ -194,6 +1290,286 @@
         ],
         "summary": "Lista as sessões vivas da própria conta (sem IP e sem user-agent completo).",
         "responses": {
+          "200": {
+            "description": "As sessões vivas da conta; `atual` marca a de onde o pedido veio e `aparelho` é navegador e sistema em uma frase.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "itens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "entrouEm": {
+                            "type": "string"
+                          },
+                          "validaAte": {
+                            "type": "string"
+                          },
+                          "aparelho": {
+                            "type": "string"
+                          },
+                          "atual": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "entrouEm",
+                          "validaAte",
+                          "aparelho",
+                          "atual"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "itens"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/trocar-senha": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Troca a própria senha, exigindo a atual, e encerra as outras sessões.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "senhaAtual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "senha": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "senhaAtual",
+                  "senha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A frase de confirmação e o token de acesso NOVO da mesma sessão (solta quem entrou com senha provisória); `expiraEm` é a validade dele em segundos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": {
+                      "type": "string"
+                    },
+                    "acesso": {
+                      "type": "string"
+                    },
+                    "expiraEm": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "mensagem",
+                    "acesso",
+                    "expiraEm"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; credenciais: E-mail ou senha não conferem; sessao_encerrada: Sessão encerrada ou cadastro alterado",
+            "x-codigos-de-erro": [
+              "nao_autenticado",
+              "credenciais",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/avisos": {
+      "get": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "O sino de avisos: o que mudou no município desde o cursor devolvido na resposta anterior.",
+        "parameters": [
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          {
+            "name": "desdeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os avisos em ordem crescente (o corte do teto deixa de fora os mais novos), o cursor `ate` mais `ateId` para a pergunta seguinte, o teto, se a lista foi cortada (`truncada`) e quantos avisos a pessoa ainda não leu (a contagem também tem teto).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ate": {
+                      "type": "string"
+                    },
+                    "ateId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "itens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "tipo": {
+                            "type": "string"
+                          },
+                          "ocorrenciaId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "protocolo": {
+                            "type": "string"
+                          },
+                          "criadoEm": {
+                            "type": "string"
+                          },
+                          "detalhe": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "lido": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "tipo",
+                          "ocorrenciaId",
+                          "protocolo",
+                          "criadoEm",
+                          "detalhe",
+                          "lido"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "teto": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "truncada": {
+                      "type": "boolean"
+                    },
+                    "naoLidos": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "naoLidosTruncado": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ate",
+                    "ateId",
+                    "itens",
+                    "teto",
+                    "truncada",
+                    "naoLidos",
+                    "naoLidosTruncado"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -207,11 +1583,102 @@
               }
             }
           },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/avisos/lidos": {
+      "post": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Marca como lidos os avisos informados, só os que a pessoa pode ver.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
           }
         },
-        "x-resposta-pendente": true
+        "responses": {
+          "200": {
+            "description": "Quantos foram marcados; aviso de outro município ou fora do recorte conta zero, igual a um identificador que não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "marcados": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "marcados"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/campo/meu-trabalho": {
@@ -261,6 +1728,29 @@
         ],
         "summary": "O que o painel precisa saber do ambiente (a chave do mapa), igual para todos os municípios.",
         "responses": {
+          "200": {
+            "description": "A chave do mapa (vazia quando não há) e se o mapa está autorizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chaveDoMapa": {
+                      "type": "string"
+                    },
+                    "mapaAutorizado": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "chaveDoMapa",
+                    "mapaAutorizado"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -273,12 +1763,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/documentos/{id}/laudo": {
@@ -613,6 +2099,60 @@
         ],
         "summary": "Lista as equipes do município.",
         "responses": {
+          "200": {
+            "description": "As equipes por nome, com quantas ocorrências em atendimento cada uma tem (campo `em_atendimento`, igual à coluna).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "itens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "nome": {
+                            "type": "string"
+                          },
+                          "especialidade": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ativa": {
+                            "type": "boolean"
+                          },
+                          "em_atendimento": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "nome",
+                          "especialidade",
+                          "ativa",
+                          "em_atendimento"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "itens"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -625,12 +2165,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       },
       "post": {
         "tags": [
@@ -673,6 +2209,27 @@
           }
         },
         "responses": {
+          "201": {
+            "description": "O identificador da equipe criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -699,6 +2256,19 @@
               }
             }
           },
+          "409": {
+            "description": "nome_repetido: Já existe registro com este nome",
+            "x-codigos-de-erro": [
+              "nome_repetido"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
           "422": {
             "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
             "x-codigos-de-erro": [
@@ -711,12 +2281,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/equipes/{id}": {
@@ -773,6 +2339,27 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "O identificador da equipe editada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -799,6 +2386,32 @@
               }
             }
           },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "nome_repetido: Já existe registro com este nome",
+            "x-codigos-de-erro": [
+              "nome_repetido"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
           "422": {
             "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
             "x-codigos-de-erro": [
@@ -811,12 +2424,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/evidencias/{id}/url": {
@@ -2098,6 +3707,166 @@
         ],
         "summary": "Lê o prazo de retenção do município (nulo é valor: ainda não decidiu).",
         "responses": {
+          "200": {
+            "description": "O nome do município e os dois prazos em dias (nulos quando não decidiu).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "solicitanteDias": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "vulnerabilidadeDias": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "nome": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "solicitanteDias",
+                    "vulnerabilidadeDias",
+                    "nome"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Grava o prazo de retenção do município; a mudança vai para a trilha.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "solicitanteDias": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 36500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vulnerabilidadeDias": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 36500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "solicitanteDias",
+                  "vulnerabilidadeDias"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Os dois prazos em dias, como ficaram (nulo é valor: ainda não decidiu).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "solicitanteDias": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "vulnerabilidadeDias": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "solicitanteDias",
+                    "vulnerabilidadeDias"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -2124,11 +3893,21 @@
               }
             }
           },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; vulnerabilidade_depois_do_nome: Prazo da vulnerabilidade maior que o do nome do solicitante",
+            "x-codigos-de-erro": [
+              "dados_invalidos",
+              "vulnerabilidade_depois_do_nome"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/orgaos/{id}/reativacao": {
@@ -2862,6 +4641,202 @@
         ],
         "summary": "Lê a situação da verificação em duas etapas da própria conta.",
         "responses": {
+          "200": {
+            "description": "Ligada, pendente de confirmação, exigida pelo município, quantos códigos de recuperação restam e se o recurso está ligado neste servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ativo": {
+                      "type": "boolean"
+                    },
+                    "pendente": {
+                      "type": "boolean"
+                    },
+                    "exigido": {
+                      "type": "boolean"
+                    },
+                    "codigosRestantes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "disponivel": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ativo",
+                    "pendente",
+                    "exigido",
+                    "codigosRestantes",
+                    "disponivel"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/segundo-fator/confirmar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Confirma a ativação com um código de verdade e SÓ ENTÃO liga o recurso.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "desafio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "codigo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Os códigos de recuperação (aparecem uma única vez) e, só quando o pedido veio por desafio de ativação (quem ainda não tem sessão), a sessão que nasce aqui.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "codigosDeRecuperacao": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "sessao": {
+                      "type": "object",
+                      "properties": {
+                        "acesso": {
+                          "type": "string"
+                        },
+                        "renovacao": {
+                          "type": "string"
+                        },
+                        "expiraEm": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "usuario": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "nome": {
+                              "type": "string"
+                            },
+                            "matricula": {
+                              "type": "string"
+                            },
+                            "papel": {
+                              "type": "string",
+                              "enum": [
+                                "coordenador",
+                                "operador",
+                                "agente_campo",
+                                "administrador"
+                              ]
+                            },
+                            "organizacaoId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "organizacaoNome": {
+                              "type": "string"
+                            },
+                            "municipio": {
+                              "type": "string"
+                            },
+                            "uf": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nome",
+                            "matricula",
+                            "papel",
+                            "organizacaoId",
+                            "organizacaoNome",
+                            "municipio",
+                            "uf"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "codigosDeRecuperacaoRestantes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "entrouComCodigoDeRecuperacao": {
+                          "type": "boolean"
+                        },
+                        "trocaDeSenhaObrigatoria": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "acesso",
+                        "renovacao",
+                        "expiraEm",
+                        "usuario"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "codigosDeRecuperacao",
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -2875,11 +4850,270 @@
               }
             }
           },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          "409": {
+            "description": "ativacao_nao_iniciada: Não há ativação do segundo fator em andamento; segundo_fator_ja_ativo: Segundo fator já está ativo",
+            "x-codigos-de-erro": [
+              "ativacao_nao_iniciada",
+              "segundo_fator_ja_ativo"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; codigo_invalido: Código do segundo fator não confere",
+            "x-codigos-de-erro": [
+              "dados_invalidos",
+              "codigo_invalido"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; segundo_fator_ilegivel: Segredo do segundo fator ilegível",
+            "x-codigos-de-erro": [
+              "segundo_fator_desligado",
+              "segundo_fator_ilegivel"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/segundo-fator/desativar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Desliga a verificação em duas etapas, exigindo a senha atual.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "senhaAtual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "senhaAtual"
+                ]
+              }
+            }
           }
         },
-        "x-resposta-pendente": true
+        "responses": {
+          "200": {
+            "description": "A frase de confirmação; os códigos de recuperação antigos deixam de valer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "segundo_fator_nao_esta_ativo: Segundo fator não está ativo",
+            "x-codigos-de-erro": [
+              "segundo_fator_nao_esta_ativo"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; senha_nao_confere: Senha informada não confere",
+            "x-codigos-de-erro": [
+              "dados_invalidos",
+              "senha_nao_confere"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
+            "x-codigos-de-erro": [
+              "segundo_fator_desligado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/segundo-fator/iniciar": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Começa a ativação: sorteia o segredo e devolve o que cadastrar no aplicativo (uma vez).",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "desafio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O segredo em texto e o endereço `otpauth` do código QR; o banco só guarda a versão cifrada, então eles não voltam.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "segredo": {
+                      "type": "string"
+                    },
+                    "uri": {
+                      "type": "string"
+                    },
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "segredo",
+                    "uri",
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "conta_nao_encontrada: Conta não encontrada",
+            "x-codigos-de-erro": [
+              "conta_nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "segundo_fator_ja_ativo: Segundo fator já está ativo",
+            "x-codigos-de-erro": [
+              "segundo_fator_ja_ativo"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
+            "x-codigos-de-erro": [
+              "segundo_fator_desligado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/sincronizacao/devolucao": {
@@ -3463,6 +5697,92 @@
         ],
         "summary": "Lista os usuários do município.",
         "responses": {
+          "200": {
+            "description": "Os usuários por nome, com a equipe e o último acesso; os campos têm o nome da coluna, em snake. Senha e hash nunca saem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "itens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "nome": {
+                            "type": "string"
+                          },
+                          "matricula": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "papel": {
+                            "type": "string",
+                            "enum": [
+                              "coordenador",
+                              "operador",
+                              "agente_campo",
+                              "administrador"
+                            ]
+                          },
+                          "equipe_id": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "ativo": {
+                            "type": "boolean"
+                          },
+                          "ultimo_acesso": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "equipe_nome": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "nome",
+                          "matricula",
+                          "email",
+                          "papel",
+                          "equipe_id",
+                          "ativo",
+                          "ultimo_acesso",
+                          "equipe_nome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "itens"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3488,12 +5808,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       },
       "post": {
         "tags": [
@@ -3563,6 +5879,27 @@
           }
         },
         "responses": {
+          "201": {
+            "description": "O identificador do usuário criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3577,9 +5914,23 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "posto_insuficiente"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "usuario_repetido: Já existe usuário com este email",
+            "x-codigos-de-erro": [
+              "usuario_repetido"
             ],
             "content": {
               "application/json": {
@@ -3601,12 +5952,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/usuarios/{id}": {
@@ -3684,6 +6031,27 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "O identificador do usuário editado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3698,9 +6066,37 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; email_so_por_administrador: Troca de email é de quem administra",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "posto_insuficiente",
+              "email_so_por_administrador"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "usuario_repetido: Já existe usuário com este email",
+            "x-codigos-de-erro": [
+              "usuario_repetido"
             ],
             "content": {
               "application/json": {
@@ -3711,9 +6107,10 @@
             }
           },
           "422": {
-            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; ultimo_administrador: Município precisa de ao menos um administrador",
             "x-codigos-de-erro": [
-              "dados_invalidos"
+              "dados_invalidos",
+              "ultimo_administrador"
             ],
             "content": {
               "application/json": {
@@ -3722,12 +6119,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/usuarios/{id}/encerrar-sessoes": {
@@ -3749,6 +6142,33 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "O identificador da conta e quantas sessões foram encerradas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "sessoesEncerradas": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sessoesEncerradas"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3763,9 +6183,23 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "posto_insuficiente"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
             ],
             "content": {
               "application/json": {
@@ -3776,9 +6210,10 @@
             }
           },
           "422": {
-            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; autoencerramento: Ninguém encerra a própria sessão por aqui",
             "x-codigos-de-erro": [
-              "dados_invalidos"
+              "dados_invalidos",
+              "autoencerramento"
             ],
             "content": {
               "application/json": {
@@ -3787,12 +6222,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/usuarios/{id}/redefinir-senha": {
@@ -3814,6 +6245,35 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "A senha temporária em texto, UMA vez (vale 72 horas e a primeira entrada exige trocá-la), quantas sessões caíram e a frase para mostrar a quem administra.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "senhaTemporaria": {
+                      "type": "string"
+                    },
+                    "sessoesEncerradas": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "senhaTemporaria",
+                    "sessoesEncerradas",
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3828,9 +6288,23 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "posto_insuficiente"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
             ],
             "content": {
               "application/json": {
@@ -3841,9 +6315,10 @@
             }
           },
           "422": {
-            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; autoredefinicao: Ninguém redefine a própria senha por aqui",
             "x-codigos-de-erro": [
-              "dados_invalidos"
+              "dados_invalidos",
+              "autoredefinicao"
             ],
             "content": {
               "application/json": {
@@ -3852,12 +6327,8 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
           }
-        },
-        "x-resposta-pendente": true
+        }
       }
     },
     "/v1/usuarios/{id}/sessoes": {
@@ -3879,6 +6350,47 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Só a quantidade e as datas (sem IP e sem aparelho, por privacidade); a data é nula quando não há sessão aberta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "sessoesAbertas": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "ultimaEntradaEm": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "validaAte": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sessoesAbertas",
+                    "ultimaEntradaEm",
+                    "validaAte"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
             "x-codigos-de-erro": [
@@ -3893,9 +6405,23 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "posto_insuficiente"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
             ],
             "content": {
               "application/json": {
@@ -3917,12 +6443,128 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        }
+      }
+    },
+    "/v1/usuarios/{id}/situacao": {
+      "patch": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Desativa ou reativa um usuário (usuário não se apaga); desativar derruba as sessões.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ativo": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "ativo"
+                ]
+              }
+            }
           }
         },
-        "x-resposta-pendente": true
+        "responses": {
+          "200": {
+            "description": "O identificador e a situação em que a conta ficou.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "ativo": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "ativo"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "x-codigos-de-erro": [
+              "sem_permissao",
+              "posto_insuficiente"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; autodesativacao: Ninguém desativa a própria conta; ultimo_administrador: Município precisa de ao menos um administrador",
+            "x-codigos-de-erro": [
+              "dados_invalidos",
+              "autodesativacao",
+              "ultimo_administrador"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/usuarios/eu": {
@@ -4048,6 +6690,223 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Confirma a foto enviada: grava a chave e só então apaga a foto anterior.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chave": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "chave"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A URL de leitura da foto nova (vence em minutos; a chave crua não sai).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fotoUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "fotoUrl"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "arquivo_ausente: O arquivo não chegou ao armazenamento; arquivo_grande_demais: Arquivo maior que o limite",
+            "x-codigos-de-erro": [
+              "arquivo_ausente",
+              "arquivo_grande_demais"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos; chave_fora_do_lugar: Chave de arquivo fora do lugar esperado",
+            "x-codigos-de-erro": [
+              "dados_invalidos",
+              "chave_fora_do_lugar"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "teto_de_armazenamento: Teto de armazenamento do município atingido",
+            "x-codigos-de-erro": [
+              "teto_de_armazenamento"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usuarios/eu/foto/autorizar-envio": {
+      "post": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Pede a autorização para enviar a foto de perfil: o servidor decide a chave e emite a URL de escrita.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipoConteudo": {
+                    "type": "string",
+                    "enum": [
+                      "image/jpeg",
+                      "image/png",
+                      "image/webp",
+                      "image/heic"
+                    ]
+                  },
+                  "tamanhoBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 2097152
+                  }
+                },
+                "required": [
+                  "tipoConteudo",
+                  "tamanhoBytes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A chave (sob o prefixo da própria pessoa), a URL pré-assinada de vida curta, os cabeçalhos que o envio precisa levar e o instante em que a URL vence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chave": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "cabecalhos": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "expiraEm": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "chave",
+                    "url",
+                    "cabecalhos",
+                    "expiraEm"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "teto_de_armazenamento: Teto de armazenamento do município atingido",
+            "x-codigos-de-erro": [
+              "teto_de_armazenamento"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -4105,7 +6964,6 @@
     }
   },
   "x-rotas-pendentes": [
-    "GET /v1/avisos",
     "GET /v1/busca",
     "GET /v1/documentos/validar/:codigo",
     "GET /v1/ocorrencias",
@@ -4117,19 +6975,7 @@
     "GET /v1/relatorios/ocorrencias.csv",
     "GET /v1/relatorios/resumo",
     "GET /v1/trilha",
-    "PATCH /v1/organizacao/retencao",
     "PATCH /v1/orgaos/:id",
-    "PATCH /v1/usuarios/:id/situacao",
-    "POST /v1/aparelhos",
-    "POST /v1/aparelhos/revogar",
-    "POST /v1/auth/entrar",
-    "POST /v1/auth/recuperar",
-    "POST /v1/auth/redefinir",
-    "POST /v1/auth/renovar",
-    "POST /v1/auth/sair",
-    "POST /v1/auth/segundo-fator",
-    "POST /v1/auth/trocar-senha",
-    "POST /v1/avisos/lidos",
     "POST /v1/evidencias/autorizar-envio",
     "POST /v1/evidencias/confirmar-envio",
     "POST /v1/mapa/resolver-link",
@@ -4139,11 +6985,6 @@
     "POST /v1/orgaos",
     "POST /v1/orgaos/:id/desativacao",
     "POST /v1/rota",
-    "POST /v1/segundo-fator/confirmar",
-    "POST /v1/segundo-fator/desativar",
-    "POST /v1/segundo-fator/iniciar",
-    "POST /v1/sincronizacao/pendencias/reconciliar",
-    "POST /v1/usuarios/eu/foto/autorizar-envio",
-    "PUT /v1/usuarios/eu/foto"
+    "POST /v1/sincronizacao/pendencias/reconciliar"
   ]
 }
