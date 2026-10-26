@@ -22,6 +22,15 @@ import {
  */
 
 const SELECT_UM = "SELECT 1;";
+
+/**
+ * O número de migração FICTÍCIO dos casos abaixo: a última migração real mais
+ * 900. Calculado, e não escrito, para que uma migração real nunca colida com
+ * ele nem com o "número repetido" que estes casos provocam de propósito.
+ */
+const FICT = String(
+  Math.max(...carregarMigracoes().map((m) => Number.parseInt(m.versao.slice(0, 3), 10))) + 900,
+);
 const nova = (versao: string, sql = "ALTER TABLE x ADD COLUMN y integer;"): Migracao => ({
   versao,
   sql,
@@ -68,14 +77,16 @@ describe("o repositório de hoje obedece à regra", () => {
 
 describe("positivos: o que a regra aceita", () => {
   it("migração nova com o desfazer de mesmo nome", () => {
-    expect(conjunto([nova("900_coluna_nova.sql")], [volta("900_coluna_nova.sql")])).toEqual([]);
+    expect(conjunto([nova(`${FICT}_coluna_nova.sql`)], [volta(`${FICT}_coluna_nova.sql`)])).toEqual(
+      [],
+    );
   });
 
   it("migração nova que declara a irreversibilidade no topo, com motivo, aprovador e data", () => {
     const sql =
       "-- IRREVERSIVEL: apaga a coluna legada com dado; aprovado por Rafael; 2026-10-24\n" +
       "ALTER TABLE x DROP COLUMN legado;";
-    expect(conjunto([nova("900_apaga_legado.sql", sql)])).toEqual([]);
+    expect(conjunto([nova(`${FICT}_apaga_legado.sql`, sql)])).toEqual([]);
   });
 
   it("o cabeçalho pode vir depois de outros comentários, mas antes do primeiro comando", () => {
@@ -83,25 +94,27 @@ describe("positivos: o que a regra aceita", () => {
       "-- 900: tira a coluna legada.\n--\n" +
       "-- IRREVERSIVEL: o dado some; aprovado por Rafael; 2026-10-24\n" +
       "ALTER TABLE x DROP COLUMN legado;";
-    expect(conjunto([nova("900_apaga_legado.sql", sql)])).toEqual([]);
+    expect(conjunto([nova(`${FICT}_apaga_legado.sql`, sql)])).toEqual([]);
   });
 });
 
 describe("negativos: o que a regra reprova", () => {
   it("migração nova sem desfazer e sem cabeçalho", () => {
-    const p = conjunto([nova("900_sem_volta.sql")]);
+    const p = conjunto([nova(`${FICT}_sem_volta.sql`)]);
     expect(p).toHaveLength(1);
-    expect(p[0]).toMatch(/900_sem_volta\.sql: migração nova sem desfazer/);
+    expect(p[0]).toMatch(new RegExp(`${FICT}_sem_volta\.sql: migração nova sem desfazer`));
   });
 
   it("número repetido, mesmo com o nome diferente", () => {
     const p = conjunto(
-      [nova("900_primeira.sql"), nova("900_segunda.sql")],
-      [volta("900_primeira.sql"), volta("900_segunda.sql")],
+      [nova(`${FICT}_primeira.sql`), nova(`${FICT}_segunda.sql`)],
+      [volta(`${FICT}_primeira.sql`), volta(`${FICT}_segunda.sql`)],
     );
-    expect(p.some((x) => /número 900 repetido: 900_primeira\.sql, 900_segunda\.sql/.test(x))).toBe(
-      true,
-    );
+    expect(
+      p.some((x) =>
+        new RegExp(`número ${FICT} repetido: ${FICT}_primeira\.sql, ${FICT}_segunda\.sql`).test(x),
+      ),
+    ).toBe(true);
   });
 
   it("número repetido com uma das isentas (arquivo novo com número velho)", () => {
@@ -125,7 +138,7 @@ describe("negativos: o que a regra reprova", () => {
       "-- IRREVERSIVEL: perde o dado; aprovado por Rafael; 2026-02-31",
       "-- IRREVERSIVEL: ; aprovado por Rafael; 2026-10-24",
     ]) {
-      const p = conjunto([nova("900_x.sql", `${cab}\nSELECT 1;`)]);
+      const p = conjunto([nova(`${FICT}_x.sql`, `${cab}\nSELECT 1;`)]);
       expect(
         p.some((x) => /cabeçalho IRREVERSIVEL incompleto/.test(x)),
         cab,
@@ -135,13 +148,13 @@ describe("negativos: o que a regra reprova", () => {
 
   it("o cabeçalho só vale no topo: depois do primeiro comando é comentário comum", () => {
     const sql = `${SELECT_UM}\n-- IRREVERSIVEL: perde o dado; aprovado por Rafael; 2026-10-24\n`;
-    const p = conjunto([nova("900_x.sql", sql)]);
+    const p = conjunto([nova(`${FICT}_x.sql`, sql)]);
     expect(p.some((x) => /migração nova sem desfazer/.test(x))).toBe(true);
   });
 
   it("declarar IRREVERSIVEL e ainda entregar desfazer é ambíguo", () => {
     const sql = "-- IRREVERSIVEL: perde o dado; aprovado por Rafael; 2026-10-24\nSELECT 1;";
-    const p = conjunto([nova("900_x.sql", sql)], [volta("900_x.sql")]);
+    const p = conjunto([nova(`${FICT}_x.sql`, sql)], [volta(`${FICT}_x.sql`)]);
     expect(p.some((x) => /fique com um só/.test(x))).toBe(true);
   });
 
@@ -149,8 +162,11 @@ describe("negativos: o que a regra reprova", () => {
     const orfao = conjunto([], [volta("060_fantasma.sql")]);
     expect(orfao.some((x) => /desfazer\/060_fantasma\.sql: não há migração/.test(x))).toBe(true);
 
-    const vazio = conjunto([nova("900_x.sql")], [volta("900_x.sql", "-- depois eu escrevo\n")]);
-    expect(vazio.some((x) => /desfazer\/900_x\.sql: está vazio/.test(x))).toBe(true);
+    const vazio = conjunto(
+      [nova(`${FICT}_x.sql`)],
+      [volta(`${FICT}_x.sql`, "-- depois eu escrevo\n")],
+    );
+    expect(vazio.some((x) => new RegExp(`desfazer/${FICT}_x\.sql: está vazio`).test(x))).toBe(true);
   });
 
   it("apagar uma migração isenta reprova (registro não se apaga)", () => {
@@ -166,9 +182,9 @@ describe("negativos: o que a regra reprova", () => {
   it("nome fora do padrão", () => {
     for (const nome of [
       "52_curto.sql",
-      "900-traco.sql",
-      "900_Maiuscula.sql",
-      "900_sem espaco.sql",
+      `${FICT}-traco.sql`,
+      `${FICT}_Maiuscula.sql`,
+      `${FICT}_sem espaco.sql`,
     ]) {
       const p = conjunto([nova(nome)]);
       expect(
