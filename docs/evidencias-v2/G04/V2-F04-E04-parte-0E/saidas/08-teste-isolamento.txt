@@ -1,0 +1,12 @@
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m22 passed[39m[22m[90m (24)[39m
+[2m      Tests [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m577 passed[39m[22m[2m | [22m[33m6 skipped[39m[90m (591)[39m
+[2m   Start at [22m 09:26:35
+[2m   Duration [22m 40.60s[2m (transform 7.36s, setup 0ms, collect 26.57s, tests 218.69s, environment 7ms, prepare 8.71s)[22m
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a5c5ed7398ad9bfcf\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a5c5ed7398ad9bfcf\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

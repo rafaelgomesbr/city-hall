@@ -928,6 +928,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F03-0C": { total: 1, falhas: 0 },
   // V2-F04-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F04 reserva `orgao_sem_gestor`, `encaminhamento_encerrado`, `devolucao_so_antes_do_aceite` e `cadeia_esgotada` no fim da lista, sem repetir `transicao_invalida` nem `ja_respondida`).
   "V2-F04-0C": { total: 1, falhas: 0 },
+  // V2-F04-0E (dossiê por lista de inclusão): `dossie.test.ts` novo, 76 casos (catálogo, padrão conservador, campo fora da lista, texto livre de providências e ofícios, sensível com justificativa, texto livre dirigido ao órgão, mínimo fixo, imutabilidade e versão `migracao` sem texto livre).
+  "V2-F04-0E": { total: 76, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
