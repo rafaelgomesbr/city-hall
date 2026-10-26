@@ -4,7 +4,7 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-26, depois do lote 3 da F02 (H110 a H115), do lote 2 (H90 a H93) e, antes disso, em 2026-10-25, depois da rodada 9 da validação (`dda7557`), das correções 8, 8b (E09) e 11 (E19) do ramo `v2/f00` (pendências H79 a H83) e da implementação da F01 no ramo `v2/f01` (seção F01, H45 a H78).
+**Atualizado em:** 2026-10-26, depois do lote 4 da F02 (H116), do lote 3 da F02 (H110 a H115), do lote 2 (H90 a H93) e, antes disso, em 2026-10-25, depois da rodada 9 da validação (`dda7557`), das correções 8, 8b (E09) e 11 (E19) do ramo `v2/f00` (pendências H79 a H83) e da implementação da F01 no ramo `v2/f01` (seção F01, H45 a H78).
 
 ## Situação da F00 em uma linha
 
@@ -60,6 +60,7 @@ As 22 etapas da F01 estão IMPLEMENTADAS no ramo `v2/f01` (2026-10-24), nenhuma 
 | H113 | F02-E06 | Ler as frases novas de pausa da fila do campo ("Atualize o aplicativo" e as vizinhas), em `dc360/apps/campo/src/dados/pausa-da-fila.ts`. Não trava nada: se uma frase mudar, entra como correção. | `docs/evidencias-v2/G02/V2-F02-E06-parte-3B/` | Rafael |
 | H114 | F02-E06 | E2E manual do passo 10 do `dc360/apps/campo/LEIA-ME.md`: aparelho (ou simulador) com versão abaixo do mínimo, conferir a faixa de atualização, que a coleta fica guardada e que sobe depois de atualizar. Sem aparelho, a parte 3B só foi provada em teste. | `docs/evidencias-v2/G02/V2-F02-E06-parte-3B/` | Rafael |
 | H115 | F02-E06 | Opcional: decidir se o painel passa a mandar a versão real (hoje manda `painel/desconhecido`), o que pede uma variável de build do Vite. Não trava nada. | `docs/evidencias-v2/G02/V2-F02-E06-parte-3B/` | Rafael |
+| H116 | F02-E05 | Rever `docs/evidencias-v2/G02/V2-F02-E05/relatorio-de-rotas-sem-cliente.md` e marcar as 9 rotas /v1 que nenhum cliente chama e que deveriam ter. Duas merecem atenção: as três escritas da saída a campo (`POST /saida-a-campo`, `prorrogar`, `retorno`) e `POST /aparelhos/revogar`, que o aplicativo de campo não chama. Não trava nada. | `docs/evidencias-v2/G02/V2-F02-E05/relatorio-de-rotas-sem-cliente.md` | Rafael |
 
 ## B. Texto de produto e percepção visual (gatilhos da seção 10 de `28`)
 
