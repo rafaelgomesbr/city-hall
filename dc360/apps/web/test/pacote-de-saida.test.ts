@@ -73,14 +73,14 @@ describe("Baixar o pacote de saída", () => {
     http.aoExpirar(null);
   });
 
-  it("chama POST /saida/pacote.zip com o token, e entrega o endereço e o nome do arquivo", async () => {
+  it("chama POST /v1/saida/pacote.zip com o token, e entrega o endereço e o nome do arquivo", async () => {
     const chamadas = simular([() => zip()]);
 
     const { url, nome } = await http.baixarPacoteDeSaida(SESSAO);
 
     expect(chamadas).toHaveLength(1);
-    // O defeito: `/pacote.zip`. O caminho certo termina em `/saida/pacote.zip`.
-    expect(chamadas[0]!.url.endsWith("/saida/pacote.zip")).toBe(true);
+    // O caminho precisa conter tanto a versão quanto o prefixo da saída.
+    expect(chamadas[0]!.url.endsWith("/v1/saida/pacote.zip")).toBe(true);
     expect(chamadas[0]!.url.endsWith("//pacote.zip")).toBe(false);
     expect(chamadas[0]!.metodo).toBe("POST");
     expect(chamadas[0]!.autorizacao).toBe("Bearer acesso-1");

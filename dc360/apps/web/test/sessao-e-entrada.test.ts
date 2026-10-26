@@ -97,12 +97,9 @@ describe("O 401 de sessão morta avisa a tela", () => {
   });
 
   it("sessão encerrada (401 sessao_encerrada) derruba a tela com o motivo 'encerrada'", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
-      if (url.endsWith("/auth/renovar")) {
-        return resposta(401, { erro: "sessao_encerrada", mensagem: "Sessão expirada. Entre novamente." });
-      }
-      return resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
-    }));
+    const buscar = vi.fn(async () =>
+      resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." }));
+    vi.stubGlobal("fetch", buscar);
     const expirou = vi.fn();
     http.aoExpirar(expirou);
 
@@ -112,6 +109,7 @@ describe("O 401 de sessão morta avisa a tela", () => {
     expect(expirou).toHaveBeenCalledTimes(1);
     expect(expirou).toHaveBeenCalledWith("encerrada");
     expect(sessionStorage.getItem("dc360:tokens")).toBeNull();
+    expect(buscar, "categoria reentrar não pede renovação").toHaveBeenCalledTimes(1);
   });
 
   it("papel mudado (401 nao_autenticado) com a renovação viva renova e repete, e avisa a tela do papel novo", async () => {
@@ -227,17 +225,15 @@ describe("O 401 de sessão morta avisa a tela", () => {
   });
 
   it("um 401 de credencial em rota autenticada (senha atual errada) também não é expiração", async () => {
-    // A renovação responde como o servidor de verdade responderia com a
-    // sessão viva: token novo. O 401 seguinte é da senha atual errada.
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
-      if (url.endsWith("/auth/renovar")) return resposta(200, { acesso: "novo", renovacao: "nova" });
-      return resposta(401, { erro: "credenciais", mensagem: "A senha atual nao confere." });
-    }));
+    const buscar = vi.fn(async () =>
+      resposta(401, { erro: "credenciais", mensagem: "A senha atual nao confere." }));
+    vi.stubGlobal("fetch", buscar);
     const expirou = vi.fn();
     http.aoExpirar(expirou);
     await expect(http.trocarSenha("errada", "nova-senha-comprida-12")).rejects.toMatchObject({ status: 401 });
     expect(expirou).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("dc360:tokens"), "a sessão continua de pé").not.toBeNull();
+    expect(buscar, "senha errada não gasta a renovação").toHaveBeenCalledTimes(1);
   });
 
   it.each([

@@ -1,5 +1,5 @@
 import {
-  CODIGOS_DE_ERRO_DE_ACESSO, ehCodigoDeErroDeAcesso,
+  CODIGOS_DE_ERRO_DE_ACESSO, ehCodigoDeErroDeAcesso, categoriaDoErro, categoriaPadraoDoStatus,
   type AberturaOcorrencia, type CorrecaoDeCoordenada, type Despacho, type Encerramento,
   type EncerramentoDeSaida,
   type InteresseMunicipio, type Papel, type Providencia, type Triagem,
@@ -31,7 +31,8 @@ import { CONSULTA_MAXIMA } from "../busca/combobox";
  * onde ninguém com o console do navegador aberto chega.
  */
 
-const BASE = String(import.meta.env["VITE_API_URL"] ?? "").replace(/\/$/, "");
+const ORIGEM = String(import.meta.env["VITE_API_URL"] ?? "").replace(/\/+$/, "");
+const BASE = `${ORIGEM}/v1`;
 const CHAVE_TOKENS = "dc360:tokens";
 
 type Tokens = { acesso: string; renovacao: string };
@@ -318,27 +319,6 @@ async function chamar<T>(
     signal: opcoes.sinal,
   }), opcoes.arquivo ? "arquivo" : metodo === "GET");
 
-  // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
-  // novo significa que a sessão acabou de verdade, e aí não adianta insistir.
-  // Se a renovação diz que a CONTA foi desativada, é isso que a tela precisa
-  // dizer, e não "sua sessão expirou" (entrar de novo não resolve).
-  let renovacaoRecusadaPorConta = false;
-  if (resposta.status === 401 && !opcoes.repetiu && !opcoes.semSessao && lerTokens()) {
-    const renovou = await renovar();
-    if (renovou === true) {
-      /*
-        Solta o corpo do 401 antes de repetir. Sem ler nem cancelar, o
-        navegador mantém aquele pedido "em andamento" para sempre, e uma tela
-        que abre com um 401 de renovação (papel alterado, V2-F00-E07) nunca
-        chega a "rede ociosa": o teste de ponta a ponta ficava 30 segundos
-        esperando por um pedido que já tinha sido respondido.
-      */
-      await resposta.body?.cancel().catch(() => undefined);
-      return chamar<T>(caminho, { ...opcoes, repetiu: true });
-    }
-    renovacaoRecusadaPorConta = renovou === "conta_desativada";
-  }
-
   if (resposta.status === 204) return undefined as T;
 
   // O corpo de um arquivo grande chega em pedaços: a conexão pode cair no meio
@@ -347,7 +327,31 @@ async function chamar<T>(
     return await comRedeTraduzida(() => resposta.blob(), "arquivo") as T;
   }
 
-  const corpo = await resposta.json().catch(() => ({}));
+  // Lê uma vez, antes da decisão de renovar, e preserva a frase do servidor.
+  const lido: unknown = await resposta.json().catch(() => ({}));
+  const corpo = typeof lido === "object" && lido !== null && !Array.isArray(lido)
+    ? lido as Record<string, unknown>
+    : {};
+  // Código conhecido decide pela categoria. Sem categoria nem padrão do shared,
+  // o 401 mantém a compatibilidade com servidores que não mandam código.
+  const categoria = categoriaDoErro(corpo) ?? categoriaPadraoDoStatus(resposta.status)
+    ?? (resposta.status === 401 ? "renovar" : null);
+  // Só repete uma vez, mesmo que a recusa seguinte ainda peça renovação.
+  // Só o 401 (token de acesso) se resolve renovando a sessão: `assinatura` é da
+  // categoria renovar porque pede ENDEREÇO novo, e renovar a sessão não conserta
+  // um endereço assinado vencido (seria uma renovação gasta à toa).
+  // Se a renovação diz que a CONTA foi desativada, é isso que a tela precisa
+  // dizer, e não "sua sessão expirou" (entrar de novo não resolve).
+  let renovacaoRecusadaPorConta = false;
+  if (resposta.status === 401 && categoria === "renovar" && !opcoes.repetiu && !opcoes.semSessao && lerTokens()) {
+    const renovou = await renovar();
+    if (renovou === true) {
+      // O corpo já foi consumido: o pedido anterior não fica em andamento.
+      return chamar<T>(caminho, { ...opcoes, repetiu: true });
+    }
+    renovacaoRecusadaPorConta = renovou === "conta_desativada";
+  }
+
   const motivo = opcoes.semSessao
     ? null
     : renovacaoRecusadaPorConta
@@ -361,7 +365,7 @@ async function chamar<T>(
     ouvinteDeExpiracao?.(motivo);
   }
   if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo, codigoDeSuporteDaResposta(resposta));
-  return corpo as T;
+  return lido as T;
 }
 
 // ---------------------------------------------------------------------------

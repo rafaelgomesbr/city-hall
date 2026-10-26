@@ -957,6 +957,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
   // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
   "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
+  // V2-F02-E02, parte 2A (painel em `/v1` e renovação pela categoria do erro): `apps/web/test/http-v1-e-categorias.test.ts` é novo, com 23 casos (a base `/v1` com e sem barra final e com origem vazia, todas as formas de chamada, URLs assinadas sem prefixo, o 401 de cada categoria que não renova, a categoria aditiva do servidor, o 401 sem código que segue renovando, o 403 `assinatura` que não gasta a renovação, uma renovação só e o padrão por status). Os demais arquivos tocados mudaram por dentro, sem caso novo.
+  "V2-F02-E02-parte-2A": { total: 23, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
