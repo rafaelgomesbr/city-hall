@@ -101,7 +101,9 @@ export function tagsPorCaminho(caminhoBruto) {
   if (/^(apps\/api\/src|packages\/shared\/src)\//.test(c) && /(permiss|catalogo-de-acoes|acoes)/i.test(semAcento(nome))) tags.add("AUTHZ");
   if (/^db\//.test(c)) tags.add("DB");
   if (/^db\/migrations\//.test(c)) tags.add("MIGRATION");
-  if (/^db\/test\/isolamento/.test(c)) tags.add("TENANT");
+  // O portão de isolamento E o catálogo nominal que ele confere (V2-F03-E08, parte 0B): uma
+  // etapa que só mexe no `catalogo/f03-eNN.ts` muda o que o CA-06 aceita.
+  if (/^db\/test\/(isolamento|catalogo\/|catalogo-nominal\.test\.ts$)/.test(c)) tags.add("TENANT");
   if (/^apps\/api\/src\/rotas\//.test(c)) tags.add("API");
   if (/^apps\/api\/src\/rotas\/(interesse|publico|publica|validacao)/.test(c)) tags.add("PUBLIC_API");
   if (NAO_E_TESTE(c) && (/(laudo|termo|montador)/i.test(semAcento(nome)) || /(^|\/)saida\//.test(c))) tags.add("DOCUMENTO");

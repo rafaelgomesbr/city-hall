@@ -48,6 +48,14 @@ test("tagsPorCaminho conhece cada área do repositório", () => {
   assert.deepEqual(tags("dc360/apps/api/src/rotas/interesse.ts"), ["API", "PUBLIC_API"]);
   assert.deepEqual(tags("dc360/db/migrations/047_familia.sql"), ["DB", "MIGRATION"]);
   assert.deepEqual(tags("dc360/db/test/isolamento.test.ts"), ["DB", "TENANT"]);
+  // O catálogo nominal do portão (V2-F03-E08, parte 0B) é o portão: cada arquivo dele, e as sondas.
+  assert.deepEqual(tags("dc360/db/test/catalogo/f03-e15.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/catalogo/base.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/catalogo/conferir.ts"), ["DB", "TENANT"]);
+  assert.deepEqual(tags("dc360/db/test/catalogo-nominal.test.ts"), ["DB", "TENANT"]);
+  // Outro teste do banco não é o portão.
+  assert.deepEqual(tags("dc360/db/test/catalogo-nominal.test.ts.bak"), ["DB"]);
+  assert.deepEqual(tags("dc360/db/test/pessoas.test.ts"), ["DB"]);
   assert.deepEqual(tags(".github/workflows/verificar.yml"), ["INFRA"]);
   assert.deepEqual(tags("dc360/fly.toml"), ["INFRA"]);
   assert.deepEqual(tags("dc360/apps/api/src/saida/pacote.ts"), ["DOCUMENTO"]);

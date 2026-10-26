@@ -1,0 +1,15 @@
+01-typecheck codigo=0 duracao=33s
+02-lint codigo=0 duracao=246s
+03-lint-teto codigo=0 duracao=2s
+04-formato codigo=0 duracao=68s
+05-test-scripts codigo=1 duracao=104s
+06-npm-test codigo=1 duracao=487s
+07-test-isolamento codigo=1 duracao=74s
+08-auditar codigo=0 duracao=24s
+09-conferir-numeros codigo=0 duracao=146s
+10-regras-de-conteudo codigo=1 duracao=14s
+fim
+05-test-scripts (segunda rodada, com o INDEX.md desta pasta) codigo=0
+18-indices-de-evidencia codigo=0
+19-gerar-estado-conferir codigo=0
+Observacao: 05 saiu 1 na primeira rodada so por "todo INDEX.md real bate" (a pasta ainda nao tinha INDEX.md); 06 sai 1 pelas 10 falhas de ambiente Windows listadas no RESUMO (shared 1, api 2, db 8); 07 sai 1 pelas 8 do db; 10 sai 1 pela 1 de EPERM.

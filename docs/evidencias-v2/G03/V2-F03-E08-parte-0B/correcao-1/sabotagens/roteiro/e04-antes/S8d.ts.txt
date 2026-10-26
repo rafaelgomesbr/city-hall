@@ -1,0 +1,19 @@
+// Sabotagem S8d: redefine console_operadores com isencao de policy de tenant.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "console_operadores",
+      semOrganizacaoId: true,
+      semPolicyDeTenant: true,
+      acessoSemPolicy: "nenhum",
+      etapa: "V2-F03-E04",
+      motivo: "Sabotagem: os operadores do console nao tem policy de municipio, por desenho.",
+      trava: "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
+      redefine: true,
+    },
+  ],
+  colunasComUpdate: [],
+} as unknown as ContribuicaoDoCatalogo;

@@ -1,0 +1,23 @@
+### S3b
+--- migracao 999 temporaria:
+-- S3b: tabela noutro esquema, sem RLS, com SELECT/INSERT/UPDATE/DELETE ao app.
+CREATE SCHEMA porta_b;
+CREATE TABLE porta_b.copia (id serial PRIMARY KEY, organizacao_id uuid, dado text);
+GRANT USAGE ON SCHEMA porta_b TO dc360_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON porta_b.copia TO dc360_app;
+GRANT USAGE ON SEQUENCE porta_b.copia_id_seq TO dc360_app;
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1470ms
+ ✓ test/isolamento.test.ts (137 tests) 24461ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  869ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  805ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  20695ms
+
+ Test Files  2 passed (2)
+      Tests  165 passed (165)
+   Start at  03:52:40
+   Duration  25.32s (transform 298ms, setup 0ms, collect 692ms, tests 25.93s, environment 0ms, prepare 360ms)
+

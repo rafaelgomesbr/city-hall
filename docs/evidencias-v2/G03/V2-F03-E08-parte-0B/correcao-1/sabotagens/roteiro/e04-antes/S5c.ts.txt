@@ -1,0 +1,20 @@
+// Sabotagem S5c: da EXECUTE de trocar_senha ao console pelo catalogo da etapa.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "trocar_senha",
+      argumentos: "p_usuario_id uuid, p_senha_hash text, p_sessao_preservada uuid",
+      migracao: "053",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app", "dc360_console"],
+      motivo: "Sabotagem S5c: da EXECUTE ao console e apaga a divida so no catalogo, sem SQL novo.",
+      tenant: "contexto",
+      confere: "Sabotagem: declara conferir o contexto sem que a funcao o faca de verdade.",
+      redefine: true,
+    },
+  ],
+  excecoes: [],
+  colunasComUpdate: [],
+};

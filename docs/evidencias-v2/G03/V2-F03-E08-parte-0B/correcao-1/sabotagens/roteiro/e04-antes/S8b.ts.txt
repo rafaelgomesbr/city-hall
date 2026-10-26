@@ -1,0 +1,18 @@
+// Sabotagem S8/S8b: isencao de policy de tenant para tabela do fornecedor que TEM organizacao_id.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "eliminacoes_de_municipio",
+      semOrganizacaoId: false,
+      semPolicyDeTenant: true,
+      acessoSemPolicy: "nenhum",
+      etapa: "V2-F03-E04",
+      motivo: "Sabotagem: o livro de eliminacoes e do fornecedor e nao tem policy de municipio.",
+      trava: "Sabotagem: so o console a alcanca, e isso deveria bastar (nao basta).",
+    },
+  ],
+  colunasComUpdate: [],
+} as unknown as ContribuicaoDoCatalogo;

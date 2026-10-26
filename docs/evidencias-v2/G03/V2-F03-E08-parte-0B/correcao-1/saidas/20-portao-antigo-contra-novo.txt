@@ -1,0 +1,74 @@
+portao antigo (acef466): Tests  165 passed (165)
+portao novo (correcao 1): Tests  198 passed (198)
+
+=== isolamento.test.ts: casos do antigo que NAO existem no novo (esperado: nenhum)
+=== isolamento.test.ts: casos novos
+test/isolamento.test.ts > CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema
+test/isolamento.test.ts > CA-06: isolamento entre organizações > toda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale
+test/isolamento.test.ts > Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita
+=== catalogo-nominal.test.ts: casos do antigo sem o mesmo nome no novo
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a dívida de tenant de hoje está declarada, com a etapa que a paga
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a lista nominal tem os nomes de hoje, sem teto numérico
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco
+test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece (nome de função da F03) reprova
+test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é nome e argumentos
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido a PUBLIC
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE tem de ser exatamente o declarado > EXECUTE concedido ao console numa função que só a aplicação executa
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE tem de ser exatamente o declarado > quemExecuta lê a ACL: dono fora, PUBLIC como PUBLIC, ACL nula como PUBLIC
+test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, com motivo, é o caminho certo e passa
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não declara exceção nenhuma
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: exceção desnecessária (era o caso de `protocolo_sequencias`)
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: isenção de policy desnecessária
+test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro
+test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro
+test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > as 13 etapas da F03 estão no catálogo, vazias, mais a base
+test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado)
+test/catalogo-nominal.test.ts > sonda 8: a junção das contribuições das etapas > redefine: true substitui a entrada anterior (a etapa que muda a forma de conferir o tenant)
+=== catalogo-nominal.test.ts: casos novos
+test/catalogo-nominal.test.ts > a BASE congelada (só ela é fixada aqui) > a dívida de tenant da base está declarada, com a etapa que a paga
+test/catalogo-nominal.test.ts > a BASE congelada (só ela é fixada aqui) > as 16 colunas com UPDATE do papel de aplicação
+test/catalogo-nominal.test.ts > a BASE congelada (só ela é fixada aqui) > as 27 funções de hoje, pela assinatura completa, sem teto numérico
+test/catalogo-nominal.test.ts > a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor
+test/catalogo-nominal.test.ts > a FORMA das contribuições das etapas (e não a lista de nomes) > a base vem primeiro, e é a BASE
+test/catalogo-nominal.test.ts > a FORMA das contribuições das etapas (e não a lista de nomes) > cada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio
+test/catalogo-nominal.test.ts > a FORMA das contribuições das etapas (e não a lista de nomes) > todo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com a mesma migração da entrada substituída é recusado na junção
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não existe reprova
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não recria a função reprova
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > assinatura que não é da função nomeada é erro
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > entrada que diz outra etapa que não a do arquivo é erro
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > redefine: true com migração maior substitui a entrada anterior
+test/catalogo-nominal.test.ts > sonda 11: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado)
+test/catalogo-nominal.test.ts > sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece reprova
+test/catalogo-nominal.test.ts > sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+test/catalogo-nominal.test.ts > sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > quemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão
+test/catalogo-nominal.test.ts > sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+test/catalogo-nominal.test.ts > sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > dispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não dispensa nem a coluna nem a policy
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`)
+test/catalogo-nominal.test.ts > sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: dispensa de policy desnecessária
+test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção
+test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova
+test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado
+test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco
+test/catalogo-nominal.test.ts > sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > tabela do fornecedor que o papel de aplicação alcança reprova
+test/catalogo-nominal.test.ts > sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+test/catalogo-nominal.test.ts > sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app
+test/catalogo-nominal.test.ts > sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam

@@ -1,0 +1,62 @@
+### L1
+--- migracao 999 temporaria:
+-- L1: controle legitimo. Tabela global no formato de `pessoas` e uma funcao privilegiada nova.
+CREATE TABLE controle_pessoas (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL);
+ALTER TABLE controle_pessoas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE controle_pessoas FORCE ROW LEVEL SECURITY;
+CREATE FUNCTION controle_legitimo(p_email text) RETURNS boolean
+  LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
+  AS $$ SELECT p_email IS NOT NULL $$;
+REVOKE ALL ON FUNCTION controle_legitimo(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION controle_legitimo(text) TO dc360_app;
+--- f03-e04.ts:
+// Controle LEGITIMO (nao e sabotagem): uma etapa acrescenta, so no proprio arquivo, uma tabela sem
+// municipio no formato de `pessoas` e uma funcao privilegiada nova, com a migracao que as cria.
+// O portao e as sondas precisam ficar verdes: o andaime nao pode colidir com a etapa honesta.
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+export const CATALOGO_F03_E04: ContribuicaoDoCatalogo = {
+  funcoes: [
+    {
+      nome: "controle_legitimo",
+      assinatura: "public.controle_legitimo(text)",
+      migracao: "999",
+      etapa: "V2-F03-E04",
+      executavelPor: ["dc360_app"],
+      motivo: "Controle legitimo: funcao de etapa declarada no arquivo da etapa, com migracao propria.",
+      tenant: "antes_do_tenant",
+      confere: "Controle: so devolve um booleano, sem ler tabela de municipio nenhuma.",
+      semProva: "Controle do harness de sabotagens: existe so durante esta rodada, sem teste proprio.",
+    },
+  ],
+  excecoes: [
+    {
+      tabela: "controle_pessoas",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: { dc360_app: [], dc360_console: [], PUBLIC: [] },
+      etapa: "V2-F03-E04",
+      motivo: "Controle legitimo: tabela global no formato que a ADR 0009 da a `pessoas`.",
+      trava: "RLS forcada, nenhuma policy e nenhum grant: so o dono das tabelas a alcanca.",
+    },
+  ],
+  colunasComUpdate: [],
+};
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+04:16:07 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/catalogo-nominal.test.ts (58 tests) 1795ms
+ ✓ test/isolamento.test.ts (140 tests) 22292ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  861ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  791ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  18565ms
+
+ Test Files  2 passed (2)
+      Tests  198 passed (198)
+   Start at  04:16:06
+   Duration  23.21s (transform 291ms, setup 0ms, collect 949ms, tests 24.09s, environment 0ms, prepare 334ms)
+

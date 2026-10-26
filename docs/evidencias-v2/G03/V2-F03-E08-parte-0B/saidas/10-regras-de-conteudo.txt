@@ -1,0 +1,36 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a785a4f87944fa9ce/dc360/packages/shared
+
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 11483ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  502ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  9101ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1090ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  644ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 45ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 27ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 36ms
+     → EPERM: operation not permitted, symlink 'C:\Users\[usuario]\AppData\Local\Temp\dc360-conteudo-AT0i0q\alvo-que-nao-existe.md' -> 'C:\Users\[usuario]\AppData\Local\Temp\dc360-conteudo-AT0i0q\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 31ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\[usuario]\AppData\Local\Temp\dc360-conteudo-AT0i0q\alvo-que-nao-existe.md' -> 'C:\Users\[usuario]\AppData\Local\Temp\dc360-conteudo-AT0i0q\docs\sumiu-depois-da-listagem.md'
+ ❯ test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  03:07:14
+   Duration  12.26s (transform 101ms, setup 0ms, collect 113ms, tests 11.48s, environment 0ms, prepare 264ms)
+

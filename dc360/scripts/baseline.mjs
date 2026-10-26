@@ -1067,6 +1067,32 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     passou a olhar so as 51), sem caso novo.
   */
   "V2-F02-E07": { total: 9, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, parte 0B (andaime do banco, premissa P-03): `db/test/catalogo-nominal.test.ts`
+    e novo, com 28 casos (a linha de base do catalogo contra o banco, e as
+    sondas que fazem a conferencia reprovar: funcao SECURITY DEFINER fora da
+    lista, sobrecarga de funcao listada, entrada sem funcao no banco, EXECUTE
+    a PUBLIC ou a papel nao declarado, tabela sem organizacao_id fora das
+    excecoes, excecao que o banco nao confirma, e a juncao das contribuicoes
+    das etapas). `desfazer-migracao.test.ts` ganha 1 caso (o numero da migracao
+    de prova e calculado, a ultima real mais um). `isolamento.test.ts` trocou
+    dois casos de nome (o teto de 27 virou a lista nominal; a coluna
+    organizacao_id virou a conferencia nominal das excecoes), sem caso novo.
+    Total 29, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0B": { total: 29, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, correcao 1 da parte 0B (o revisor adversarial reprovou a
+    parte: seis sabotagens passavam pelo portao). `isolamento.test.ts` ganha 3
+    casos (as excecoes do fornecedor sao as do bloco DO_FORNECEDOR; nada fora
+    do esquema public; a origem de cada funcao bate com as migracoes e com o
+    teste que a prova). `catalogo-nominal.test.ts` vai de 28 para 58 casos:
+    sai a fixacao da lista inteira e das "13 etapas vazias", entram a BASE
+    congelada, a FORMA das etapas e uma sonda por sabotagem (S3, S3b, S5a,
+    S8b, S8d, S11, S12) e por regra nova. Total 33, nenhuma falha nem pulo
+    novos.
+  */
+  "V2-F03-E08-parte-0B-correcao-1": { total: 33, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

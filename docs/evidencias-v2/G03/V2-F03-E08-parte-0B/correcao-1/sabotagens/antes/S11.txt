@@ -1,0 +1,19 @@
+### S11
+--- migracao 999 temporaria:
+-- S11: EXECUTE com opcao de concessao.
+GRANT EXECUTE ON FUNCTION credenciais_para_login(text) TO dc360_app WITH GRANT OPTION;
+--- vitest:
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc/dc360/db
+
+ ✓ test/catalogo-nominal.test.ts (28 tests) 1429ms
+ ✓ test/isolamento.test.ts (137 tests) 23355ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  785ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  821ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  19663ms
+
+ Test Files  2 passed (2)
+      Tests  165 passed (165)
+   Start at  03:56:57
+   Duration  24.10s (transform 202ms, setup 0ms, collect 586ms, tests 24.78s, environment 0ms, prepare 406ms)
+

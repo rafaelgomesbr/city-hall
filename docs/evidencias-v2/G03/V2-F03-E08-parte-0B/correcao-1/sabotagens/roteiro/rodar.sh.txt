@@ -1,0 +1,49 @@
+#!/bin/bash
+# Roda as sabotagens do revisor (S1 a S12) contra o portao real e as sondas.
+# uso: rodar.sh <fase> [S...]   (fase: antes | depois)
+set -u
+W=/c/Projetos/city-hall/.claude/worktrees/agent-ad9822b275c5e01dc
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab1
+CAT=$W/dc360/db/test/catalogo
+MIG=$W/dc360/db/migrations/999_sabotagem.sql
+FASE=$1; shift
+OUT=$S/$FASE
+E04=$S/e04; [ -d "$S/e04-$FASE" ] && E04=$S/e04-$FASE
+mkdir -p "$OUT/bak"
+TODAS="S1 S2 S3 S3b S4 S5a S5c S6 S7 S8 S8b S8c S8d S11 S12"
+LISTA="${*:-$TODAS}"
+cp "$CAT/base.ts" "$OUT/bak/base.ts"
+cp "$CAT/f03-e04.ts" "$OUT/bak/f03-e04.ts"
+restaurar() {
+  cp "$OUT/bak/base.ts" "$CAT/base.ts"
+  cp "$OUT/bak/f03-e04.ts" "$CAT/f03-e04.ts"
+  rm -f "$MIG"
+}
+: > "$OUT/RESUMO.txt"
+for s in $LISTA; do
+  restaurar
+  [ -f "$S/sql/$s.sql" ] && cp "$S/sql/$s.sql" "$MIG"
+  case $s in
+    S5a|S5c|S8b|S8d|L1) cp "$E04/$s.ts" "$CAT/f03-e04.ts" ;;
+    S8) cp "$E04/S8b.ts" "$CAT/f03-e04.ts" ;;
+    S1) perl -0pi -e 's/(nome: "revogar_sessao",.*?executavelPor: )APP/$1CONSOLE/s' "$CAT/base.ts" ;;
+    S4) perl -0pi -e 's/  \{\n    tabela: "console_codigos_de_recuperacao",.*?\n  \},\n//s' "$CAT/base.ts" ;;
+  esac
+  {
+    echo "### $s"
+    [ -f "$MIG" ] && { echo "--- migracao 999 temporaria:"; cat "$MIG"; }
+    case $s in S5a|S5c|S8|S8b|S8d|L1) echo "--- f03-e04.ts:"; cat "$CAT/f03-e04.ts" ;; esac
+    case $s in S1|S4) echo "--- base.ts (diff):"; diff "$OUT/bak/base.ts" "$CAT/base.ts" ;; esac
+    echo "--- vitest:"
+  } > "$OUT/$s.txt"
+  (cd "$W/dc360/db" && npx vitest run test/isolamento.test.ts test/catalogo-nominal.test.ts 2>&1) \
+    | sed 's/\x1b\[[0-9;]*m//g' >> "$OUT/$s.txt"
+  {
+    echo "== $s"
+    grep -E "test/(isolamento|catalogo-nominal)\.test\.ts" "$OUT/$s.txt" | grep -E "tests?|FAIL" | sort -u | head -6
+    grep -E "^ +Tests " "$OUT/$s.txt"
+    grep -E "^ +× " "$OUT/$s.txt" | sed 's/ [0-9]*ms$//' | head -12
+  } >> "$OUT/RESUMO.txt"
+done
+restaurar
+cat "$OUT/RESUMO.txt"
