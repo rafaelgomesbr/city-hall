@@ -1120,10 +1120,11 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     gatilho privilegiada sem EXECUTE, nas tabelas declaradas e conferindo a
     tabela por TG_RELID. O caso das chaves estrangeiras continua um so (a
     regra foi para `conferirChavesEstrangeiras`). `catalogo-nominal.test.ts`
-    ganha 35 (as sondas 12 a 16 e a fixacao do privilegio de coluna da base).
-    Total 39, nenhuma falha nem pulo novos.
+    ganha 36 (as sondas 12 a 16, a fixacao do privilegio de coluna da base e,
+    na sonda 10, a redefinicao de funcao da base declarada com redefine).
+    Total 40, nenhuma falha nem pulo novos.
   */
-  "V2-F03-E08-parte-0G": { total: 39, falhas: 0, puladas: 0 },
+  "V2-F03-E08-parte-0G": { total: 40, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

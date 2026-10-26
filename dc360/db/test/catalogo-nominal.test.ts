@@ -821,12 +821,44 @@ describe("sonda 10 (S5a): a origem declarada de cada função é conferida contr
     );
   });
 
+  /*
+    Parte 0G: a JUNÇÃO DE VERDADE mais a entrada da sonda no fim, e não só a
+    base. Com só a base e as migrações reais, uma etapa que redefine de
+    verdade uma função da base (a 1B, a `consumir_recuperacao` da 051; a E08,
+    várias) fazia esta sonda acusar a redefinição legítima, que a base não
+    conhece. A redefinição continua precisando de `redefine: true`, migração
+    maior e `CREATE OR REPLACE` (as sondas acima e abaixo).
+  */
+  const naJuncao = (
+    f: FuncaoPrivilegiada,
+  ): ReadonlyArray<readonly [string, ContribuicaoDoCatalogo]> => [
+    ...CONTRIBUICOES_DO_CATALOGO,
+    ["sonda", { ...vazia, funcoes: [{ ...f, etapa: "sonda" }] }],
+  ];
+
   it("com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)", () => {
     const fontes = comMigracao(
       INEXISTENTE,
       "CREATE OR REPLACE FUNCTION trocar_senha(p_usuario_id uuid, p_senha_hash text, p_sessao_preservada uuid) RETURNS void LANGUAGE sql AS $$ SELECT 1 $$;",
     );
-    expect(conferirFontes(comS5a(INEXISTENTE), fontes)).toEqual([]);
+    expect(conferirFontes(naJuncao(s5a(INEXISTENTE)), fontes)).toEqual([]);
+  });
+
+  it("uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)", () => {
+    const daBase = BASE.funcoes.find((f) => f.nome === "sessao_por_token")!;
+    const fontes = comMigracao(
+      INEXISTENTE,
+      "CREATE OR REPLACE FUNCTION public.sessao_por_token(p text) RETURNS void LANGUAGE sql AS $$ SELECT 1 $$;",
+    );
+    expect(
+      conferirFontes(naJuncao({ ...daBase, migracao: INEXISTENTE, redefine: true }), fontes),
+    ).toEqual([]);
+    // Sem o redefine na etapa, a mesma migração reprova (o caso logo abaixo).
+    expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontes)).toEqual([
+      expect.stringMatching(
+        /^public\.sessao_por_token\(text\): o catálogo diz que a forma atual vem da migração/,
+      ),
+    ]);
   });
 
   it("uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova", () => {
@@ -844,15 +876,19 @@ describe("sonda 10 (S5a): a origem declarada de cada função é conferida contr
   it("a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas", () => {
     const comProva = (
       f: Partial<FuncaoPrivilegiada>,
-    ): ReadonlyArray<readonly [string, ContribuicaoDoCatalogo]> => [
-      [
-        "base",
-        {
-          ...BASE,
-          funcoes: BASE.funcoes.map((x) => (x.nome === "trocar_senha" ? { ...x, ...f } : x)),
-        },
-      ],
-    ];
+    ): ReadonlyArray<readonly [string, ContribuicaoDoCatalogo]> =>
+      // A junção inteira, com só a entrada da base trocada (parte 0G: ver `naJuncao`).
+      CONTRIBUICOES_DO_CATALOGO.map(([de, c]) =>
+        de === "base"
+          ? ([
+              de,
+              {
+                ...c,
+                funcoes: c.funcoes.map((x) => (x.nome === "trocar_senha" ? { ...x, ...f } : x)),
+              },
+            ] as const)
+          : ([de, c] as const),
+      );
     const ler = (c: string) =>
       c === "so-comentario.test.ts"
         ? "// trocar_senha( só citada\n/* trocar_senha( */"
