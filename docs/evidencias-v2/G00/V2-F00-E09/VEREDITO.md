@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 11 | 2026-10-25 | 7fdfcc1 | 7fdfcc1 (run 40246414900, 10 verdes e 2 pulados por regra) | ACEITA (H36) mantida; rodada só mecânica: o `INDEX.md` sem a linha do `VEREDITO.md` fecha byte a byte (`G00/validacao/7fdfcc1/mecanica.md`) | 98879db | 0b32d38 | e7e1326 |
 | 10 | 2026-10-25 | 98879db | ddff79a (run 40203288208, 10 verdes e 2 pulados por desenho); CI completo do mesmo produto em 9a1c112 (run 40179451002, tentativa 2, 12 de 12) | ACEITA (H36), sem validador | 98879db | 0b32d38 | e7e1326 |
 | 9 | 2026-10-24 | dda7557 | d4683cc (run 40132234324, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | e7e1326 |
 | 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
