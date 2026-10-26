@@ -1,0 +1,21 @@
+{
+  "descricao": "Baseline triada do SAST para as regras do REGISTRO (V2-F01-E05, correção 1 da F01). Mesmo mecanismo da baseline das regras próprias (.semgrep/baseline.json): cada entrada é um achado ANTIGO que uma pessoa leu, e só achado novo de severidade ERROR reprova o PR. As regras vêm de um commit fixo do repositório semgrep/semgrep-rules (ver .github/workflows/sast.yml). Ver dc360/README.md, política de exceção de SAST.",
+  "gerada_em": "2026-10-26",
+  "semgrep": "1.136.0",
+  "regras_do_registro": "semgrep/semgrep-rules@16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "triagem_lida_por_humano": false,
+  "achados": [
+    {
+      "id": "c60475ef0024de9210d189b4#1",
+      "regra": "gcm-no-tag-length",
+      "arquivo": "dc360/apps/api/src/auth/cofre.ts",
+      "linha": 107,
+      "severidade": "ERROR",
+      "trecho": "const decifra = createDecipheriv(ALGORITMO, chave, vetor);",
+      "classe": "falso-positivo",
+      "motivo": "Falso positivo: a regra exige o tamanho da etiqueta de autenticação do GCM, e aqui ele é conferido antes da decifragem: a linha anterior devolve null se o selo não tiver exatamente BYTES_SELO (16) bytes, e só então vêm setAuthTag e final(). Um selo mais curto nunca chega ao OpenSSL. Triagem pela leitura do código em 2026-10-26, sobre o achado do relatório do registro de 2026-10-24 (confirmação humana pendente: triagem_lida_por_humano).",
+      "dono": "Rafael",
+      "ate": "2027-01-31"
+    }
+  ]
+}

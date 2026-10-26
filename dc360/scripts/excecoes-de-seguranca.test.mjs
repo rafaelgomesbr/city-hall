@@ -9,7 +9,8 @@
  *     licença das regras proíbe redistribuir) e toda regra própria tem casos
  *     positivos e negativos em `.semgrep/test/`;
  *  4. o workflow `sast.yml` não deixa código sair do runner nem versão flutuar, e
- *     o registro só roda num passo de relatório que nunca reprova;
+ *     as regras do registro rodam FIXADAS num commit e ERROR novo delas reprova
+ *     pela baseline do registro (correção 1 da F01);
  *  5. (V2-F01-E20, DV-22) a mesma política de exceção para o scan de imagens: toda
  *     entrada do `.trivyignore.yaml` tem ID, caminho (só o npm embutido na imagem
  *     base), motivo, dono e prazo vigente, e o script
@@ -35,7 +36,7 @@ import {
   problemasDaExcecao,
   varrerRepositorio,
 } from "./excecoes-de-seguranca.mjs";
-import { lerBaseline, problemasDaBaseline } from "./sast-baseline.mjs";
+import { ARQUIVO_DA_BASELINE_DO_REGISTRO, lerBaseline, problemasDaBaseline } from "./sast-baseline.mjs";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const lerTexto = (rel) => readFileSync(join(RAIZ, rel), "utf8").replace(/\r\n/g, "\n");
@@ -314,23 +315,78 @@ function passosDoWorkflow() {
   return w.split(/^      - /m).slice(1).map((bloco) => ({ nome: (bloco.match(/name:\s*(.+)/) ?? [undefined, ""])[1].trim(), bloco }));
 }
 
-test("o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria", () => {
-  const passos = passosDoWorkflow();
-  const comRegistro = passos.filter((p) => /--config\s+p\//.test(p.bloco));
-  assert.equal(comRegistro.length, 1, "um único passo consulta o registro");
-  const [rel] = comRegistro;
-  assert.match(rel.nome, /Relatório/);
-  assert.match(rel.bloco, /continue-on-error:\s*true/, "passo de relatório não reprova o job");
-  assert.match(rel.bloco, /\|\|\s*true/, "nem o comando reprova");
-  for (const p of passos.filter((x) => /semgrep (scan|--test)/.test(x.bloco) && x !== rel)) {
-    assert.doesNotMatch(p.bloco, /--config\s+p\//, `${p.nome}: passo bloqueante só com regra própria`);
-    assert.doesNotMatch(p.bloco, /continue-on-error/, `${p.nome}: passo bloqueante não pode ignorar falha`);
-    assert.match(p.bloco, /--config \.semgrep\/regras\b/);
+/**
+ * Problemas do workflow de SAST quanto ao registro (correção 1 da F01, E05): as regras do
+ * registro têm de estar FIXADAS num commit, rodar sem mascarar falha e reprovar ERROR novo
+ * pela baseline. Função pura sobre o texto do workflow (sem comentários), para o caso
+ * sintético provar que ela morde.
+ */
+export function problemasDoRegistroNoWorkflow(w) {
+  const problemas = [];
+  const passos = w.split(/^ {6}- /m).slice(1).map((bloco) => ({ nome: (bloco.match(/name:\s*(.+)/) ?? [undefined, ""])[1].trim(), bloco }));
+  if (/--config\s+p\//.test(w)) problemas.push("pacote móvel `--config p/...` do registro: a versão flutua");
+  if (/--config\s+(auto|r\/|https?:)/.test(w)) problemas.push("regra avulsa, `auto` ou URL no `--config`");
+  if (!/SEMGREP_RULES_SHA:\s*"[0-9a-f]{40}"/.test(w)) problemas.push("falta SEMGREP_RULES_SHA com o commit completo (40 hexadecimais)");
+  if (!/git rev-parse HEAD\)"\s*=\s*"\$\{SEMGREP_RULES_SHA\}"/.test(w)) problemas.push("o download não confere o commit com `git rev-parse HEAD`");
+  if (!/git fetch[^\n]*"\$\{SEMGREP_RULES_SHA\}"/.test(w)) problemas.push("o download não busca o commit fixado");
+  for (const pacote of ["typescript/lang", "typescript/react", "javascript/node-crypto", "javascript/express", "javascript/jsonwebtoken", "javascript/react"]) {
+    if (!new RegExp(`SEMGREP_RULES_PASTAS:[^]*?\\b${pacote.replace("/", "\\/")}\\b`).test(w)) problemas.push(`a pasta ${pacote} não está entre as regras do registro`);
   }
-  for (const pacote of ["typescript", "nodejs", "react", "jwt"]) {
-    assert.match(rel.bloco, new RegExp(`--config p/${pacote}\\b`), `pacote p/${pacote} no relatório`);
+  const varredura = passos.find((p) => /semgrep-rules\/\$\{pasta\}/.test(p.bloco) && /semgrep scan/.test(p.bloco));
+  if (!varredura) problemas.push("falta o passo que varre com as regras do registro fixadas");
+  else if (!/04-registro\.json/.test(varredura.bloco)) problemas.push("a varredura do registro não grava 04-registro.json");
+  const decisao = passos.find((p) => /sast-baseline\.mjs conferir[^\n]*--baseline \.semgrep\/baseline-registro\.json[^\n]*04-registro\.json/.test(p.bloco));
+  if (!decisao) problemas.push("nenhum passo compara 04-registro.json com .semgrep/baseline-registro.json");
+  for (const p of passos.filter((x) => /semgrep (scan|--test)|sast-baseline\.mjs|semgrep-rules/.test(x.bloco))) {
+    if (/continue-on-error/.test(p.bloco)) problemas.push(`${p.nome}: passo de SAST com continue-on-error`);
+    if (/\|\|\s*true/.test(p.bloco)) problemas.push(`${p.nome}: passo de SAST com \`|| true\``);
+    if (/if:\s*\$\{\{\s*false/.test(p.bloco)) problemas.push(`${p.nome}: passo de SAST desligado`);
   }
-  assert.match(rel.bloco, /04-registro-relatorio/, "o relatório sai no artefato");
+  return problemas;
+}
+
+test("o registro roda FIXADO num commit, sem mascarar falha, e ERROR novo dele reprova pela baseline", () => {
+  assert.deepEqual(problemasDoRegistroNoWorkflow(workflowSemComentarios()), []);
+  // As regras próprias continuam sem pacote móvel.
+  for (const p of passosDoWorkflow().filter((x) => /semgrep (scan|--test)/.test(x.bloco))) {
+    assert.doesNotMatch(p.bloco, /--config\s+p\//, `${p.nome}: sem pacote móvel`);
+  }
+  assert.match(workflowSemComentarios(), /04-registro\.json/, "a saída do registro vai no artefato");
+});
+
+test("negativo: workflow com `p/...`, `|| true`, continue-on-error ou commit sem conferência é reprovado", () => {
+  const bom = workflowSemComentarios();
+  const movel = bom.replace(/--config "\$\{RUNNER_TEMP\}\/semgrep-rules\/\$\{pasta\}"/, "--config p/typescript");
+  assert.match(problemasDoRegistroNoWorkflow(movel).join("|"), /pacote móvel/);
+  const mascarado = bom.replace("dc360 2>&1 | tee sast-artefatos/04-registro-scan.txt", "dc360 2>&1 | tee sast-artefatos/04-registro-scan.txt || true");
+  assert.match(problemasDoRegistroNoWorkflow(mascarado).join("|"), /\|\| true/);
+  const tolerante = bom.replace("- name: Varredura com as regras do registro fixadas", "- name: Varredura com as regras do registro fixadas\n        continue-on-error: true");
+  assert.match(problemasDoRegistroNoWorkflow(tolerante).join("|"), /continue-on-error/);
+  const semConferir = bom.replace(/test "\$\(git rev-parse HEAD\)" = "\$\{SEMGREP_RULES_SHA\}"/, "true");
+  assert.match(problemasDoRegistroNoWorkflow(semConferir).join("|"), /rev-parse/);
+  const semSha = bom.replace(/SEMGREP_RULES_SHA: "[0-9a-f]{40}"/, 'SEMGREP_RULES_SHA: "develop"');
+  assert.match(problemasDoRegistroNoWorkflow(semSha).join("|"), /40 hexadecimais/);
+  const semDecisao = bom.replace("--baseline .semgrep/baseline-registro.json", "");
+  assert.match(problemasDoRegistroNoWorkflow(semDecisao).join("|"), /nenhum passo compara/);
+  // O workflow ANTERIOR (relatório que nunca reprova) é reprovado por esta função.
+  const antigo = [
+    "      - name: Relatório dos pacotes do registro (não reprova)",
+    "        continue-on-error: true",
+    "        run: |",
+    "          semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt --json --output x.json dc360 || true",
+  ].join("\n");
+  const p = problemasDoRegistroNoWorkflow(antigo).join("|");
+  assert.match(p, /pacote móvel/);
+  assert.match(p, /continue-on-error/);
+});
+
+test("a baseline do registro existe, obedece à política de exceção e diz de qual commit das regras ela vale", () => {
+  const baseline = lerBaseline(RAIZ, ARQUIVO_DA_BASELINE_DO_REGISTRO);
+  assert.deepEqual(problemasDaBaseline(baseline, hojeEmIso()), []);
+  const sha = /SEMGREP_RULES_SHA:\s*"([0-9a-f]{40})"/.exec(workflowSemComentarios())?.[1];
+  assert.ok(sha);
+  assert.equal(baseline.regras_do_registro, `semgrep/semgrep-rules@${sha}`, "a baseline do registro vale para o commit fixado no workflow");
+  assert.equal(baseline.semgrep, /SEMGREP_VERSION:\s*"(\d+\.\d+\.\d+)"/.exec(workflowSemComentarios())?.[1]);
 });
 
 test("o workflow de SAST roda semgrep --test antes da varredura e a baseline decide", () => {
@@ -687,6 +743,27 @@ test("verificar.yml e auditoria-semanal.yml: o job imagens instala o Trivy fixo 
     assert.doesNotMatch(job, /secrets\./, `${arquivo}: o job de scan não recebe segredo`);
     assert.doesNotMatch(job, /permissions:/, `${arquivo}: nenhuma permissão extra no job`);
   }
+});
+
+test("a imagem comunitária do banco (PostGIS, por digest) passa pelo Trivy no PR e na agenda, com a mesma régua e o mesmo digest dos serviços (correção 1 da F01, E21)", () => {
+  const compose = lerTexto("dc360/compose.yaml");
+  const doCompose = [...compose.matchAll(/^\s*image:\s*(\S+)\s*$/gm)].map((m) => m[1]);
+  assert.ok(doCompose.length >= 1 && new Set(doCompose).size === 1, "o compose usa uma imagem de banco só");
+  const imagemDoBanco = doCompose[0];
+  assert.match(imagemDoBanco, /^postgis\/postgis:17-[\d.]+@sha256:[0-9a-f]{64}$/);
+  for (const arquivo of [".github/workflows/verificar.yml", ".github/workflows/auditoria-semanal.yml"]) {
+    const job = textoDoJob(arquivo, "imagens");
+    const passo = passosDoJob(job).find((p) => /varrer-imagem\.sh varrer/.test(p.bloco));
+    assert.ok(passo, `${arquivo}: passo de varredura`);
+    assert.ok(passo.bloco.includes(`postgis="${imagemDoBanco}"`), `${arquivo}: varre ${imagemDoBanco} (o digest dos serviços e do compose)`);
+    assert.match(passo.bloco, /docker pull --quiet "\$postgis"/, `${arquivo}: baixa a imagem antes de varrer`);
+    assert.match(passo.bloco, /for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:\$postgis"; do/, `${arquivo}: a imagem do banco está no MESMO laço das nossas (mesma régua, mesma exceção, mesmo "reprova se qualquer uma falhou")`);
+    assert.doesNotMatch(passo.bloco, /continue-on-error|\|\|\s*true|if:\s*\$\{\{\s*false/, `${arquivo}: sem mascarar`);
+  }
+  // O digest dos serviços do verificar.yml é o mesmo (senão se varre uma imagem e se roda outra).
+  const servicos = [...lerTexto(".github/workflows/verificar.yml").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n").matchAll(/^\s*image:\s*(\S+)\s*$/gm)].map((m) => m[1]);
+  assert.ok(servicos.length >= 2);
+  for (const s of servicos) assert.equal(s, imagemDoBanco, "serviço do verificar.yml com digest diferente do compose");
 });
 
 test("a varredura semanal das imagens mora em auditoria-semanal.yml (CVE nasce sem commit) e roda na agenda", () => {

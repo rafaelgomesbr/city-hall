@@ -2131,7 +2131,10 @@ login nem token: nenhum código sai do runner) a cada push em `main`, `master` o
 contrato com o ruleset do GitHub. Primeiro ele roda `semgrep --test` nas regras
 próprias; só então varre `dc360/` com elas; por fim `dc360/scripts/sast-baseline.mjs`
 compara o resultado com a baseline triada e **reprova só o achado novo de
-severidade ERROR** das regras próprias.
+severidade ERROR**, das regras próprias e das do registro (fixadas, abaixo).
+Análise que não examinou arquivo nenhum não passa: o JSON do Semgrep precisa
+trazer `paths.scanned` com pelo menos 30 arquivos (e 30 em `apps/api/src/`),
+senão o portão reprova com código 2 (uma exclusão excessiva não vira falso verde).
 
 O que roda, tudo versionado em `.semgrep/`:
 
@@ -2141,20 +2144,26 @@ O que roda, tudo versionado em `.semgrep/`:
   interpolação ou concatenação e entregue a `query(`; (3) o cabeçalho
   `Authorization` (ou todos os cabeçalhos) indo para log. Cada regra tem casos
   positivos (`ruleid`) e negativos (`ok`) em `test/`, rodados por `semgrep --test`.
-- Pacotes do registro (TypeScript, Node, React e JWT): o repositório é PÚBLICO, e
-  as regras do registro são da Semgrep Rules License v1.0 (uso interno, sem
-  redistribuição), então NENHUMA cópia delas mora aqui. Um passo à parte do job
-  baixa `p/typescript`, `p/nodejs`, `p/react` e `p/jwt` na hora (uso, não
-  redistribuição), roda como RELATÓRIO e nunca reprova: o registro muda sem aviso
-  e quebraria o CI por culpa dele, não do código. A saída vai no artefato
-  `sast-<sha>` (`04-registro-relatorio.json` e `.txt`) para a revisão humana.
-  O que bloqueia é só o que é autoria do projeto: as regras de `regras/`.
-- `baseline.json`: os achados que já existiam quando o SAST entrou, **lidos um a
-  um por uma pessoa**, cada um com classe (`falso-positivo`, `aceito` ou
-  `defeito`), motivo, dono e prazo. `defeito` real aponta para `V2-F25-E01`, não
-  some em silêncio. A impressão digital do achado é regra, arquivo, primeira
-  linha do trecho e ordem entre iguais, sem número de linha: inserir código acima
-  não reabre o achado, editar a primeira linha da consulta sim.
+- Regras do registro (TypeScript, Node, React e JWT), **FIXADAS e bloqueantes**
+  (correção 1 da F01): o repositório é PÚBLICO, e as regras do registro são da
+  Semgrep Rules License v1.0 (uso interno, sem redistribuição), então NENHUMA
+  cópia delas mora aqui. Em vez dos pacotes móveis `p/...` (que mudam sem aviso e
+  sem versão), o job baixa um commit EXATO de `semgrep/semgrep-rules`
+  (`SEMGREP_RULES_SHA` no `sast.yml`, conferido por `git rev-parse` depois do
+  download) e roda as pastas de TypeScript, Node, React e JWT dele (lista em
+  `SEMGREP_RULES_PASTAS`). É uso, não redistribuição. ERROR novo reprova pelo
+  mesmo mecanismo das regras próprias, contra `baseline-registro.json`. Subir o
+  commit das regras é um PR próprio, com essa baseline refeita. A saída vai no
+  artefato `sast-<sha>` (`04-registro.json`, `04-registro-scan.txt`,
+  `05-baseline-registro.txt`).
+- `baseline.json` e `baseline-registro.json`: os achados que já existiam quando o
+  SAST entrou, **lidos um a um por uma pessoa**, cada um com classe
+  (`falso-positivo`, `aceito` ou `defeito`), motivo, dono e prazo. `defeito` real
+  aponta para `V2-F25-E01`, não some em silêncio. A impressão do achado é regra,
+  arquivo, o TRECHO INTEIRO do achado (da linha em que começa à em que termina) e
+  ordem entre iguais, sem número de linha: inserir código acima não reabre o
+  achado, editar QUALQUER linha da consulta sim (antes só a primeira linha
+  entrava, e uma mudança posterior numa consulta multilinha conservava o id).
 
 **Política de exceção.** Achado novo se corrige no código. Se for falso positivo,
 há dois caminhos, e os dois exigem motivo, dono e prazo:
@@ -2177,8 +2186,10 @@ workflow (`pipx install semgrep==1.136.0`) e, na raiz do repositório:
 semgrep --test --metrics=off --config .semgrep/regras .semgrep/test
 semgrep scan --metrics=off --config .semgrep/regras --json --output semgrep.json dc360
 node dc360/scripts/sast-baseline.mjs conferir semgrep.json
-# opcional, só relatório (baixa o registro; nunca reprova):
-semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt dc360
+# regras do registro, no commit fixado do workflow (clone raso do semgrep-rules):
+semgrep scan --metrics=off --config <semgrep-rules>/typescript/lang --config <semgrep-rules>/javascript/node-crypto \
+  <...as demais pastas de SEMGREP_RULES_PASTAS...> --json --output registro.json dc360
+node dc360/scripts/sast-baseline.mjs conferir --baseline .semgrep/baseline-registro.json registro.json
 ```
 
 O SAST não substitui o teste dinâmico de isolamento (`npm run test:isolamento`,
@@ -2197,8 +2208,11 @@ New ruleset, Import a ruleset. Ela exige:
   `.github/pull_request_template.md`; vira 1 aprovação com a segunda pessoa
   revisora, E16 e CP-07);
 - os nove checks abaixo, pelo nome de exibição do job, com o branch atualizado;
-- só merge por squash, histórico linear, sem force-push, sem exclusão e sem
-  exceção para ninguém (`bypass_actors` vazio, administrador incluído).
+- só merge por COMMIT DE MERGE (nunca squash nem rebase, decisão do Rafael na
+  H09: os SHAs citados nos veredictos têm de continuar existindo na `master`),
+  sem exigir histórico linear (a regra `required_linear_history` só admite
+  squash ou rebase, por isso ela não existe aqui), sem force-push, sem exclusão
+  e sem exceção para ninguém (`bypass_actors` vazio, administrador incluído).
 
 Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
 (auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no

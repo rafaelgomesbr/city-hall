@@ -211,8 +211,8 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `scripts/sast-baseline.test.mjs` é novo, com 10 (a comparação com a baseline
     triada e a linha de comando).
   */
-  "V2-F01-E05": 48, // a DV-15 acrescentou 3 (dependências do Semgrep por hash) e a DV-22 mais 1 (o script recusa exceção que não é YAML; os 7 testes do .trivyignore viraram 7 do .trivyignore.yaml); antes: // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
-  "V2-F01-E05-baseline": 14, // 10 na E05; a DV-16 acrescentou 4 (erro de análise em warn também reprova em dc360/apps/api/src)
+  "V2-F01-E05": 51, // a correção 1 da F01 (revisão independente) acrescentou 3: o caso do relatório do registro virou três (as regras do registro fixadas por commit e bloqueantes, o negativo que estraga o workflow de vários jeitos, e a baseline do registro, +2) e a imagem PostGIS passa pelo Trivy no PR e na agenda (+1); antes: // a DV-15 acrescentou 3 (dependências do Semgrep por hash) e a DV-22 mais 1 (o script recusa exceção que não é YAML; os 7 testes do .trivyignore viraram 7 do .trivyignore.yaml); antes: // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
+  "V2-F01-E05-baseline": 20, // a correção 1 da F01 acrescentou 6 (impressão do trecho inteiro, trecho sem posição final, cobertura mínima de arquivos examinados nas regras puras e na linha de comando, e `--baseline` com outro arquivo); antes: // 10 na E05; a DV-16 acrescentou 4 (erro de análise em warn também reprova em dc360/apps/api/src)
   /*
     V2-F01-E06: `scripts/dependabot.test.mjs` e novo, com 12 casos. Prende a
     configuracao de atualizacao de dependencias (`.github/dependabot.yml`: os
@@ -233,7 +233,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   /*
     V2-F01-E01: `scripts/ruleset-master.test.mjs` é novo, com 10 casos. Prende o
     ruleset da master (`.github/rulesets/master.json`: PR com 0 aprovações, só
-    squash, sem force-push, exclusão nem exceção, branch atualizado) a nomes de
+    commit de merge (nunca squash, decisão H09), sem force-push, exclusão nem exceção, branch atualizado) a nomes de
     check que existem de verdade nos workflows e rodam em todo pull request, e
     confere o CODEOWNERS e o modelo de PR. Dois casos são a prova de que o
     teste morde: rulesets sintéticos estragados reprovam.
@@ -273,7 +273,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `formato:conferir`, e o `plataformas` deixa o git escrever o CRLF e fixa a
     contagem do painel.
   */
-  "V2-F01-E02": 51,
+  "V2-F01-E02": 53, // 51 até as dívidas DV-26 e DV-39; a correção 1 da F01 acrescentou 2 (comando só impresso por `echo` ou entre aspas não conta como executado, e as formas reais de `run:` continuam aceitas)
   /*
     DV-39: `scripts/conferir-empacotamento-do-campo.test.mjs` é novo, com 3 casos
     (o pacote do Metro com o zod 4 e o código do shared passa; sem um deles,

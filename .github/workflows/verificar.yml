@@ -1222,7 +1222,7 @@ jobs:
     #   4. `chromium --version` dentro da imagem da API (sem ele o PDF do laudo
     #      responde 503 em produção) e usuário não root nas duas;
     #   5. sobe o console com o papel `dc360_console_login`, e confere o `/saude`;
-    #   6. (V2-F01-E20) varre as duas imagens com o Trivy, logo depois da
+    #   6. (V2-F01-E20) varre as duas imagens, mais a do PostGIS (digest), com o Trivy, logo depois da
     #      construção: CRITICAL ou HIGH com correção publicada, ou segredo que
     #      entrou por `COPY`, reprova o job. Binário de versão fixa com SHA-256
     #      conferido (`scripts/varrer-imagem.sh`, a mesma lógica da varredura
@@ -1270,23 +1270,27 @@ jobs:
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
 
       # A versão é a do `package.json` (a E07 garante que todo workspace e o
-      # CHANGELOG concordam, e `conferir` reprova se não). O commit é o da PONTA
-      # do ramo: em pull_request o SHA do run é o de um merge sintético, e é o
-      # candidato que o gatekeeper fixa.
+      # CHANGELOG concordam, e `conferir` reprova se não). O commit carimbado na
+      # imagem é o que o checkout REALMENTE construiu (`GITHUB_SHA`): em pull_request
+      # o checkout padrão testa o merge sintético, não a ponta do ramo, e carimbar a
+      # ponta faria o smoke comparar `/saude` com o mesmo valor que ele mesmo
+      # recebeu, sem detectar divergência (correção 1 da F01, E08). O commit
+      # CANDIDATO (a ponta do ramo, o que o gatekeeper fixa) vai à parte, no artefato.
       - name: Versão e commit do build
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node scripts/versao.mjs conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/01-versao.txt"
           versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
-          commit="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          commit="$GITHUB_SHA"
+          candidato="${PR_HEAD_SHA:-$GITHUB_SHA}"
           if [ -z "$versao" ] || [ -z "$commit" ]; then
             echo "versao ou commit vazios: versao='$versao' commit='$commit'"
             exit 1
           fi
           echo "DC360_VERSAO=$versao" >> "$GITHUB_ENV"
           echo "DC360_COMMIT=$commit" >> "$GITHUB_ENV"
-          echo "versao=$versao commit=$commit" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
+          echo "versao=$versao commit_construido=$commit candidato=$candidato" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
 
       # Os testes do smoke primeiro: se a régua estiver quebrada, o resto do job
       # não prova nada.
@@ -1316,11 +1320,16 @@ jobs:
           trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
           echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
 
-      - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+      - name: Varrer as três imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
         run: |
           mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+          # A imagem comunitária do banco (PostGIS, por digest) também é varrida, com a
+          # MESMA régua e a mesma porta de exceção (.trivyignore.yaml) das nossas duas:
+          # CVE corrigível nela passa a reprovar. Mesmo digest dos serviços do job.
+          postgis="postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6"
+          docker pull --quiet "$postgis" > /dev/null
           falhou=0
-          for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+          for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:$postgis"; do
             nome="${par%%:*}"
             imagem="${par#*:}"
             echo "=== $imagem"

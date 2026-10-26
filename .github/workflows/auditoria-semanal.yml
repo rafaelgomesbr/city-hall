@@ -96,7 +96,7 @@ jobs:
           if-no-files-found: error
 
   imagens:
-    # As duas imagens de produção (`Dockerfile` da API e `Dockerfile.console`),
+    # As duas imagens de produção (`Dockerfile` da API e `Dockerfile.console`) e a do banco (PostGIS, por digest),
     # construídas do zero e varridas. Sem Postgres e sem subir nada: a prova de
     # que a imagem funciona é do job `imagens` do verificar.yml; aqui só se
     # pergunta o que mudou no mundo desde o último commit.
@@ -129,11 +129,16 @@ jobs:
           trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
           echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
 
-      - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+      - name: Varrer as três imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
         run: |
           mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+          # A imagem comunitária do banco (PostGIS, por digest) também é varrida, com a
+          # MESMA régua e a mesma porta de exceção (.trivyignore.yaml) das nossas duas:
+          # CVE corrigível nela passa a reprovar. Mesmo digest dos serviços do verificar.yml.
+          postgis="postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6"
+          docker pull --quiet "$postgis" > /dev/null
           falhou=0
-          for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+          for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:$postgis"; do
             nome="${par%%:*}"
             imagem="${par#*:}"
             echo "=== $imagem"
