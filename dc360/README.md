@@ -1405,7 +1405,8 @@ da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 **O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
 coluna do Windows acima é a máquina do autor, e a validação não a aceita como
 prova independente. Quem prova Windows no CI são dois jobs de
-`.github/workflows/verificar.yml`, que rodam em todo push: o `windows`, com o
+`.github/workflows/verificar.yml`, que rodam em push para `main`, `master` e
+`v2/**` e em pull request: o `windows`, com o
 `auditar`, `test:scripts` e `conferir:numeros` (ver "Portabilidade dos
 scripts"), e o `plataformas`, para os três casos acima, em matriz
 `windows-latest` e `ubuntu-24.04`, e publica o artefato
@@ -1673,7 +1674,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
 **A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
 Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
 de campo (`npm run auditar`, que também roda no Windows; no CI, o job
-`windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
+`windows` o chama a cada push para `main`, `master` e `v2/**` e em pull request,
+como `node scripts/auditar.mjs`). Na raiz,
 o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
 pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
 dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,

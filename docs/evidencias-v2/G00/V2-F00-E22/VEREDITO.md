@@ -7,6 +7,8 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 11 | 2026-10-25 | 7fdfcc1 | 7fdfcc1 (run 40246414900, 10 verdes e 2 pulados por regra); CI completo do produto idêntico em 9a1c112 (run 40179451002) | PASS (só mecânica: as duas frases novas do README sobre os gatilhos do `verificar.yml`, `G00/validacao/7fdfcc1/mecanica.md`) | 98879db | 0b32d38 | e7e1326 |
+| 10 | 2026-10-25 | 98879db | ddff79a (run 40203288208, 10 verdes e 2 pulados por desenho); CI completo do mesmo produto em 9a1c112 (run 40179451002, tentativa 2, 12 de 12) | PASS (documentação da DV-08) | 98879db | 0b32d38 | e7e1326 |
 | 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | PASS | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -15,6 +17,85 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 10 (2026-10-25, SHA 98879db)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Windows do Rafael (o Mac reiniciou), em 2026-10-25. Política: D-31 (seção 19 de `28`) e D-32 (seção 20, aprovada por Rafael em 2026-10-25), validação POR DIFERENÇA desde a rodada 9 (`dda7557`): E19 na dimensão que reprovou (QA, correção 11); E16 e E22 só pela documentação tocada pelas dívidas DV-09 e DV-08 (`c3ca2d8`); E09 aceita por decisão do Rafael (H36, item 3 da seção 20), registrada sem validador; as demais 21 etapas herdam a rodada 9 (código delas não mudou: o diff `dda7557..98879db` fora de `docs/` toca `mensagens-do-zod.ts`, os testes e a documentação da correção 11 da E19, os arquivos da janela de confirmação da E09 (`Modal.tsx`, `ConfirmarAcao.tsx`, `acompanhar-janela.ts` e as frases de `MinhaConta.tsx` e `Usuarios.tsx`, todas da E09), os totais do `baseline.mjs` e do `COLOCAR-DE-PE.md` (D-31 item 4) e o README e o LEIA-ME das dívidas). Candidato `98879db`, com código de produto idêntico ao de `a60be9a` (`a60be9a..98879db` só toca `docs/roadmap-v2/`).
+
+Estado da árvore: HEAD durante a validação `823e380`, árvore limpa no início, `98879db` em `origin/v2/f00`. `98879db..ddff79a` só toca `STATUS.md` (lista permitida). `ddff79a..823e380` são os commits de checkpoint `a65f733` e `823e380`, que tocam `docs/roadmap-v2/retomada/**` (10 arquivos de retomada para o Windows) e uma linha do `STATUS.md`: nenhum é código de produto, política, mapa de impacto, skill do gatekeeper nem script do roadmap, e o CI deles (40221117648 e 40221129886) está verde. Mesmo assim estão FORA da lista permitida da seção 6 de `28`: `conferir-evidencia.mjs` rodado na árvore principal acusa `lista-permitida` por causa deles. Por isso a conferência mecânica foi refeita numa worktree temporária no `ddff79a` (o registro do candidato), onde a lista permitida fecha. Desvio de processo registrado para o Rafael (ver Escalonamentos): o commit deste registro fica sobre `823e380`, então `98879db..HEAD` continua tocando `docs/roadmap-v2/retomada/**`.
+
+Regras: politica_validacao_sha `98879db` (a própria D-32), mapa_impacto_sha `0b32d38`, versao_gatekeeper `e7e1326`, todas commitadas (sem mudança local). Ambiente: Windows 11, Node 22.17.0 (o mesmo major do CI), PGlite, `gh` logado. Validadores em PRIMEIRO PLANO e em sequência estrita, em Sonnet (D-31 item 6), com o prompt de `prompt-do-validador.md` preenchido: o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` (antes de `## Justificativa`), a evidência, os relatórios anteriores como pista, as decisões e o CI. Ordem: QA da E19; QA da documentação de E16 e E22 (um validador, dois relatórios).
+
+Veredito da rodada: **PASS**. Situação: VALIDADA COM PENDÊNCIA HUMANA (as pendências da rodada 8 continuam).
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA (documentação da DV-08) | qa | claude-sonnet-5-5 | PASS | alta | E1, E2 | E1, E2 |  | validacao/98879db/qa.md |
+
+Desde a rodada 9 mudou só a frase do `dc360/README.md` da dívida DV-08 (commit `34892c9`) e a entrada em `dividas.md` (`452dee6`). As demais frases da etapa herdam a rodada 8 (`60cbc2f`).
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 121138934436 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 121138934063 |
+| Fluxo ponta a ponta no navegador | success | QA, UX, Acessibilidade | job 121138932805 (tentativa 2); na tentativa 1 falhou (job 121127158112) num caso instável do WebKit do Linux, DV-45, tratado pelo item 2 da seção 20 de `28` |
+| Aplicativo de campo | success | QA | job 121138966751 |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 121138959866 |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 121138934241; repetido hoje pelo validador da E19: código 0 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 121138933628 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | Infra e CI | job 121138933946 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | Infra e CI | job 121138962036 |
+| A API sobe contra Postgres real | success | QA, Banco | job 121138963053 |
+| Pacote da demonstração | success | QA | job 121138964341 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 121138960080 |
+
+CI completo: run 40179451002 (workflow "Verificar", `[ci completo]`) sobre `9a1c112`, registro do candidato `a60be9a`, cujo código de produto é idêntico ao de `98879db`; tentativa 2 com 12 de 12 verdes. Run do registro deste candidato: 40203288208 sobre `ddff79a` (`98879db..ddff79a` só toca `STATUS.md`), 10 verdes e 2 pulados por desenho fora de `[ci completo]` (linha de base e restore). Runs dos checkpoints `a65f733` (40221117648) e `823e380` (40221129886): verdes, mesmos 2 pulados. Lidos com `gh run view --json jobs`.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha 98879db` na worktree em `ddff79a`: E19, E16 e E22 sem falha e sem aviso. Na árvore principal (HEAD `823e380`), a mesma conferência acusa só `lista-permitida` (os commits de checkpoint, ver acima) e avisos de CRLF do checkout do Windows (somem na worktree). E09: só o falso positivo conhecido de segredo em `correcao-6`, `6b`, `7`, `8` e `8b/sondas/api.sh:5` (`JWT_SEGREDO` de teste do E2E, conferido à mão).
+- Regressão base do gatekeeper (Windows, Node 22.17.0, PGlite, árvore com o produto de `98879db`): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0 (25 afirmações). O kit indicado por `impacto.mjs dda7557..98879db` (API, web, e2e, shared, scripts, campo) é o do CI completo do mesmo produto, 12 de 12 (D-31 item 5).
+- Formato: relatórios desta rodada conferidos à mão (14 campos do cabeçalho, `sha_validado` 98879db, `rodada` 10, as nove seções na ordem, "Tentativas de reprovar" e "Não verificado" preenchidas).
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/98879db/`; as mutações do QA da E19 foram desfeitas com `git restore` e cópia conferida por SHA-256.
+
+### Motivo do veredito
+
+- A frase nova confere com a API do GitHub, consultada pelo validador: no run 39366804765, a tentativa 1 foi recusada antes de começar (3 s, os 9 trabalhos em `failure`, coerente com a H32, faturamento) e a tentativa 2 (2026-10-20, depois de o repositório virar público) rodou 9 de 9 verdes. O `head_sha` `7644420` difere de `1ed0b71` só em `STATUS.md` e `ESTADO-ATUAL.md`, então "do candidato `1ed0b71`" não engana. O parágrafo em volta continua coerente.
+- A entrada DV-08 em `dividas.md` (Resolvidas) descreve o que foi feito.
+
+### Achados que viram dívida ou ficam anotados (classificação do gatekeeper pela D-31, item 1)
+
+- QA 1 (dívida, dono V2-F00-E22, antes do G01; recomendado pagar antes do merge do G00 por ser de duas linhas): `dc360/README.md:1403` ("rodam em todo push") e `:1633` ("a cada push") afirmam mais do que o `verificar.yml` faz (push só em `main`, `master` e `v2/**` e `pull_request`; zero runs em `trab/*`), e o próprio README diz certo na linha 1948. Anterior a esta rodada e fora da frase que a DV-08 tocou (1385 a 1391): não reprova pela D-31 item 1, mas é o item "Documentação sem afirmação falsa" do G00, então fica explícito para o Rafael.
+- QA 2 e 3 (anotados): registros históricos da rodada 6 em E01, E02 e E03 dizem "run 39366804765 recusado" sem a tentativa 2 (corretos para a época); quebra de linha irregular no parágrafo editado.
+- QA 4 (processo, anotado): o validador leu o cabeçalho da `## Justificativa` do `RESUMO.md` da DV-08 e nada além; declarado no relatório, sem efeito nas conclusões.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Ler a tabela antes e depois e confirmar que nada ficou prometido sem existir | Rafael | validação humana da etapa (da rodada 8, continua) |
+| Decidir se a leitura sob suspensão deve gravar `ocorrencia_consultas` (o código grava, o documento diz que não) | Rafael | decisão de produto (da rodada 8, continua) |
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) | consolidação em Opus; validador em Sonnet | feito |
+| commits de checkpoint fora da lista permitida (`docs/roadmap-v2/retomada/**`) | Rafael | registrado, ver o texto da rodada |
+
+### Métricas da rodada
+
+Achados: nenhum bloqueia; 1 dívida (README, comum com a E16), 3 anotados. Tokens de subagente: ver a E16 (um validador para as duas).
 
 ## Rodada 8 (2026-10-24, SHA 60cbc2f)
 

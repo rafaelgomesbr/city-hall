@@ -1,12 +1,14 @@
 # VEREDITO de V2-F00-E09
 
-Situação atual: REPROVADA
+Situação atual: IMPLEMENTADA, ACEITA POR DECISÃO DO RAFAEL (H36, D-32 item 3); sem validador e sem RISCO ACEITO
 Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 ## Rodadas
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 11 | 2026-10-25 | 7fdfcc1 | 7fdfcc1 (run 40246414900, 10 verdes e 2 pulados por regra) | ACEITA (H36) mantida; rodada só mecânica: o `INDEX.md` sem a linha do `VEREDITO.md` fecha byte a byte (`G00/validacao/7fdfcc1/mecanica.md`) | 98879db | 0b32d38 | e7e1326 |
+| 10 | 2026-10-25 | 98879db | ddff79a (run 40203288208, 10 verdes e 2 pulados por desenho); CI completo do mesmo produto em 9a1c112 (run 40179451002, tentativa 2, 12 de 12) | ACEITA (H36), sem validador | 98879db | 0b32d38 | e7e1326 |
 | 9 | 2026-10-24 | dda7557 | d4683cc (run 40132234324, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | e7e1326 |
 | 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -16,6 +18,82 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 10 (2026-10-25, SHA 98879db)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Windows do Rafael (o Mac reiniciou), em 2026-10-25. Política: D-31 (seção 19 de `28`) e D-32 (seção 20, aprovada por Rafael em 2026-10-25), validação POR DIFERENÇA desde a rodada 9 (`dda7557`): E19 na dimensão que reprovou (QA, correção 11); E16 e E22 só pela documentação tocada pelas dívidas DV-09 e DV-08 (`c3ca2d8`); E09 aceita por decisão do Rafael (H36, item 3 da seção 20), registrada sem validador; as demais 21 etapas herdam a rodada 9 (código delas não mudou: o diff `dda7557..98879db` fora de `docs/` toca `mensagens-do-zod.ts`, os testes e a documentação da correção 11 da E19, os arquivos da janela de confirmação da E09 (`Modal.tsx`, `ConfirmarAcao.tsx`, `acompanhar-janela.ts` e as frases de `MinhaConta.tsx` e `Usuarios.tsx`, todas da E09), os totais do `baseline.mjs` e do `COLOCAR-DE-PE.md` (D-31 item 4) e o README e o LEIA-ME das dívidas). Candidato `98879db`, com código de produto idêntico ao de `a60be9a` (`a60be9a..98879db` só toca `docs/roadmap-v2/`).
+
+Estado da árvore: HEAD durante a validação `823e380`, árvore limpa no início, `98879db` em `origin/v2/f00`. `98879db..ddff79a` só toca `STATUS.md` (lista permitida). `ddff79a..823e380` são os commits de checkpoint `a65f733` e `823e380`, que tocam `docs/roadmap-v2/retomada/**` (10 arquivos de retomada para o Windows) e uma linha do `STATUS.md`: nenhum é código de produto, política, mapa de impacto, skill do gatekeeper nem script do roadmap, e o CI deles (40221117648 e 40221129886) está verde. Mesmo assim estão FORA da lista permitida da seção 6 de `28`: `conferir-evidencia.mjs` rodado na árvore principal acusa `lista-permitida` por causa deles. Por isso a conferência mecânica foi refeita numa worktree temporária no `ddff79a` (o registro do candidato), onde a lista permitida fecha. Desvio de processo registrado para o Rafael (ver Escalonamentos): o commit deste registro fica sobre `823e380`, então `98879db..HEAD` continua tocando `docs/roadmap-v2/retomada/**`.
+
+Regras: politica_validacao_sha `98879db` (a própria D-32), mapa_impacto_sha `0b32d38`, versao_gatekeeper `e7e1326`, todas commitadas (sem mudança local). Ambiente: Windows 11, Node 22.17.0 (o mesmo major do CI), PGlite, `gh` logado. Validadores em PRIMEIRO PLANO e em sequência estrita, em Sonnet (D-31 item 6), com o prompt de `prompt-do-validador.md` preenchido: o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` (antes de `## Justificativa`), a evidência, os relatórios anteriores como pista, as decisões e o CI. Ordem: QA da E19; QA da documentação de E16 e E22 (um validador, dois relatórios).
+
+Veredito da rodada: **ACEITA POR DECISÃO DO RAFAEL (H36)**, sem validador. Situação: IMPLEMENTADA, ACEITA POR DECISÃO DO RAFAEL. A tabela de status da seção 6 de `28` não tem um status para "aceita sem validação"; VALIDADA exige PASS de validador (e `gerar-estado --conferir` recusa VALIDADA sem PASS no VEREDITO), e CONCLUÍDA COM RISCO ACEITO exige `RISCO-ACEITO.md`, que o item 3 da seção 20 manda não emitir. O gatekeeper não escreve PASS que nenhum validador deu: a etapa fica IMPLEMENTADA com o aceite registrado aqui, e o Rafael decide se a política ganha um status próprio (por exemplo ACEITA POR DECISÃO) ao aprovar o G00.
+
+### Aceite (item 3 da seção 20 de `28`)
+
+- Decisão: pelo item 3 da seção 19 (teto de rodadas pela mesma classe), Rafael decidiu a E09 em 2026-10-25 (H36, D-32): aceita com o modelo de ameaça documentado (o próximo Tab traz o controle de volta à vista e nada se perde), com as correções 8 (`26044a9`, merge `b7e1cd7`) e 8b (`abcd602`, merge `a11fe9b`) como estão. A correção 8c foi descartada e a falha instável do WebKit no Linux virou a DV-45.
+- O código da E09 em `98879db` é o de `a60be9a` (correções 8 e 8b), coberto pelo CI completo 40179451002 (tentativa 2, 12 de 12; a tentativa 1 falhou no caso instável da DV-45, que o item 2 da seção 20 trata como instável: não reprova).
+- O gatekeeper NÃO chamou validador, NÃO emite RISCO ACEITO (item 3 da seção 20) e não escreveu `RISCO-ACEITO.md`. A classe aceita (foco ou controle fora da vista fora da matriz fixa do item 1 da seção 20) não está na lista "Não admitem RISCO ACEITO" da seção 7.
+- Conferência mecânica: `conferir-evidencia.mjs V2-F00-E09 --sha 98879db` na worktree em `ddff79a`: só o falso positivo conhecido de `JWT_SEGREDO` de teste em `correcao-6`, `6b`, `7`, `8` e `8b/sondas/api.sh:5` (conferido à mão: é o segredo do E2E local, não segredo de produção). Capturas em 1280 e 390 px, claro e escuro, presentes.
+- Dívida de evidência (dono V2-F00-E09, próximo commit de implementador): a correção 8 (`26044a9`) devolveu `VEREDITO.md` à lista do `INDEX.md` desta pasta, contra a nota da E21 (correção 1, 2026-10-15) que tirou dela os arquivos do gatekeeper. Com o registro desta rodada, o SHA-256 listado deixa de bater e `conferir-evidencia.mjs V2-F00-E09` acusa `indice`. O gatekeeper não corrige (`INDEX.md` está fora da lista permitida): a linha `VEREDITO.md` sai do `INDEX.md`. Na worktree em `ddff79a`, antes deste registro, o índice batia; `conferir-indices-de-evidencia.mjs` ali deu OK (97 índices, 5127 arquivos).
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 121138934436 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 121138934063 |
+| Fluxo ponta a ponta no navegador | success | QA, UX, Acessibilidade | job 121138932805 (tentativa 2); na tentativa 1 falhou (job 121127158112) num caso instável do WebKit do Linux, DV-45, tratado pelo item 2 da seção 20 de `28` |
+| Aplicativo de campo | success | QA | job 121138966751 |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 121138959866 |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 121138934241; repetido hoje pelo validador da E19: código 0 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 121138933628 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | Infra e CI | job 121138933946 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | Infra e CI | job 121138962036 |
+| A API sobe contra Postgres real | success | QA, Banco | job 121138963053 |
+| Pacote da demonstração | success | QA | job 121138964341 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 121138960080 |
+
+CI completo: run 40179451002 (workflow "Verificar", `[ci completo]`) sobre `9a1c112`, registro do candidato `a60be9a`, cujo código de produto é idêntico ao de `98879db`; tentativa 2 com 12 de 12 verdes. Run do registro deste candidato: 40203288208 sobre `ddff79a` (`98879db..ddff79a` só toca `STATUS.md`), 10 verdes e 2 pulados por desenho fora de `[ci completo]` (linha de base e restore). Runs dos checkpoints `a65f733` (40221117648) e `823e380` (40221129886): verdes, mesmos 2 pulados. Lidos com `gh run view --json jobs`.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha 98879db` na worktree em `ddff79a`: E19, E16 e E22 sem falha e sem aviso. Na árvore principal (HEAD `823e380`), a mesma conferência acusa só `lista-permitida` (os commits de checkpoint, ver acima) e avisos de CRLF do checkout do Windows (somem na worktree). E09: só o falso positivo conhecido de segredo em `correcao-6`, `6b`, `7`, `8` e `8b/sondas/api.sh:5` (`JWT_SEGREDO` de teste do E2E, conferido à mão).
+- Regressão base do gatekeeper (Windows, Node 22.17.0, PGlite, árvore com o produto de `98879db`): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0 (25 afirmações). O kit indicado por `impacto.mjs dda7557..98879db` (API, web, e2e, shared, scripts, campo) é o do CI completo do mesmo produto, 12 de 12 (D-31 item 5).
+- Formato: relatórios desta rodada conferidos à mão (14 campos do cabeçalho, `sha_validado` 98879db, `rodada` 10, as nove seções na ordem, "Tentativas de reprovar" e "Não verificado" preenchidas).
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/98879db/`; as mutações do QA da E19 foram desfeitas com `git restore` e cópia conferida por SHA-256.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| todas (QA, UX, Acessibilidade, Red-team, LGPD) | nenhum | n/a | ACEITA (H36) | n/a | n/a | n/a |  | n/a |
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Olhar as capturas da contrapartida (título fora da vista em janela baixa, `validacao/dda7557/capturas/ux-06-*` e `ux-07-*`) e as da correção 8 (`correcao-8/capturas/`) e aprovar ou pedir outro desenho | Rafael | gatilho visual (seção 10 de `28`) |
+| H39: Safari de iPhone real e Android real na confirmação das sessões e nas janelas de Usuários; VoiceOver no fluxo de Minha conta | Rafael | aparelho físico e leitor de tela |
+| H35: confirmar 340 px ou voltar para 360 px | Rafael | decisão de desenho |
+| A "Validação humana" da etapa: Rafael faz o fluxo no painel e confere a frase da senha única e as confirmações (inclusive as frases novas de sessão, "pode continuar consultando por alguns minutos") | Rafael | regra global da seção 4 de `28` |
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| D-31 item 3 (quinta rodada pela mesma classe) | Rafael (H36) | decidido em 2026-10-25: aceita com o modelo de ameaça documentado |
+| commits de checkpoint fora da lista permitida (`docs/roadmap-v2/retomada/**`) | Rafael | registrado, ver o texto da rodada |
+
+### Métricas da rodada
+
+Validadores: nenhum. Achados novos: nenhum (a DV-45 foi registrada antes desta rodada, em `98879db`).
 
 ## Rodada 9 (2026-10-24, SHA dda7557)
 
