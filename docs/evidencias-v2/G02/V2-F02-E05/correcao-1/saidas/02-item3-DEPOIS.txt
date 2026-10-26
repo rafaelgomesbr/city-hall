@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aaae4751dc2f8cba8/dc360/apps/api
+
+ ✓ test/contrato-do-painel.test.ts (12 tests) 3251ms
+ ✓ test/superficie.test.ts (9 tests) 3674ms
+   ✓ Toda rota exige token > nenhuma rota nova responde sem autenticação  471ms
+stdout | test/contrato-cliente-rota.test.ts > Rotas /v1 sem cliente (relatório) > lista as rotas que nenhum cliente chama e grava o relatório
+contrato cliente x rota: 96 rotas /v1, 9 sem cliente; painel 75, campo 21, console 15 chamadas distintas
+
+ ✓ test/contrato-cliente-rota.test.ts (90 tests) 3290ms
+
+ Test Files  3 passed (3)
+      Tests  111 passed (111)
+   Start at  07:57:50
+   Duration  7.29s (transform 1.02s, setup 2.16s, collect 7.31s, tests 10.22s, environment 1ms, prepare 549ms)
+

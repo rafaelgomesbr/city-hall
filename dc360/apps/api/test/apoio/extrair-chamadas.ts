@@ -537,9 +537,31 @@ function lerConsulta(resto: string, seguintes: Parte[], consulta: ConsultaLida):
 // A extração
 // ---------------------------------------------------------------------------
 
+/**
+ * Os objetos globais pelos quais o `fetch` da plataforma também se chama
+ * (`globalThis.fetch(...)`, `window.fetch(...)`, `self.fetch(...)`). É o MESMO
+ * `fetch`, só qualificado: não é "método de outro objeto" (esse, `cliente.fetch`,
+ * continua de fora), e por isso conta, é extraído e é conferido. Só vale para o
+ * nome `fetch`: `globalThis.chamar` não existe.
+ */
+const GLOBAIS_DA_PLATAFORMA = "globalThis|window|self";
+const NOME_DO_FETCH = "fetch";
+
 function regexDosNomes(perfil: Perfil): RegExp {
   const nomes = [...new Set(perfil.funcoes.map((f) => f.nome))];
-  return new RegExp(`(?<![.\\w$])(${nomes.join("|")})(?![\\w$])`, "g");
+  /* A qualificação é opcional; quem a aceita de fato é o nome `fetch` (ver o laço). */
+  return new RegExp(
+    `(?<![.\\w$])(?:(?:${GLOBAIS_DA_PLATAFORMA})\\s*\\??\\.\\s*)?(${nomes.join("|")})(?![\\w$])`,
+    "g",
+  );
+}
+
+/** `globalThis["fetch"](...)`: a forma por colchetes, que o extrator não lê e por isso reprova. */
+function regexDoFetchPorColchetes(): RegExp {
+  return new RegExp(
+    `(?<![.\\w$])(?:${GLOBAIS_DA_PLATAFORMA})\\s*\\[\\s*["'\`]${NOME_DO_FETCH}["'\`]\\s*\\]\\s*\\(`,
+    "g",
+  );
 }
 
 /**
@@ -560,7 +582,10 @@ export function extrairChamadas(
 
   for (const casou of fonte.matchAll(regexDosNomes(perfil))) {
     const funcao = perfil.funcoes.find((f) => f.nome === casou[1])!;
-    const inicio = casou.index!;
+    /* O início do NOME, e não da qualificação (`globalThis.`) que o precede. */
+    const inicio = casou.index! + casou[0].length - casou[1]!.length;
+    /* `globalThis.chamar(...)` não é o `chamar` do cliente: só o `fetch` é global. */
+    if (inicio !== casou.index! && funcao.nome !== NOME_DO_FETCH) continue;
     const linha = linhaDe(fonte, inicio);
 
     let k = inicio + funcao.nome.length;
@@ -689,6 +714,14 @@ export function extrairChamadas(
       consulta: montado.consulta,
     });
   }
+  /* `globalThis["fetch"](...)`: o extrator não lê o caminho por essa forma. Reprova, não some. */
+  if (perfil.funcoes.some((f) => f.nome === NOME_DO_FETCH)) {
+    for (const casou of fonte.matchAll(regexDoFetchPorColchetes())) {
+      naoLidas.push(
+        `linha ${linhaDe(fonte, casou.index!)}: fetch chamado por colchetes (${casou[0].slice(0, 40)})`,
+      );
+    }
+  }
   return { chamadas, infra, naoLidas };
 }
 
@@ -698,12 +731,28 @@ export function extrairChamadas(
  * o mesmo código, um defeito nele enganaria os dois juntos.
  */
 export function contarChamadas(fonte: string, perfil: Perfil): number {
-  const nomes = [...new Set(perfil.funcoes.map((f) => f.nome))].join("|");
-  const contador = new RegExp(`(?<![.\\w$])(?:${nomes})\\s*[<(]`, "g");
+  const nomes = [...new Set(perfil.funcoes.map((f) => f.nome))];
+  const contador = new RegExp(`(?<![.\\w$])(?:${nomes.join("|")})\\s*[<(]`, "g");
+  /* O `fetch` qualificado (`globalThis.fetch(`) e o por colchetes contam como `fetch`. */
+  const doFetch = nomes.includes(NOME_DO_FETCH)
+    ? [
+        new RegExp(
+          `(?<![.\\w$])(?:${GLOBAIS_DA_PLATAFORMA})\\s*\\??\\.\\s*${NOME_DO_FETCH}\\s*[<(]`,
+          "g",
+        ),
+        regexDoFetchPorColchetes(),
+      ]
+    : [];
   return fonte
     .split("\n")
     .filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l))
-    .reduce((total, l) => total + (l.match(contador)?.length ?? 0), 0);
+    .reduce(
+      (total, l) =>
+        total +
+        (l.match(contador)?.length ?? 0) +
+        doFetch.reduce((n, r) => n + (l.match(r)?.length ?? 0), 0),
+      0,
+    );
 }
 
 /**
@@ -719,4 +768,22 @@ export function usosDeRedeFora(fonte: string): { linha: number; texto: string }[
     .filter(({ texto }) =>
       /(?<![\w$])fetch\s*\(|\bXMLHttpRequest\b|\bsendBeacon\s*\(|\baxios\b/.test(texto),
     );
+}
+
+/**
+ * Uso do `fetch` da plataforma em qualquer forma, qualificado ou não
+ * (`fetch(`, `globalThis.fetch(`, `window.fetch(`, `self.fetch(`,
+ * `globalThis["fetch"](`). Serve ao arquivo COBERTO cujo perfil não declara
+ * `fetch`: ali nem o extrator nem a âncora enxergam a chamada, e `usosDeRedeFora`
+ * só olha arquivo não coberto. `cliente.fetch(` (método de outro objeto) não conta.
+ */
+export function usosDeRedeDoGlobal(fonte: string): { linha: number; texto: string }[] {
+  const forma = new RegExp(
+    `(?<![.\\w$])(?:fetch\\s*\\(|(?:${GLOBAIS_DA_PLATAFORMA})\\s*(?:\\??\\.\\s*fetch\\b|\\[\\s*["'\`]fetch["'\`]\\s*\\]))`,
+  );
+  return fonte
+    .split("\n")
+    .map((texto, i) => ({ linha: i + 1, texto }))
+    .filter(({ texto }) => !/^\s*(\*|\/\/|\/\*)/.test(texto))
+    .filter(({ texto }) => forma.test(texto));
 }

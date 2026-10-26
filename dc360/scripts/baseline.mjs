@@ -888,6 +888,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E05": { total: 82, falhas: 0, puladas: 0 },
   // V2-F02-E04, correção 1 (revisão independente dos lotes 3 e 4): `openapi-versao-do-aplicativo.test.ts` é novo, com 5 casos (toda operação de /v1, menos a da versão mínima, declara o cabeçalho opcional x-app-version e o 426 com o corpo { erro, mensagem, versaoMinima }; a entrada que declara o 426 por conta própria faz o gerador falhar; e o documento conferido contra o servidor real com mínimo configurado, operação por operação, por inject). `openapi-regras.test.ts` ganhou a chave 426 no caso das respostas por status, sem caso novo.
   "V2-F02-E04-parte-4B-correcao-1": { total: 5, falhas: 0, puladas: 0 },
+  // V2-F02-E05, correção 1 (revisão independente dos lotes 3 e 4): 8 casos novos em `contrato-cliente-rota.test.ts` (`globalThis.fetch`, `window.fetch` e `self.fetch` contam, são extraídos e conferidos, 3 casos; o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova; `globalThis['fetch'](...)` conta e reprova como não lido; `cliente.fetch` não é o fetch global; a varredura `usosDeRedeDoGlobal`; e a varredura dos arquivos cobertos cujo perfil não declara fetch). O arquivo vai de 82 para 90 casos.
+  "V2-F02-E05-correcao-1": { total: 8, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
