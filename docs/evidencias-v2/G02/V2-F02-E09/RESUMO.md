@@ -40,9 +40,17 @@ respostas iguais. Em UF ausente ou desconhecida o fuso é `America/Sao_Paulo`, n
   UF desconhecida no CSV usa o padrão.
 - Mutação: trocando o ano do protocolo de volta para `new Date().getFullYear()`, 5 dos 9 casos da API reprovam.
 
-**Portões (saídas nesta pasta):** `typecheck.txt`, `npm-test.txt`, `isolamento.txt`, `test-scripts.txt`. Também verdes:
-`npm run lint`, `npm run lint:teto` (431), `npm run formato:conferir`, `npm run conferir:numeros`,
-`node --test scripts/baseline.test.mjs`, `regras-de-conteudo.test.ts` e `node scripts/auditar.mjs`.
+**Portões (saídas nesta pasta, regravadas na execução final):** `typecheck.txt` (typecheck, `lint`, `lint:teto` em 431 e
+`formato:conferir`, todos verdes), `npm-test.txt` (`npm test`), `isolamento.txt` (`npm run test:isolamento`, com
+`isolamento.test.ts` e os 137 casos do CA-06 verdes), `test-scripts.txt` (`CI=true npm run test:scripts`) e
+`conferencias.txt` (`conferir:numeros`, `baseline.test.mjs` 29 de 29, `auditar.mjs`: runtime limpo).
+
+Números: shared 359 verdes de 360, API 1876 verdes mais 2 de ambiente (1878 na contagem, 34 puladas), console 339, web 791,
+campo 21 arquivos verdes. Os únicos reprovados são os de AMBIENTE WINDOWS já conhecidos, fora desta parte (symlink sem
+privilégio ou `spawnSync` do tsx com status nulo): `regras-de-conteudo.test.ts` 1 caso (EPERM ao criar symlink),
+`desfazer-migracao.test.ts` 5, `guarda-da-semente.test.ts` 3 (estes 8 também aparecem no `test:isolamento`, que roda o
+workspace `db`) e `semear-homologacao.test.ts` 2. Nenhum toca fuso. A única falha real do `test:scripts` na primeira
+rodada era a falta do `INDEX.md` desta pasta, já criado.
 
 ## Justificativa
 

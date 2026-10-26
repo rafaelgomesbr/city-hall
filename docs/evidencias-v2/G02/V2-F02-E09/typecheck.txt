@@ -42,4 +42,23 @@
 > @dc360/db@0.1.0 typecheck
 > tsc -p tsconfig.json --noEmit
 
-exit=0
+
+> dc360@0.1.0 lint
+> node scripts/lint.mjs
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+
+> dc360@0.1.0 lint:teto
+> node scripts/lint-teto.mjs conferir
+
+OK: lint-teto.json confere com as baselines (431 supressões).
+
+> dc360@0.1.0 formato:conferir
+> node scripts/formato-conferir.mjs
+
+OK: 799 arquivo(s) de código conferidos; 664 na baseline (só desce).
