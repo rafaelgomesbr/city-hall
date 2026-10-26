@@ -39,6 +39,7 @@ export const STATUS_DE_ETAPA = [
   "EM VALIDAÇÃO",
   "VALIDADA",
   "VALIDADA COM PENDÊNCIA HUMANA",
+  "ACEITA",
   "REPROVADA",
   "BLOQUEADA",
   "CONCLUÍDA",
@@ -62,6 +63,7 @@ export const GATE_APROVADO = new Set(["APROVADO", "APROVADO COM RISCO ACEITO"]);
 /** Etapa que a política considera pronta o bastante para uma dependência. */
 export const STATUS_QUE_SATISFAZ_DEPENDENCIA = new Set([
   "VALIDADA",
+  "ACEITA",
   "CONCLUÍDA",
   "CONCLUÍDA COM RISCO ACEITO",
 ]);
@@ -650,13 +652,18 @@ export function tabelasDoTexto(texto) {
  * 3. qualquer outra tabela com coluna "veredito": a última linha de dados,
  *    FAIL ou BLOCKED em qualquer célula reprova a linha, só PASS aprova.
  *
+ * ACEITA (H84, 26/10/2026) é o veredito de etapa aceita por decisão do Rafael
+ * sem PASS de validador (item 3 da seção 19 de 28). Vale como veredito próprio,
+ * nunca como PASS: quem exige PASS continua recusando.
+ *
  * Qualquer outra coisa é `null`, e `null` NÃO é PASS: fail-closed.
  */
 export function lerVeredito(texto) {
   const linhas = normalizar(texto).split("\n");
   let ultimoCampo = null;
   for (const linha of linhas) {
-    const m = /^\s*(?:[-*>]\s*)?\**veredito(?:[ _](?:final|geral|atual))?\**\s*:\s*\**\s*(PASS|FAIL|BLOCKED)\b/i.exec(linha);
+    const m = /^\s*(?:[-*>]\s*)?\**veredito(?:[ _](?:final|geral|atual))?\**\s*:\s*\**\s*(PASS|FAIL|BLOCKED|ACEITA)\b/i.exec(linha);
+    if (m && /^aceita$/i.test(m[1]) && m[1] !== "ACEITA") continue;
     if (m) ultimoCampo = m[1].toUpperCase();
   }
   const tabelas = tabelasDoTexto(texto).filter((t) => t.cabecalho.includes("veredito"));
@@ -664,7 +671,9 @@ export function lerVeredito(texto) {
   const rodadas = deRodadas ? deRodadas.linhas : [];
   if (ultimoCampo) return { veredito: ultimoCampo, fonte: "campo", rodadas };
 
-  const veredito = (celula) => /\b(PASS|FAIL|BLOCKED)\b/i.exec(celula)?.[1].toUpperCase() ?? null;
+  const veredito = (celula) =>
+    /\b(PASS|FAIL|BLOCKED)\b/i.exec(celula)?.[1].toUpperCase()
+    ?? (/\bACEITA\b/.test(celula ?? "") ? "ACEITA" : null);
   if (deRodadas && deRodadas.linhas.length > 0) {
     const v = veredito(deRodadas.linhas[0]["veredito"]);
     return { veredito: v, fonte: "tabela de rodadas", rodadas };

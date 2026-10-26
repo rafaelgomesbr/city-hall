@@ -112,6 +112,7 @@ Regras:
 | EM VALIDAÇÃO | gatekeeper rodando sobre o SHA |
 | VALIDADA | PASS em `<sha7>`, sem pendência E4 ou E5 |
 | VALIDADA COM PENDÊNCIA HUMANA | PASS no que é de agente; lista o E4 ou E5 que falta |
+| ACEITA | aceita por decisão do Rafael sem PASS de validador, pelo teto de rodadas (item 3 da seção 19); o `VEREDITO.md` registra ACEITA com o código da decisão; não é RISCO ACEITO e não vale como PASS para quem exige PASS (H84, 2026-10-26) |
 | REPROVADA | FAIL; volta a EM ANDAMENTO no commit de correção |
 | BLOQUEADA | BLOCKED com motivo; sai só removendo o bloqueio e revalidando |
 | CONCLUÍDA | validada e com as pendências humanas resolvidas com evidência |
@@ -354,7 +355,7 @@ Três camadas: o estado (mantido pelo processo), a coleta (`scripts/roadmap/cole
 
 - **Semanal**, gerado às segundas para Rafael revisar e enviar ao sócio às terças: `docs/relatorios-v2/semanais/AAAA-MM-DD.html`.
 - **De fase**, gerado quando o gate fica APROVADO e o merge é feito, de forma idempotente: `docs/relatorios-v2/fases/Fnn.html`, registrado em `docs/relatorios-v2/fases/INDEX.md`.
-- **Vocabulário:** IMPLEMENTADA e EM VALIDAÇÃO são "implementado, aguarda validação"; VALIDADA é "validado"; VALIDADA COM PENDÊNCIA HUMANA é "validado, falta <o quê>"; CONCLUÍDA é "concluído" ou "entregue"; CONCLUÍDA COM RISCO ACEITO é "concluído com risco aceito", nunca só "concluído"; REPROVADA é "em correção"; BLOQUEADA é "bloqueado por <motivo>"; "fase concluída" só com gate APROVADO.
+- **Vocabulário:** IMPLEMENTADA e EM VALIDAÇÃO são "implementado, aguarda validação"; VALIDADA é "validado"; VALIDADA COM PENDÊNCIA HUMANA é "validado, falta <o quê>"; ACEITA é "aceito por decisão, sem validação completa", nunca "validado"; CONCLUÍDA é "concluído" ou "entregue"; CONCLUÍDA COM RISCO ACEITO é "concluído com risco aceito", nunca só "concluído"; REPROVADA é "em correção"; BLOQUEADA é "bloqueado por <motivo>"; "fase concluída" só com gate APROVADO.
 - O relatório tem seções separadas para o que foi implementado, validado e concluído, e uma seção de risco aceito quando houver. `conferir-relatorio` reprova termo mais forte que o status registrado, regressão ou gate reaberto omitido e fase chamada de concluída sem gate APROVADO.
 - **Segurança:** a coleta não lê saída bruta; achado de segurança aparece em nível executivo, sem rota nem passo de exploração; nenhum segredo nem nome da semente.
 - **Histórico:** HTML, JSON da coleta e índice no git; PDF fora do git, como artefato, com o SHA-256 anotado no índice. O envio nunca é automático.

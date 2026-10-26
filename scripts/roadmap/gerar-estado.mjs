@@ -319,6 +319,11 @@ export function conferir({ raiz = RAIZ, arquivoEstado = caminhos(raiz).estado, c
       }
     }
 
+    // ACEITA precisa do VEREDITO.md com a aceitação na rodada mais recente (H84, 28, seção 6).
+    if (e.status === "ACEITA" && evidencias.etapas.get(e.id)?.veredito?.veredito !== "ACEITA") {
+      problemas.push({ codigo: "sem-aceite", mensagem: `${e.id} está ACEITA, mas o VEREDITO.md em docs/evidencias-v2/${gateDaEtapa(e)}/${e.id}/ não registra ACEITA na rodada mais recente` });
+    }
+
     // CONCLUÍDA COM RISCO ACEITO precisa do RISCO-ACEITO.md (28, seção 6).
     if (e.status === "CONCLUÍDA COM RISCO ACEITO" && !evidencias.etapas.get(e.id)?.riscoAceito) {
       problemas.push({ codigo: "sem-risco-aceito", mensagem: `${e.id} está CONCLUÍDA COM RISCO ACEITO, mas não existe RISCO-ACEITO.md na pasta dela` });
