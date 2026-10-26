@@ -1716,7 +1716,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4142 testes em seis pacotes
+npm test                    # 4162 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 439 testes do banco
 npm run test:api            # 1927 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
