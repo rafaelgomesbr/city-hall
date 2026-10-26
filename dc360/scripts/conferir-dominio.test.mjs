@@ -13,10 +13,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import {
+  CABECALHOS_DO_PAINEL,
+  METODOS_DO_PAINEL,
   ORIGEM_INVENTADA,
   avaliarCabecalhosDoPainel,
   avaliarCertificado,
@@ -43,6 +47,12 @@ const ORIGEM_DE_PROD = "https://painel.exemplo.com.br";
 
 const cabecalhos = (obj) => (nome) => obj[nome.toLowerCase()] ?? null;
 
+/** O que a API de verdade responde no preflight (`apps/api/src/servidor.ts`, registro do `@fastify/cors`). */
+const METODOS_E_CABECALHOS_DA_API = {
+  "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE",
+  "access-control-allow-headers": "content-type,authorization,accept,if-none-match",
+};
+
 /** Uma "rede" que se comporta como um ambiente BEM configurado; cada caso estraga uma coisa. */
 function redeBoa(mudar = {}) {
   const padrao = {
@@ -60,7 +70,7 @@ function redeBoa(mudar = {}) {
     /** origem -> resposta do preflight */
     preflight: (origem) =>
       origem === ORIGEM_PAINEL
-        ? { status: 204, headers: cabecalhos({ "access-control-allow-origin": origem, "access-control-allow-credentials": "true" }) }
+        ? { status: 204, headers: cabecalhos({ "access-control-allow-origin": origem, "access-control-allow-credentials": "true", ...METODOS_E_CABECALHOS_DA_API }) }
         : { status: 204, headers: cabecalhos({}) },
     ...mudar,
   };
@@ -150,7 +160,7 @@ test("cabeçalhos do painel: nosniff e frame-ancestors (CSP ou X-Frame-Options) 
 
 test("preflight aceito: só a origem exata, com credenciais; curinga, outra origem, sem credencial e status de erro reprovam", () => {
   const r = (status, extra) => ({ status, headers: cabecalhos(extra) });
-  const bom = { "access-control-allow-origin": ORIGEM_PAINEL, "access-control-allow-credentials": "true" };
+  const bom = { "access-control-allow-origin": ORIGEM_PAINEL, "access-control-allow-credentials": "true", ...METODOS_E_CABECALHOS_DA_API };
   assert.equal(avaliarPreflightAceito(r(204, bom), ORIGEM_PAINEL).ok, true);
   assert.match(avaliarPreflightAceito(r(204, { ...bom, "access-control-allow-origin": "*" }), ORIGEM_PAINEL).detalhe, /curinga/);
   assert.match(avaliarPreflightAceito(r(204, { ...bom, "access-control-allow-origin": ORIGEM_DE_PROD }), ORIGEM_PAINEL).detalhe, /esperado/);
@@ -182,7 +192,7 @@ test("ambiente bem configurado: tudo passa e a origem de PROD e a inventada são
 
 test("CORS que ecoa qualquer origem (o defeito que liga PROD a HML) reprova a negação cruzada", async () => {
   const rede = redeBoa({
-    preflight: (origem) => ({ status: 204, headers: cabecalhos({ "access-control-allow-origin": origem, "access-control-allow-credentials": "true" }) }),
+    preflight: (origem) => ({ status: 204, headers: cabecalhos({ "access-control-allow-origin": origem, "access-control-allow-credentials": "true", ...METODOS_E_CABECALHOS_DA_API }) }),
   });
   const ruins = falhas(await conferirAmbiente(alvo, rede, { agora: AGORA }));
   assert.deepEqual(ruins.map((r) => r.nome).sort(), [`api: CORS nega ${ORIGEM_DE_PROD}`, `api: CORS nega ${ORIGEM_INVENTADA}`].sort());
@@ -276,6 +286,84 @@ test("pedir manda Origin num OPTIONS, não segue redirecionamento e devolve os c
 /* ------------------------------------------------------------------ */
 /* Como comando                                                        */
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Correção 1 da F01, parte B (achado 11): métodos e cabeçalhos        */
+/* ------------------------------------------------------------------ */
+
+/*
+  O conferidor aprovava um preflight sem `Access-Control-Allow-Methods` e sem
+  `Access-Control-Allow-Headers`: as dez conferências passavam, e o navegador
+  barraria toda chamada do painel com `authorization` (e todo PATCH). O
+  preflight passa a pedir o que o painel manda e a resposta tem de autorizar.
+*/
+
+test("preflight aceito sem autorizar PATCH, authorization ou content-type reprova, nomeando o que falta", () => {
+  const r = (extra) => ({ status: 204, headers: cabecalhos({ "access-control-allow-origin": ORIGEM_PAINEL, "access-control-allow-credentials": "true", ...extra }) });
+  assert.match(avaliarPreflightAceito(r({}), ORIGEM_PAINEL).detalhe, /access-control-allow-methods.*PATCH/);
+  assert.match(avaliarPreflightAceito(r({ "access-control-allow-methods": "GET,POST" }), ORIGEM_PAINEL).detalhe, /PATCH/);
+  assert.match(
+    avaliarPreflightAceito(r({ "access-control-allow-methods": "GET, POST, PATCH" }), ORIGEM_PAINEL).detalhe,
+    /access-control-allow-headers.*authorization.*content-type/,
+  );
+  assert.match(
+    avaliarPreflightAceito(r({ "access-control-allow-methods": "PATCH", "access-control-allow-headers": "content-type" }), ORIGEM_PAINEL).detalhe,
+    /authorization/,
+  );
+  // Com credenciais, `*` é literal para o navegador: não autoriza nada.
+  assert.equal(avaliarPreflightAceito(r({ "access-control-allow-methods": "*", "access-control-allow-headers": "*" }), ORIGEM_PAINEL).ok, false);
+  // Caixa e espaços não importam nos cabeçalhos; o método é comparado em maiúsculas.
+  assert.equal(avaliarPreflightAceito(r({ "access-control-allow-methods": "get, post, patch", "access-control-allow-headers": "Content-Type, Authorization" }), ORIGEM_PAINEL).ok, true);
+  assert.equal(avaliarPreflightAceito(r(METODOS_E_CABECALHOS_DA_API), ORIGEM_PAINEL).ok, true);
+});
+
+test("a API que omite métodos e cabeçalhos no preflight reprova a aceitação (a orquestração que o revisor rodou com dez verdes)", async () => {
+  const rede = redeBoa({
+    preflight: (origem) =>
+      origem === ORIGEM_PAINEL
+        ? { status: 204, headers: cabecalhos({ "access-control-allow-origin": origem, "access-control-allow-credentials": "true" }) }
+        : { status: 204, headers: cabecalhos({}) },
+  });
+  const ruins = falhas(await conferirAmbiente(alvo, rede, { agora: AGORA }));
+  assert.deepEqual(ruins.map((r) => r.nome), [`api: CORS aceita só a origem do ambiente (${ORIGEM_PAINEL})`]);
+  assert.match(ruins[0].detalhe, /allow-methods/);
+});
+
+test("o preflight pede o método e os cabeçalhos que o painel manda, como o navegador pediria", async () => {
+  const pedidos = [];
+  const rede = redeBoa();
+  const original = rede.pedir;
+  rede.pedir = async (url, opcoes = {}) => {
+    if (opcoes.method === "OPTIONS") pedidos.push(opcoes.headers);
+    return original(url, opcoes);
+  };
+  await conferirAmbiente(alvo, rede, { agora: AGORA });
+  assert.ok(pedidos.length >= 3);
+  for (const h of pedidos) {
+    assert.equal(h["access-control-request-method"], "PATCH");
+    assert.equal(h["access-control-request-headers"], "authorization,content-type");
+  }
+});
+
+test("a lista de métodos e cabeçalhos do conferidor cobre o que o painel manda de verdade", () => {
+  const raizWeb = fileURLToPath(new URL("../apps/web/src/", import.meta.url));
+  const arquivos = readdirSync(raizWeb, { recursive: true }).filter((n) => /\.(ts|tsx)$/.test(n) && !/\.test\./.test(n));
+  const metodos = new Set(["GET"]);
+  for (const nome of arquivos) {
+    const fonte = readFileSync(join(raizWeb, nome), "utf8");
+    for (const m of fonte.matchAll(/\b(?:metodo|method):\s*"([A-Z]+)"/g)) metodos.add(m[1]);
+  }
+  assert.ok(metodos.has("PATCH") && metodos.has("POST"), `a varredura do painel não achou os métodos: ${[...metodos]}`);
+  for (const m of metodos) assert.ok(METODOS_DO_PAINEL.includes(m), `o painel usa ${m} e o conferidor não o pede no preflight`);
+
+  const http = readFileSync(join(raizWeb, "dados", "http.ts"), "utf8");
+  const nomes = new Set();
+  for (const m of http.matchAll(/cabecalhos\[\s*"([a-z-]+)"\s*\]/g)) nomes.add(m[1]);
+  for (const m of http.matchAll(/headers:\s*(?:\w+\s*\?\s*)?\{\s*"?([a-z-]+)"?\s*:/g)) nomes.add(m[1]);
+  for (const m of http.matchAll(/const cabecalhos[^=]*=\s*\{\s*"?([a-z-]+)"?\s*:/g)) nomes.add(m[1]);
+  assert.ok(nomes.has("authorization") && nomes.has("content-type") && nomes.has("accept"), `a varredura do http.ts não achou os cabeçalhos: ${[...nomes]}`);
+  for (const n of nomes) assert.ok(CABECALHOS_DO_PAINEL.includes(n), `o painel manda ${n} e o conferidor não o pede no preflight`);
+});
 
 test("como comando: argumentos faltando ou inválidos saem com código 2 e mostram o uso", async () => {
   const casos = [[], ["--painel=a.exemplo.com.br"], ["--painel=http://a.exemplo.com.br", "--api=b.exemplo.com.br"], ["--api=*.exemplo.com.br", "--painel=a.exemplo.com.br"]];

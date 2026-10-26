@@ -876,8 +876,11 @@ Nesta ordem. Nenhum valor de segredo entra no repositório nem em conversa.
    ambiente.
 3. **Vercel**: no projeto `dc360-painel-web`, trocar o ramo de produção de
    `master` para `producao` (Settings > Git). Para o painel de HML, criar um
-   segundo projeto sobre o mesmo repositório, com Root Directory `dc360`, ramo de
-   produção `homologacao` e a variável `VITE_API_URL` da API de HML. **Antes de
+   segundo projeto sobre o mesmo repositório, de nome `dc360-painel-hml` (o mesmo
+   de `PAINEL_HML_PROJETO_VERCEL` em `deploy-hml.yml`, que o job `painel` usa para
+   achar o deployment), com Root Directory `dc360`, ramo de produção
+   `homologacao` (o ramo de produção desse projeto é `homologacao`, não
+   `master`) e a variável `VITE_API_URL` da API de HML. **Antes de
    criar o projeto de HML, fechar a exceção da E10**: enquanto o `vercel.json`
    fixar a URL de PROD em `build.env`, o painel de HML falaria com a API de
    PROD (ver `docs/VERCEL-PAINEL.md`, "Tirar a URL de PROD do `vercel.json`").

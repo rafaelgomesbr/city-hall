@@ -1,0 +1,233 @@
+TAP version 13
+# Subtest: o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+ok 1 - o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+  ---
+  duration_ms: 1.9241
+  type: 'test'
+  ...
+# Subtest: a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+ok 2 - a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+  ---
+  duration_ms: 0.2171
+  type: 'test'
+  ...
+# Subtest: a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+ok 3 - a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+  ---
+  duration_ms: 0.6302
+  type: 'test'
+  ...
+# Subtest: a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+ok 4 - a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+  ---
+  duration_ms: 0.4087
+  type: 'test'
+  ...
+# Subtest: a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+ok 5 - a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+  ---
+  duration_ms: 0.2499
+  type: 'test'
+  ...
+# Subtest: localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+ok 6 - localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+  ---
+  duration_ms: 0.8827
+  type: 'test'
+  ...
+# Subtest: a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+ok 7 - a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+  ---
+  duration_ms: 12.1274
+  type: 'test'
+  ...
+# Subtest: conferir nao pergunta por copia
+ok 8 - conferir nao pergunta por copia
+  ---
+  duration_ms: 0.5087
+  type: 'test'
+  ...
+# Subtest: aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+ok 9 - aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+  ---
+  duration_ms: 0.3159
+  type: 'test'
+  ...
+# Subtest: aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+ok 10 - aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+  ---
+  duration_ms: 0.3774
+  type: 'test'
+  ...
+# Subtest: aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+ok 11 - aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+  ---
+  duration_ms: 0.1912
+  type: 'test'
+  ...
+# Subtest: com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+ok 12 - com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+  ---
+  duration_ms: 0.1291
+  type: 'test'
+  ...
+# Subtest: o pg_dump leva --extension=pg_trgm, sem o que o restore para no indice de busca desde a migracao 041
+ok 13 - o pg_dump leva --extension=pg_trgm, sem o que o restore para no indice de busca desde a migracao 041
+  ---
+  duration_ms: 0.1172
+  type: 'test'
+  ...
+# Subtest: a senha nunca vai na linha de comando do pg_dump
+ok 14 - a senha nunca vai na linha de comando do pg_dump
+  ---
+  duration_ms: 0.177
+  type: 'test'
+  ...
+# Subtest: os candidatos de pg_dump seguem o sistema: Homebrew no macOS, PGDG no Linux, Program Files no Windows
+ok 15 - os candidatos de pg_dump seguem o sistema: Homebrew no macOS, PGDG no Linux, Program Files no Windows
+  ---
+  duration_ms: 0.3292
+  type: 'test'
+  ...
+# Subtest: DC360_PG_DUMP vem antes do PATH, em qualquer sistema
+ok 16 - DC360_PG_DUMP vem antes do PATH, em qualquer sistema
+  ---
+  duration_ms: 0.2086
+  type: 'test'
+  ...
+# Subtest: no Linux e no Windows o pg_dump e achado no lugar padrao quando o PATH nao o tem
+ok 17 - no Linux e no Windows o pg_dump e achado no lugar padrao quando o PATH nao o tem
+  ---
+  duration_ms: 0.2042
+  type: 'test'
+  ...
+# Subtest: a instrucao de instalar fala a lingua do sistema
+ok 18 - a instrucao de instalar fala a lingua do sistema
+  ---
+  duration_ms: 0.0808
+  type: 'test'
+  ...
+# Subtest: no Windows a pasta e o arquivo ficam so do usuario por icacls, sem heranca
+ok 19 - no Windows a pasta e o arquivo ficam so do usuario por icacls, sem heranca
+  ---
+  duration_ms: 0.9159
+  type: 'test'
+  ...
+# Subtest: no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao leva segredo
+ok 20 - no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao leva segredo
+  ---
+  duration_ms: 1.738
+  type: 'test'
+  ...
+# Subtest: no macOS e no Linux a pasta e 0700 e o arquivo 0600
+ok 21 - no macOS e no Linux a pasta e 0700 e o arquivo 0600
+  ---
+  duration_ms: 0.43
+  type: 'test'
+  ...
+# Subtest: a pasta de copias tem uma subpasta por ambiente, e so hml e prod
+ok 22 - a pasta de copias tem uma subpasta por ambiente, e so hml e prod
+  ---
+  duration_ms: 0.3214
+  type: 'test'
+  ...
+# Subtest: a copia de HML NAO vale como copia de PROD: cada ambiente olha a sua pasta
+ok 23 - a copia de HML NAO vale como copia de PROD: cada ambiente olha a sua pasta
+  ---
+  duration_ms: 2.9165
+  type: 'test'
+  ...
+# Subtest: a URL do pg_dump de HML usa o projeto de HML e nao o de PROD
+ok 24 - a URL do pg_dump de HML usa o projeto de HML e nao o de PROD
+  ---
+  duration_ms: 0.1869
+  type: 'test'
+  ...
+# Subtest: a decisao usa a pasta e a janela de verdade quando ninguem as passa
+ok 25 - a decisao usa a pasta e a janela de verdade quando ninguem as passa
+  ---
+  duration_ms: 5.8141
+  type: 'test'
+  ...
+# Subtest: a DACL e lida da saida real do icacls: caminho com espaco, nome com espaco, SID cru e heranca
+ok 26 - a DACL e lida da saida real do icacls: caminho com espaco, nome com espaco, SID cru e heranca
+  ---
+  duration_ms: 0.3416
+  type: 'test'
+  ...
+# Subtest: saida do icacls que nao e uma DACL legivel reprova (fechado na falha), sem achar que esta tudo certo
+ok 27 - saida do icacls que nao e uma DACL legivel reprova (fechado na falha), sem achar que esta tudo certo
+  ---
+  duration_ms: 0.2736
+  type: 'test'
+  ...
+# Subtest: so o operador (sem diferenca de caixa) e o SYSTEM, em ingles ou em portugues, podem constar da DACL
+ok 28 - so o operador (sem diferenca de caixa) e o SYSTEM, em ingles ou em portugues, podem constar da DACL
+  ---
+  duration_ms: 0.0924
+  type: 'test'
+  ...
+# Subtest: no Windows, a concessao explicita herdavel que o /inheritance:r preserva faz o roteiro RECUSAR, nomeando quem sobrou
+ok 29 - no Windows, a concessao explicita herdavel que o /inheritance:r preserva faz o roteiro RECUSAR, nomeando quem sobrou
+  ---
+  duration_ms: 0.3426
+  type: 'test'
+  ...
+# Subtest: no macOS e no Linux, o modo que o disco devolve e conferido: grupo ou outros com acesso reprova
+ok 30 - no macOS e no Linux, o modo que o disco devolve e conferido: grupo ou outros com acesso reprova
+  ---
+  duration_ms: 0.3187
+  type: 'test'
+  ...
+# Subtest: o arquivo da copia nasce VAZIO, restrito e conferido ANTES do pg_dump escrever o primeiro byte
+ok 31 - o arquivo da copia nasce VAZIO, restrito e conferido ANTES do pg_dump escrever o primeiro byte
+  ---
+  duration_ms: 5.2043
+  type: 'test'
+  ...
+# Subtest: pasta com entrada alheia: o roteiro recusa e o pg_dump nem roda, e nenhum arquivo de copia nasce
+ok 32 - pasta com entrada alheia: o roteiro recusa e o pg_dump nem roda, e nenhum arquivo de copia nasce
+  ---
+  duration_ms: 2.5917
+  type: 'test'
+  ...
+# Subtest: arquivo com entrada alheia antes ou depois do pg_dump: o roteiro apaga o arquivo e recusa
+ok 33 - arquivo com entrada alheia antes ou depois do pg_dump: o roteiro apaga o arquivo e recusa
+  ---
+  duration_ms: 5.6852
+  type: 'test'
+  ...
+# Subtest: a copia nunca sobrescreve um arquivo que ja existe (nasce com wx)
+ok 34 - a copia nunca sobrescreve um arquivo que ja existe (nasce com wx)
+  ---
+  duration_ms: 3.4565
+  type: 'test'
+  ...
+# Subtest: um pg_dump 16 no PATH nao esconde o 17 instalado: vence o primeiro COMPATIVEL entre todos os candidatos
+ok 35 - um pg_dump 16 no PATH nao esconde o 17 instalado: vence o primeiro COMPATIVEL entre todos os candidatos
+  ---
+  duration_ms: 0.2828
+  type: 'test'
+  ...
+# Subtest: sem nenhum pg_dump compativel, a busca devolve o primeiro legivel, para a recusa dizer qual achou
+ok 36 - sem nenhum pg_dump compativel, a busca devolve o primeiro legivel, para a recusa dizer qual achou
+  ---
+  duration_ms: 0.3214
+  type: 'test'
+  ...
+# Subtest: o comando de apagar a copia que o roteiro imprime e o caminho exato, entre aspas, nos dois sistemas
+ok 37 - o comando de apagar a copia que o roteiro imprime e o caminho exato, entre aspas, nos dois sistemas
+  ---
+  duration_ms: 0.1793
+  type: 'test'
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.8399
+codigo de saida: 0

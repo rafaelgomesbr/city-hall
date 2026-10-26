@@ -1,0 +1,18 @@
+Preflights enviados:
+  https://painel-hml.exemplo.com.br pede PATCH com [authorization,content-type]
+  https://origem-invalida.example pede PATCH com [authorization,content-type]
+  https://painel.exemplo.com.br pede PATCH com [authorization,content-type]
+
+OK    painel: TLS válido (painel-hml.exemplo.com.br): válido, vence em 66 dia(s)
+OK    painel: http redireciona para https (painel-hml.exemplo.com.br): 308 para https://painel-hml.exemplo.com.br
+OK    painel: HSTS (painel-hml.exemplo.com.br): max-age=31536000
+OK    painel: cabeçalhos de segurança (painel-hml.exemplo.com.br): nosniff e frame-ancestors presentes
+OK    api: TLS válido (api-hml.exemplo.com.br): válido, vence em 66 dia(s)
+OK    api: http redireciona para https (api-hml.exemplo.com.br): 308 para https://api-hml.exemplo.com.br
+OK    api: HSTS (api-hml.exemplo.com.br): max-age=15552000
+FALHA api: CORS aceita só a origem do ambiente (https://painel-hml.exemplo.com.br): access-control-allow-methods (ausente) não autoriza PATCH, que o painel usa
+OK    api: CORS nega https://origem-invalida.example: https://origem-invalida.example negada (status 204, sem access-control-allow-origin)
+OK    api: CORS nega https://painel.exemplo.com.br: https://painel.exemplo.com.br negada (status 204, sem access-control-allow-origin)
+
+1 conferência(s) falharam de 10.
+codigo de saida: 1

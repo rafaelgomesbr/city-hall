@@ -1578,7 +1578,8 @@ da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 **O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
 coluna do Windows acima é a máquina do autor, e a validação não a aceita como
 prova independente. Quem prova Windows no CI são dois jobs de
-`.github/workflows/verificar.yml`, que rodam em todo push: o `windows`, com o
+`.github/workflows/verificar.yml`, que rodam em push para `main`, `master` e
+`v2/**` e em pull request: o `windows`, com o
 `auditar`, `test:scripts` e `conferir:numeros` (ver "Portabilidade dos
 scripts"), e o `plataformas`, para os três casos acima, em matriz
 `windows-latest` e `ubuntu-24.04`, e publica o artefato
@@ -1865,7 +1866,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
 **A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
 Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
 de campo (`npm run auditar`, que também roda no Windows; no CI, o job
-`windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
+`windows` o chama a cada push para `main`, `master` e `v2/**` e em pull request,
+como `node scripts/auditar.mjs`). Na raiz,
 o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
 pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
 dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
@@ -2236,7 +2238,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração (`demonstracao.yml`) | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores. Só roda quando muda `mockup/**`, `scripts/**`, os três documentos que vão dentro do zip ou o `package-lock.json` (o Playwright vem dele); mudança só no produto não o dispara |
-| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção), agora com PostGIS 3.5 por digest, e o `npm run test:espacial` (`ST_Contains`, `ST_DWithin` e RLS forçada sobre `geography`) com `DC360_EXIGE_POSTGIS=1` |
+| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção), agora com PostGIS 3.6 por digest, e o `npm run test:espacial` (`ST_Contains`, `ST_DWithin` e RLS forçada sobre `geography`) com `DC360_EXIGE_POSTGIS=1` |
 | Imagens Docker (API e console) | `docker build` das duas imagens de produção com a base fixada por digest e `DC360_VERSAO` / `DC360_COMMIT` como argumentos de build; migração aplicada A PARTIR da imagem da API; a API e o console sobem da imagem, como `node`, e `/saude` responde 200 com `versao` e `commit` iguais aos do build; `chromium --version` dentro da imagem da API (sem ele o PDF do laudo é 503). As conferências são `scripts/smoke-das-imagens.mjs`, e o teste prova que root, falta de Chromium e versão trocada reprovam. Não recebe segredo e não publica imagem (E12); scan é a E20 e SBOM a E19 |
 | Aplicativo de campo | `npm run test:campo` (TypeScript, os testes do aplicativo e a conferência de que o jest executou os casos que a leitura do código conta; é o que substituiu o `typecheck` e o `npm test` avulsos do job), árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
@@ -2323,7 +2325,10 @@ login nem token: nenhum código sai do runner) a cada push em `main`, `master` o
 contrato com o ruleset do GitHub. Primeiro ele roda `semgrep --test` nas regras
 próprias; só então varre `dc360/` com elas; por fim `dc360/scripts/sast-baseline.mjs`
 compara o resultado com a baseline triada e **reprova só o achado novo de
-severidade ERROR** das regras próprias.
+severidade ERROR**, das regras próprias e das do registro (fixadas, abaixo).
+Análise que não examinou arquivo nenhum não passa: o JSON do Semgrep precisa
+trazer `paths.scanned` com pelo menos 30 arquivos (e 30 em `apps/api/src/`),
+senão o portão reprova com código 2 (uma exclusão excessiva não vira falso verde).
 
 O que roda, tudo versionado em `.semgrep/`:
 
@@ -2333,20 +2338,26 @@ O que roda, tudo versionado em `.semgrep/`:
   interpolação ou concatenação e entregue a `query(`; (3) o cabeçalho
   `Authorization` (ou todos os cabeçalhos) indo para log. Cada regra tem casos
   positivos (`ruleid`) e negativos (`ok`) em `test/`, rodados por `semgrep --test`.
-- Pacotes do registro (TypeScript, Node, React e JWT): o repositório é PÚBLICO, e
-  as regras do registro são da Semgrep Rules License v1.0 (uso interno, sem
-  redistribuição), então NENHUMA cópia delas mora aqui. Um passo à parte do job
-  baixa `p/typescript`, `p/nodejs`, `p/react` e `p/jwt` na hora (uso, não
-  redistribuição), roda como RELATÓRIO e nunca reprova: o registro muda sem aviso
-  e quebraria o CI por culpa dele, não do código. A saída vai no artefato
-  `sast-<sha>` (`04-registro-relatorio.json` e `.txt`) para a revisão humana.
-  O que bloqueia é só o que é autoria do projeto: as regras de `regras/`.
-- `baseline.json`: os achados que já existiam quando o SAST entrou, **lidos um a
-  um por uma pessoa**, cada um com classe (`falso-positivo`, `aceito` ou
-  `defeito`), motivo, dono e prazo. `defeito` real aponta para `V2-F25-E01`, não
-  some em silêncio. A impressão digital do achado é regra, arquivo, primeira
-  linha do trecho e ordem entre iguais, sem número de linha: inserir código acima
-  não reabre o achado, editar a primeira linha da consulta sim.
+- Regras do registro (TypeScript, Node, React e JWT), **FIXADAS e bloqueantes**
+  (correção 1 da F01): o repositório é PÚBLICO, e as regras do registro são da
+  Semgrep Rules License v1.0 (uso interno, sem redistribuição), então NENHUMA
+  cópia delas mora aqui. Em vez dos pacotes móveis `p/...` (que mudam sem aviso e
+  sem versão), o job baixa um commit EXATO de `semgrep/semgrep-rules`
+  (`SEMGREP_RULES_SHA` no `sast.yml`, conferido por `git rev-parse` depois do
+  download) e roda as pastas de TypeScript, Node, React e JWT dele (lista em
+  `SEMGREP_RULES_PASTAS`). É uso, não redistribuição. ERROR novo reprova pelo
+  mesmo mecanismo das regras próprias, contra `baseline-registro.json`. Subir o
+  commit das regras é um PR próprio, com essa baseline refeita. A saída vai no
+  artefato `sast-<sha>` (`04-registro.json`, `04-registro-scan.txt`,
+  `05-baseline-registro.txt`).
+- `baseline.json` e `baseline-registro.json`: os achados que já existiam quando o
+  SAST entrou, **lidos um a um por uma pessoa**, cada um com classe
+  (`falso-positivo`, `aceito` ou `defeito`), motivo, dono e prazo. `defeito` real
+  aponta para `V2-F25-E01`, não some em silêncio. A impressão do achado é regra,
+  arquivo, o TRECHO INTEIRO do achado (da linha em que começa à em que termina) e
+  ordem entre iguais, sem número de linha: inserir código acima não reabre o
+  achado, editar QUALQUER linha da consulta sim (antes só a primeira linha
+  entrava, e uma mudança posterior numa consulta multilinha conservava o id).
 
 **Política de exceção.** Achado novo se corrige no código. Se for falso positivo,
 há dois caminhos, e os dois exigem motivo, dono e prazo:
@@ -2369,8 +2380,10 @@ workflow (`pipx install semgrep==1.136.0`) e, na raiz do repositório:
 semgrep --test --metrics=off --config .semgrep/regras .semgrep/test
 semgrep scan --metrics=off --config .semgrep/regras --json --output semgrep.json dc360
 node dc360/scripts/sast-baseline.mjs conferir semgrep.json
-# opcional, só relatório (baixa o registro; nunca reprova):
-semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt dc360
+# regras do registro, no commit fixado do workflow (clone raso do semgrep-rules):
+semgrep scan --metrics=off --config <semgrep-rules>/typescript/lang --config <semgrep-rules>/javascript/node-crypto \
+  <...as demais pastas de SEMGREP_RULES_PASTAS...> --json --output registro.json dc360
+node dc360/scripts/sast-baseline.mjs conferir --baseline .semgrep/baseline-registro.json registro.json
 ```
 
 O SAST não substitui o teste dinâmico de isolamento (`npm run test:isolamento`,
@@ -2389,8 +2402,11 @@ New ruleset, Import a ruleset. Ela exige:
   `.github/pull_request_template.md`; vira 1 aprovação com a segunda pessoa
   revisora, E16 e CP-07);
 - os nove checks abaixo, pelo nome de exibição do job, com o branch atualizado;
-- só merge por squash, histórico linear, sem force-push, sem exclusão e sem
-  exceção para ninguém (`bypass_actors` vazio, administrador incluído).
+- só merge por COMMIT DE MERGE (nunca squash nem rebase, decisão do Rafael na
+  H09: os SHAs citados nos veredictos têm de continuar existindo na `master`),
+  sem exigir histórico linear (a regra `required_linear_history` só admite
+  squash ou rebase, por isso ela não existe aqui), sem force-push, sem exclusão
+  e sem exceção para ninguém (`bypass_actors` vazio, administrador incluído).
 
 Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
 (auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no
@@ -2532,7 +2548,7 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
   A infraestrutura de teste já existe (V2-F01-E21): o `compose.yaml` e o CI usam
-  `postgis/postgis:17-3.5` por digest, e `npm run test:espacial` prova a extensão
+  `postgis/postgis:17-3.6` por digest, e `npm run test:espacial` prova a extensão
   em Postgres real (`docs/AMBIENTES.md`, seção "PostGIS no CI e no ambiente local").
 - **Desligar o segundo fator de OUTRA pessoa.** Hoje cada um cuida do próprio:
   quem administra redefine senha de terceiro, mas não desliga a verificação em

@@ -11,7 +11,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { classificarErrosDeAnalise, compararComBaseline, idCurto, normalizarAchados } from "./sast-baseline.mjs";
+import {
+  classificarErrosDeAnalise, compararComBaseline, idCurto, normalizarAchados,
+  PISO_DE_ARQUIVOS_ANALISADOS, PISO_NA_PASTA_DAS_REGRAS_PROPRIAS, problemasDeCobertura,
+} from "./sast-baseline.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
@@ -98,12 +101,17 @@ test("entrada da baseline que o Semgrep já não encontra é listada como obsole
 
 // ---- a linha de comando, ponta a ponta ------------------------------------------
 
-function rodar(json) {
+/** Uma análise que examinou arquivos de verdade: o que o Semgrep escreve em `paths.scanned`. */
+function arquivosAnalisados(n = 72) {
+  return { scanned: Array.from({ length: n }, (_, i) => `dc360/apps/api/src/rotas/arquivo-${i}.ts`) };
+}
+
+function rodar(json, { semCobertura = false, argumentos = [] } = {}) {
   const pasta = mkdtempSync(join(tmpdir(), "sast-baseline-"));
   const arquivo = join(pasta, "semgrep.json");
-  writeFileSync(arquivo, JSON.stringify(json));
+  writeFileSync(arquivo, JSON.stringify(semCobertura || json.paths !== undefined ? json : { ...json, paths: arquivosAnalisados() }));
   // cwd na raiz do repositório, como no workflow; a baseline real é lida do disco.
-  return spawnSync(process.execPath, [join(AQUI, "sast-baseline.mjs"), "conferir", arquivo], {
+  return spawnSync(process.execPath, [join(AQUI, "sast-baseline.mjs"), "conferir", ...argumentos, arquivo], {
     cwd: resolve(AQUI, "..", ".."), encoding: "utf8",
   });
 }
@@ -186,4 +194,90 @@ test("DV-16: classificarErrosDeAnalise separa bloqueantes e avisos e aceita list
   ]);
   assert.equal(c.bloqueantes.length, 3);
   assert.deepEqual(c.avisos.map((a) => a.caminho), ["dc360/apps/campo/App.tsx"]);
+});
+
+// ---- correção 1 da F01 (E05): impressão do achado inteiro e análise que não leu nada --------
+
+test("a impressão cobre o trecho INTEIRO do achado: mudança na segunda linha da consulta reabre o achado", () => {
+  const original = ["const itens = await c.query(", "  `SELECT * FROM x", "     WHERE a = $1", "  `,", "  [a],", ");"];
+  const achadoMultilinha = { ...achado(2), end: { line: 4, col: 4 } };
+  const [antes] = normalizarAchados({ results: [achadoMultilinha] }, () => original);
+  const [mesma] = normalizarAchados({ results: [achadoMultilinha] }, () => [...original]);
+  assert.equal(mesma.id, antes.id, "texto igual, mesmo id");
+
+  // A primeira linha é a mesma; a parte perigosa entrou numa linha posterior.
+  const mutada = [...original];
+  mutada[2] = "     WHERE a = '" + "${entrada}" + "'";
+  const [depois] = normalizarAchados({ results: [achadoMultilinha] }, () => mutada);
+  assert.equal(depois.trecho, antes.trecho, "a primeira linha não mudou (era a única que entrava na impressão)");
+  assert.notEqual(depois.id, antes.id, "mudança posterior numa consulta multilinha tem de gerar id novo");
+  assert.equal(compararComBaseline([depois], { achados: [{ id: antes.id }] }).novos.length, 1);
+
+  // Indentação e espaços repetidos continuam não contando; a linha que andou também não.
+  const reindentada = ["", ...original.map((l) => "    " + l.trim().replace(/ /g, "  "))];
+  const [movida] = normalizarAchados({ results: [{ ...achadoMultilinha, start: { line: 3, col: 5 }, end: { line: 5, col: 8 } }] }, () => reindentada);
+  assert.equal(movida.id, antes.id);
+});
+
+test("sem a posição final do achado a impressão cai na linha inicial (nunca quebra)", () => {
+  const semFim = achado(3);
+  delete semFim.end;
+  const [a] = normalizarAchados({ results: [semFim] }, lerLinhas);
+  assert.match(a.id, /#1$/);
+});
+
+test("problemasDeCobertura: análise sem arquivo examinado, ausente ou abaixo do piso reprova", () => {
+  assert.deepEqual(problemasDeCobertura({ paths: arquivosAnalisados(72) }), []);
+  assert.match(problemasDeCobertura({ paths: { scanned: [] } }).join("|"), /nenhum arquivo/);
+  assert.match(problemasDeCobertura({}).join("|"), /paths\.scanned/);
+  assert.match(problemasDeCobertura({ paths: { scanned: "x" } }).join("|"), /paths\.scanned/);
+  assert.match(problemasDeCobertura({ paths: arquivosAnalisados(PISO_DE_ARQUIVOS_ANALISADOS - 1) }).join("|"), /piso/);
+  assert.deepEqual(problemasDeCobertura({ paths: arquivosAnalisados(PISO_DE_ARQUIVOS_ANALISADOS) }), []);
+  // Muitos arquivos, nenhum na pasta onde as regras próprias valem: exclusão excessiva.
+  const fora = { scanned: Array.from({ length: 200 }, (_, i) => `dc360/packages/shared/src/x-${i}.ts`) };
+  const p = problemasDeCobertura({ paths: fora }).join("|");
+  assert.match(p, /em dc360\/apps\/api\/src\//);
+  const poucosNaPasta = { scanned: [
+    ...Array.from({ length: PISO_NA_PASTA_DAS_REGRAS_PROPRIAS - 1 }, (_, i) => `dc360/apps/api/src/a-${i}.ts`),
+    ...Array.from({ length: 100 }, (_, i) => `dc360/packages/shared/src/x-${i}.ts`),
+  ] };
+  assert.match(problemasDeCobertura({ paths: poucosNaPasta }).join("|"), /piso/);
+});
+
+test("CLI: análise que não examinou arquivo nenhum NÃO aprova (era o falso verde da revisão)", () => {
+  const vazia = rodar({ results: [], errors: [], paths: { scanned: [] } });
+  assert.equal(vazia.status, 2, vazia.stdout + vazia.stderr);
+  assert.match(vazia.stderr, /nenhum arquivo/);
+  assert.doesNotMatch(vazia.stdout, /Aprovado/);
+
+  const semChave = rodar({ results: [], errors: [] }, { semCobertura: true });
+  assert.equal(semChave.status, 2, semChave.stdout + semChave.stderr);
+
+  const abaixo = rodar({ results: [], errors: [], paths: arquivosAnalisados(PISO_DE_ARQUIVOS_ANALISADOS - 1) });
+  assert.equal(abaixo.status, 2, abaixo.stdout + abaixo.stderr);
+  assert.match(abaixo.stderr, /piso/);
+
+  const noPiso = rodar({ results: [], errors: [], paths: arquivosAnalisados(PISO_DE_ARQUIVOS_ANALISADOS) });
+  assert.equal(noPiso.status, 0, noPiso.stdout + noPiso.stderr);
+});
+
+// ---- a baseline do registro (regras do registro fixadas, ERROR novo reprova) -----------------
+
+test("CLI: --baseline aponta outro arquivo, e achado ERROR do registro que não está nele reprova", () => {
+  const registro = ".semgrep/baseline-registro.json";
+  const novo = rodar({
+    results: [achado(1, { path: "dc360/apps/api/src/auth/inexistente.ts", check_id: "semgrep-rules.javascript.node-crypto.security.gcm-no-tag-length" })],
+    errors: [],
+  }, { argumentos: ["--baseline", registro] });
+  assert.equal(novo.status, 1, novo.stdout + novo.stderr);
+  assert.match(novo.stderr, /NOVO ERROR: gcm-no-tag-length/);
+  const limpo = rodar({ results: [], errors: [] }, { argumentos: ["--baseline", registro] });
+  assert.equal(limpo.status, 0, limpo.stdout + limpo.stderr);
+});
+
+test("CLI: --baseline sem o caminho, ou com arquivo que não existe, é erro de uso e nunca aprova", () => {
+  const semCaminho = rodar({ results: [], errors: [] }, { argumentos: ["--baseline"] });
+  assert.notEqual(semCaminho.status, 0, semCaminho.stdout);
+  const inexistente = rodar({ results: [], errors: [] }, { argumentos: ["--baseline", ".semgrep/nao-existe.json"] });
+  assert.notEqual(inexistente.status, 0, inexistente.stdout);
 });

@@ -6,13 +6,13 @@
 > Se algo divergir da conversa ou de uma nota, vale o repositório (28, seção 3).
 
 ## Fase atual
-- F00 Estabilização obrigatória (ordem 1 de 36), gate G00 BASE CONFIÁVEL: EM ANDAMENTO
+- F00 Estabilização obrigatória (ordem 1 de 36), gate G00 BASE CONFIÁVEL: RECOMENDADO
 - Último gate aprovado: nenhum
 - Gate anterior na ordem: nenhum (primeira fase)
 - GATE.md do G00 em docs/evidencias-v2/G00/: ausente
 
 ## Etapas da F00 (25)
-- IMPLEMENTADA 2, VALIDADA 8, VALIDADA COM PENDÊNCIA HUMANA 15
+- IMPLEMENTADA 1, VALIDADA 8, VALIDADA COM PENDÊNCIA HUMANA 16
 - Próxima etapa acionável na ordem da tabela: nenhuma
 
 ## Checkpoints ABERTOS ou PARCIAIS citados (fase atual e próxima)

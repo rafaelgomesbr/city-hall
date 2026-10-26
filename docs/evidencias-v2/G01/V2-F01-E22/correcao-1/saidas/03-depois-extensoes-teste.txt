@@ -1,0 +1,226 @@
+TAP version 13
+# Subtest: HML saudável: nenhum problema e a versão aparece na saída
+ok 1 - HML saudável: nenhum problema e a versão aparece na saída
+  ---
+  duration_ms: 4.0482
+  type: 'test'
+  ...
+# Subtest: sem a extensão no provedor: reprova e cita o CP-44
+ok 2 - sem a extensão no provedor: reprova e cita o CP-44
+  ---
+  duration_ms: 0.5384
+  type: 'test'
+  ...
+# Subtest: HML sem a extensão instalada reprova; PROD só avisa (a extensão nasce na F32)
+ok 3 - HML sem a extensão instalada reprova; PROD só avisa (a extensão nasce na F32)
+  ---
+  duration_ms: 0.3045
+  type: 'test'
+  ...
+# Subtest: PROD sem a extensão disponível reprova (é a única exigência em PROD)
+ok 4 - PROD sem a extensão disponível reprova (é a única exigência em PROD)
+  ---
+  duration_ms: 0.2027
+  type: 'test'
+  ...
+# Subtest: PROD com a extensão já instalada confere o resto igual ao HML
+ok 5 - PROD com a extensão já instalada confere o resto igual ao HML
+  ---
+  duration_ms: 0.3383
+  type: 'test'
+  ...
+# Subtest: extensão em public reprova, com o motivo da API REST
+ok 6 - extensão em public reprova, com o motivo da API REST
+  ---
+  duration_ms: 0.382
+  type: 'test'
+  ...
+# Subtest: extensão em outro schema que não o esperado reprova; --esquema muda o esperado
+ok 7 - extensão em outro schema que não o esperado reprova; --esquema muda o esperado
+  ---
+  duration_ms: 0.3419
+  type: 'test'
+  ...
+# Subtest: anon com SELECT em spatial_ref_sys aparece na conferência (o PR de prova)
+ok 8 - anon com SELECT em spatial_ref_sys aparece na conferência (o PR de prova)
+  ---
+  duration_ms: 0.284
+  type: 'test'
+  ...
+# Subtest: PUBLIC com EXECUTE nas funções reprova, e cada papel exposto é um problema
+ok 9 - PUBLIC com EXECUTE nas funções reprova, e cada papel exposto é um problema
+  ---
+  duration_ms: 0.602
+  type: 'test'
+  ...
+# Subtest: sem USAGE no schema, o smoke da E21 falharia: reprova
+ok 10 - sem USAGE no schema, o smoke da E21 falharia: reprova
+  ---
+  duration_ms: 0.6663
+  type: 'test'
+  ...
+# Subtest: sem SELECT em spatial_ref_sys ou sem EXECUTE nas funções, reprova
+ok 11 - sem SELECT em spatial_ref_sys ou sem EXECUTE nas funções, reprova
+  ---
+  duration_ms: 0.3513
+  type: 'test'
+  ...
+# Subtest: dc360_app inexistente reprova (não há o que conferir)
+ok 12 - dc360_app inexistente reprova (não há o que conferir)
+  ---
+  duration_ms: 0.1694
+  type: 'test'
+  ...
+# Subtest: nenhuma consulta escreve
+ok 13 - nenhuma consulta escreve
+  ---
+  duration_ms: 0.5629
+  type: 'test'
+  ...
+# Subtest: coletarFatos monta os fatos das linhas e não consulta o resto sem instalação
+ok 14 - coletarFatos monta os fatos das linhas e não consulta o resto sem instalação
+  ---
+  duration_ms: 0.5852
+  type: 'test'
+  ...
+# Subtest: coletarFatos com a extensão instalada passa os papéis do provedor e o schema reais
+ok 15 - coletarFatos com a extensão instalada passa os papéis do provedor e o schema reais
+  ---
+  duration_ms: 0.3805
+  type: 'test'
+  ...
+# Subtest: argumentos: --extensoes tem ambiente hml por padrão e recusa o que não é dele
+ok 16 - argumentos: --extensoes tem ambiente hml por padrão e recusa o que não é dele
+  ---
+  duration_ms: 0.6832
+  type: 'test'
+  ...
+# Subtest: argumentos: conferir-ambiente delega a --extensoes e o resto segue igual
+ok 17 - argumentos: conferir-ambiente delega a --extensoes e o resto segue igual
+  ---
+  duration_ms: 0.3735
+  type: 'test'
+  ...
+# Subtest: o comando sem DATABASE_URL_SETUP e sem --fatos sai com 2 e diz o que falta
+ok 18 - o comando sem DATABASE_URL_SETUP e sem --fatos sai com 2 e diz o que falta
+  ---
+  duration_ms: 0.3939
+  type: 'test'
+  ...
+# Subtest: o comando: fatos saudáveis saem com 0; anon exposto sai com 1 e nomeia o papel
+ok 19 - o comando: fatos saudáveis saem com 0; anon exposto sai com 1 e nomeia o papel
+  ---
+  duration_ms: 136.1561
+  type: 'test'
+  ...
+# Subtest: o comando: PROD com a extensão só disponível confere com 0
+ok 20 - o comando: PROD com a extensão só disponível confere com 0
+  ---
+  duration_ms: 68.8795
+  type: 'test'
+  ...
+# Subtest: o comando: arquivo de fatos que não é JSON sai com 2, sem despejar o conteúdo
+ok 21 - o comando: arquivo de fatos que não é JSON sai com 2, sem despejar o conteúdo
+  ---
+  duration_ms: 77.6944
+  type: 'test'
+  ...
+# Subtest: o comando: falha de conexão sai com 2 e a URL (usuário e senha) nunca aparece
+ok 22 - o comando: falha de conexão sai com 2 e a URL (usuário e senha) nunca aparece
+  ---
+  duration_ms: 599.3815
+  type: 'test'
+  ...
+# Subtest: as consultas e o endurecimento se entendem num Postgres real (extensão substituta)
+ok 23 - as consultas e o endurecimento se entendem num Postgres real (extensão substituta)
+  ---
+  duration_ms: 1737.5487
+  type: 'test'
+  ...
+# Subtest: a coleta funciona com um papel sem USAGE no schema da extensão (o papel de setup do provedor)
+ok 24 - a coleta funciona com um papel sem USAGE no schema da extensão (o papel de setup do provedor)
+  ---
+  duration_ms: 1009.2559
+  type: 'test'
+  ...
+# Subtest: PROD com PostGIS disponível e não instalado, e papel de setup SEM poder criar, reprova (o verde falso achado na revisão)
+ok 25 - PROD com PostGIS disponível e não instalado, e papel de setup SEM poder criar, reprova (o verde falso achado na revisão)
+  ---
+  duration_ms: 0.4954
+  type: 'test'
+  ...
+# Subtest: PROD com CREATE no banco passa, mas avisa quando não é superusuário e a extensão não é confiável (só o CP-44 confirma)
+ok 26 - PROD com CREATE no banco passa, mas avisa quando não é superusuário e a extensão não é confiável (só o CP-44 confirma)
+  ---
+  duration_ms: 0.4178
+  type: 'test'
+  ...
+# Subtest: PROD com superusuário, ou com CREATE no banco e extensão confiável, passa sem aviso de privilégio
+ok 27 - PROD com superusuário, ou com CREATE no banco e extensão confiável, passa sem aviso de privilégio
+  ---
+  duration_ms: 0.2985
+  type: 'test'
+  ...
+# Subtest: fatos de PROD sem a capacidade de criar não são aprovados em silêncio
+ok 28 - fatos de PROD sem a capacidade de criar não são aprovados em silêncio
+  ---
+  duration_ms: 0.2498
+  type: 'test'
+  ...
+# Subtest: coletarFatos pergunta a capacidade de criar com o privilégio CREATE como parâmetro e monta os fatos
+ok 29 - coletarFatos pergunta a capacidade de criar com o privilégio CREATE como parâmetro e monta os fatos
+  ---
+  duration_ms: 0.3951
+  type: 'test'
+  ...
+# Subtest: a consulta de capacidade responde num Postgres real (PGlite): superusuário, dono e CREATE no banco
+ok 30 - a consulta de capacidade responde num Postgres real (PGlite): superusuário, dono e CREATE no banco
+  ---
+  duration_ms: 1351.3101
+  type: 'test'
+  ...
+# Subtest: privilégio herdado por papel intermediário: a consulta vê o anon e o endurecimento tira a concessão intermediária
+ok 31 - privilégio herdado por papel intermediário: a consulta vê o anon e o endurecimento tira a concessão intermediária
+  ---
+  duration_ms: 1107.8869
+  type: 'test'
+  ...
+# Subtest: a consulta de exposição não repete como concessão própria o que só PUBLIC concede
+ok 32 - a consulta de exposição não repete como concessão própria o que só PUBLIC concede
+  ---
+  duration_ms: 1007.8716
+  type: 'test'
+  ...
+# Subtest: a URL de conferência recebe a âncora de confiança do migrador: verify-full sem sslrootcert ganha a raiz do provedor
+ok 33 - a URL de conferência recebe a âncora de confiança do migrador: verify-full sem sslrootcert ganha a raiz do provedor
+  ---
+  duration_ms: 5.9191
+  type: 'test'
+  ...
+# Subtest: a âncora não mexe no que não deve: sem sslmode que verifica, ou com sslrootcert já escrito
+ok 34 - a âncora não mexe no que não deve: sem sslmode que verifica, ou com sslrootcert já escrito
+  ---
+  duration_ms: 0.8406
+  type: 'test'
+  ...
+# Subtest: a conferência usa a MESMA função do migrador, e não uma cópia
+ok 35 - a conferência usa a MESMA função do migrador, e não uma cópia
+  ---
+  duration_ms: 3.2303
+  type: 'test'
+  ...
+# Subtest: sem a compilação do migrador, a conferência recusa com a instrução em vez de conectar sem âncora
+ok 36 - sem a compilação do migrador, a conferência recusa com a instrução em vez de conectar sem âncora
+  ---
+  duration_ms: 1.3562
+  type: 'test'
+  ...
+1..36
+# tests 36
+# suites 0
+# pass 36
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7255.3435

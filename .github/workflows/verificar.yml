@@ -395,15 +395,12 @@ jobs:
   navegador:
     name: Fluxo ponta a ponta no navegador
     runs-on: ubuntu-24.04
-    # 50 minutos. A V2-F01-E02 pôs 35 (o máximo de 28,6 dos 8 últimos verdes mais
-    # folga), e o primeiro run completo da fase (24/10/2026) foi CANCELADO por
-    # tempo aos 35,3 minutos, ainda no passo do WebKit, o último. Então o job
-    # leva mais de 35 minutos agora, e o log daquele run não diz quanto dos 35
-    # foi cada passo. 35,3 mais o resto do WebKit (suíte de geometria, que é
-    # curta) mais 40% de folga dá cerca de 50. O WebKit tem teto próprio de 12
-    # minutos no passo: um travamento ali reprova com o passo nomeado, em vez de
-    # gastar o orçamento do job inteiro. `saidas/00-duracoes-antes.txt` da E02 é
-    # a medida de antes; a de depois sai deste run (correção do CI 2).
+    # 65 minutos: o maior tempo verde recente (43,3 min, run 40250717702, entre 16
+    # runs de v2/f01 e v2/f02) mais 50%. O run 40279977234 foi CANCELADO aos 50,3
+    # min com o teto de 50: o passo de instalar navegadores levou 15,1 min (fila
+    # lenta), contra menos de 3 min nos verdes. O WebKit tem teto próprio de 18
+    # minutos no passo (maior verde 11,8 min mais 50%): um travamento ali
+    # reprova com o passo nomeado, em vez de gastar o job inteiro.
     # Teto 65 min (maior tempo verde recente 43,3 min x 1,5, mesma correção do v2/f01 em 273c759):
     # o run 40335597874 do v2/f03 foi CANCELADO aos 50 min, com os outros 9 jobs verdes.
     timeout-minutes: 65
@@ -1031,14 +1028,16 @@ jobs:
     services:
       postgres:
         # O major de produção (17.6): o CI deixou de provar a partida contra um
-        # major mais velho que o que roda (V2-F01-E08). Com PostGIS 3.5 desde a
+        # major mais velho que o que roda (V2-F01-E08). Com PostGIS desde a
         # V2-F01-E21 (decisão D-16): a imagem é a mesma do `compose.yaml`, FIXADA
         # POR DIGEST do índice multiarquitetura do registro, conferido em
-        # 2026-10-24 para a tag 17-3.5. Imagem de comunidade: o digest fixo impede
+        # 2026-10-26 para a tag 17-3.6 (a 17-3.5 vem do Debian 11, sem suporte, e o
+        # Trivy reprovou 45 HIGH e CRITICAL corrigíveis nela; a 17-3.6 vem do Debian
+        # 13). Imagem de comunidade: o digest fixo impede
         # que uma tag movida entre no CI sem revisão, e a E20 a varre. Subir a
         # versão é trocar tag e digest juntos, aqui, no job `imagens` e no
         # `compose.yaml` (o `smoke-das-imagens.test.mjs` cobra os três).
-        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+        image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1225,7 +1224,7 @@ jobs:
     #   4. `chromium --version` dentro da imagem da API (sem ele o PDF do laudo
     #      responde 503 em produção) e usuário não root nas duas;
     #   5. sobe o console com o papel `dc360_console_login`, e confere o `/saude`;
-    #   6. (V2-F01-E20) varre as duas imagens com o Trivy, logo depois da
+    #   6. (V2-F01-E20) varre as duas imagens, mais a do PostGIS (digest), com o Trivy, logo depois da
     #      construção: CRITICAL ou HIGH com correção publicada, ou segredo que
     #      entrou por `COPY`, reprova o job. Binário de versão fixa com SHA-256
     #      conferido (`scripts/varrer-imagem.sh`, a mesma lógica da varredura
@@ -1256,7 +1255,7 @@ jobs:
       postgres:
         # Mesma imagem do `implantavel` (PostGIS 17 por digest, V2-F01-E21), para
         # a imagem da API ser provada contra o banco que a F32 vai exigir.
-        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+        image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1273,23 +1272,27 @@ jobs:
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
 
       # A versão é a do `package.json` (a E07 garante que todo workspace e o
-      # CHANGELOG concordam, e `conferir` reprova se não). O commit é o da PONTA
-      # do ramo: em pull_request o SHA do run é o de um merge sintético, e é o
-      # candidato que o gatekeeper fixa.
+      # CHANGELOG concordam, e `conferir` reprova se não). O commit carimbado na
+      # imagem é o que o checkout REALMENTE construiu (`GITHUB_SHA`): em pull_request
+      # o checkout padrão testa o merge sintético, não a ponta do ramo, e carimbar a
+      # ponta faria o smoke comparar `/saude` com o mesmo valor que ele mesmo
+      # recebeu, sem detectar divergência (correção 1 da F01, E08). O commit
+      # CANDIDATO (a ponta do ramo, o que o gatekeeper fixa) vai à parte, no artefato.
       - name: Versão e commit do build
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node scripts/versao.mjs conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/01-versao.txt"
           versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
-          commit="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          commit="$GITHUB_SHA"
+          candidato="${PR_HEAD_SHA:-$GITHUB_SHA}"
           if [ -z "$versao" ] || [ -z "$commit" ]; then
             echo "versao ou commit vazios: versao='$versao' commit='$commit'"
             exit 1
           fi
           echo "DC360_VERSAO=$versao" >> "$GITHUB_ENV"
           echo "DC360_COMMIT=$commit" >> "$GITHUB_ENV"
-          echo "versao=$versao commit=$commit" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
+          echo "versao=$versao commit_construido=$commit candidato=$candidato" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
 
       # Os testes do smoke primeiro: se a régua estiver quebrada, o resto do job
       # não prova nada.
@@ -1319,11 +1322,16 @@ jobs:
           trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
           echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
 
-      - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+      - name: Varrer as três imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
         run: |
           mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+          # A imagem comunitária do banco (PostGIS, por digest) também é varrida, com a
+          # MESMA régua e a mesma porta de exceção (.trivyignore.yaml) das nossas duas:
+          # CVE corrigível nela passa a reprovar. Mesmo digest dos serviços do job.
+          postgis="postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64"
+          docker pull --quiet "$postgis" > /dev/null
           falhou=0
-          for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+          for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:$postgis"; do
             nome="${par%%:*}"
             imagem="${par#*:}"
             echo "=== $imagem"

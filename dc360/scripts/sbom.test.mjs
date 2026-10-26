@@ -273,9 +273,15 @@ test("sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e 
   assert.match(publicar, /^ {4}permissions:\n {6}contents: write\n/m);
   assert.match(publicar, /^ {4}if: \$\{\{ github\.ref_type == 'tag' \}\}$/m, "só roda em tag");
   assert.match(publicar, /needs: \[sbom-npm, sbom-imagem\]/);
-  for (const gerador of ["sbom-npm", "sbom-imagem"]) {
-    assert.doesNotMatch(job(gerador), /permissions:|write/, `${gerador} não pode ter escrita`);
-  }
+  assert.doesNotMatch(job("sbom-npm"), /permissions:|write/, "sbom-npm não pode ter escrita");
+  // O job da imagem lê o GHCR (o selo e a imagem): `packages: read`, nunca escrita.
+  const imagemJob = job("sbom-imagem");
+  assert.doesNotMatch(imagemJob, /write/, "sbom-imagem não pode ter escrita");
+  assert.match(
+    imagemJob,
+    /^ {4}permissions:\n {6}contents: read\n {6}packages: read\n/m,
+    "sbom-imagem só lê o repositório e os pacotes",
+  );
   assert.doesNotMatch(corpo, /secrets\./, "nenhum segredo: só o GITHUB_TOKEN do job de tag");
 });
 
@@ -290,15 +296,68 @@ test("sbom.yml: os dois lockfiles e as duas imagens estão na matriz, o gerador 
   assert.match(npm, /--ignore-scripts/);
 
   const imagem = job("sbom-imagem");
-  assert.match(imagem, /dockerfile: Dockerfile\n/);
-  assert.match(imagem, /dockerfile: Dockerfile\.console\n/);
+  assert.match(imagem, /- imagem: api\n/);
+  assert.match(imagem, /- imagem: console\n/);
   assert.match(
     imagem,
     /varrer-imagem\.sh instalar/,
     "o mesmo Trivy fixo e com SHA-256 conferido da E20",
   );
-  assert.match(imagem, /image --no-progress --format cyclonedx --output/);
-  assert.match(imagem, /DC360_VERSAO/);
+  assert.match(imagem, /image --no-progress --image-src remote --format cyclonedx/);
+});
+
+// Correção 1 da F01 (E19): o SBOM da imagem descreve a imagem PUBLICADA e promovida,
+// por digest, e nunca uma reconstrução (o Dockerfile instala o Debian corrente).
+test("sbom.yml: o SBOM da imagem lê a imagem publicada por digest, do mesmo selo que a promoção, e não reconstrói", () => {
+  const imagem = job("sbom-imagem");
+  assert.doesNotMatch(
+    imagem,
+    /docker build(?!x)|docker buildx build|DC360_VERSAO|dc360-\$\{IMAGEM\}:sbom/,
+  );
+  // O mesmo lugar e as mesmas provas de promover-producao.yml.
+  assert.match(
+    imagem,
+    /imagetools inspect "\$imagem:hml-ok-\$COMMIT" --format '\{\{\.Manifest\.Digest\}\}'/,
+  );
+  assert.match(imagem, /imagetools inspect "\$imagem:sha-\$COMMIT"/);
+  assert.match(imagem, /\[ "\$digest" != "\$construido" \]/);
+  assert.match(imagem, /gh attestation verify "oci:\/\/\$imagem@\$digest"/);
+  assert.match(
+    imagem,
+    /--signer-workflow "\$GITHUB_REPOSITORY\/\.github\/workflows\/deploy-hml\.yml"/,
+  );
+  // Digest ausente falha com mensagem clara e sai com erro.
+  assert.match(imagem, /::error::o commit \$COMMIT não tem a imagem \$IMAGEM aprovada em HML/);
+  // O que o Trivy lê é a referência com o digest, do registro.
+  assert.match(imagem, /REFERENCIA: \$\{\{ steps\.digest\.outputs\.referencia \}\}/);
+  assert.match(imagem, /echo "referencia=\$imagem@\$digest"/);
+  assert.match(imagem, /--output "\$arquivo" "\$REFERENCIA"/);
+  // O SBOM tem de citar o digest.
+  assert.match(imagem, /grep -q "\$\{DIGEST#sha256:\}" "\$arquivo"/);
+});
+
+test("sbom.yml: o SBOM da imagem usa as MESMAS provas de digest que a promoção para PROD", () => {
+  const promocao = readFileSync(
+    join(RAIZ_DO_REPO, ".github", "workflows", "promover-producao.yml"),
+    "utf8",
+  );
+  for (const trecho of [
+    `imagetools inspect "$imagem:hml-ok-$COMMIT" --format '{{.Manifest.Digest}}'`,
+    `imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}'`,
+    `--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/deploy-hml.yml"`,
+    `base="ghcr.io/\${GITHUB_REPOSITORY,,}"`,
+  ]) {
+    assert.ok(promocao.includes(trecho), `promover-producao.yml mudou: ${trecho}`);
+  }
+  const imagem = job("sbom-imagem");
+  for (const trecho of [
+    `imagetools inspect "$imagem:hml-ok-$COMMIT" --format '{{.Manifest.Digest}}'`,
+    `imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}'`,
+    `--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/deploy-hml.yml"`,
+    `ghcr.io/\${GITHUB_REPOSITORY,,}/dc360-`,
+  ]) {
+    assert.ok(imagem.includes(trecho), `sbom.yml diverge da promoção: ${trecho}`);
+  }
 });
 
 test("sbom.yml: nome de tag e de ramo entram nos comandos por variável de ambiente, nunca interpolados no script", () => {

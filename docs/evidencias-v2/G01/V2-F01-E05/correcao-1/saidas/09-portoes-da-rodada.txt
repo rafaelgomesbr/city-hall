@@ -1,0 +1,27 @@
+# Portões da rodada de correção A da F01 (Windows 11, Node 22.17, ramo trab/f01-corr-a)
+
+npm run typecheck ............................ exit 0
+npm test ..................................... exit 1, SÓ pelas falhas de ambiente Windows aceitas:
+                                               regras-de-conteudo 1 caso (EPERM em symlink, DV-46),
+                                               semear-homologacao 2, guarda-da-semente 3, desfazer-migracao 5.
+                                               Os demais arquivos de teste dos pacotes passaram (por exemplo 238 e 339 e 791
+                                               casos verdes em pacotes que terminaram sem falha; 34 pulados no db).
+npm run test:isolamento (CA-06) .............. exit 1, pelas mesmas 8 falhas de db (guarda-da-semente 3, desfazer-migracao 5);
+                                               isolamento.test.ts sem falha
+CI=true npm run test:scripts ................. exit 0: 842 casos, 819 passam, 0 falham, 23 pulados
+                                               (pulos: testes em bash e de ambiente Linux; ver o portão de pulo)
+npm run lint ................................. OK (monorepo e aplicativo de campo)
+npm run lint:teto ............................ OK, 431 supressões (não sobe)
+npm run formato:conferir ..................... OK, 794 arquivos, 664 na baseline
+npm run conferir:numeros ..................... OK, todos os números da documentação batem; test-scripts bate com 842
+npx vitest run packages/shared/test/regras-de-conteudo.test.ts
+                                               1 falha (a de ambiente Windows aceita: ENOENT/EPERM de symlink), 9 passam
+node scripts/auditar.mjs ..................... exit 0 (runtime limpo)
+node scripts/roadmap/gerar-estado.mjs --conferir
+                                               exit 0 (ESTADO-ATUAL.md confere)
+node dc360/scripts/conferir-indices-de-evidencia.mjs
+                                               OK, depois de gerados os índices desta rodada (144 INDEX.md, 5666 arquivos)
+
+Workflows: YAML de sast.yml, verificar.yml e auditoria-semanal.yml lidos por um parser (PyYAML) sem erro; o conferidor
+de workflows do repositório (conferir-workflows.test.mjs, 53 casos) e excecoes-de-seguranca.test.mjs passam.
+actionlint não está instalado neste ambiente; nada foi disparado no GitHub.

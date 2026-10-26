@@ -162,9 +162,9 @@ serve: `--lista=ARQUIVO`, ou `--lista=-` pela entrada padrão.
 | --- | --- | --- |
 | Node | 22 | `.nvmrc`, `.node-version`, `engines` (`>=22 <23`), `Dockerfile`, `Dockerfile.console`, CI |
 | Postgres de PROD | 17.6 | Supabase |
-| Postgres do `compose.yaml` | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5@sha256:01a6a70e...`) | `compose.yaml` (`banco` e `papeis`) |
-| Postgres do CI | 17 com PostGIS 3.5, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
-| PostGIS | 3.5, na imagem acima | CI e `compose.yaml` (PGlite não o traz). HML e PROD: ver a tabela da seção "PostGIS no provedor" |
+| Postgres do `compose.yaml` | 17 com PostGIS 3.6 (`postgis/postgis:17-3.6@sha256:5cf98659...`) | `compose.yaml` (`banco` e `papeis`) |
+| Postgres do CI | 17 com PostGIS 3.6, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
+| PostGIS | 3.6, na imagem acima | CI e `compose.yaml` (PGlite não o traz). HML e PROD: ver a tabela da seção "PostGIS no provedor" |
 | PGlite | Postgres 16 em WebAssembly | testes de unidade e painel local |
 
 A diferença de major entre o PGlite (16) e o 17.6 de PROD é um risco conhecido e
@@ -172,7 +172,7 @@ declarado em `docs/COLOCAR-DE-PE.md`. O CI e o `compose.yaml` já estão no majo
 
 ### PostGIS no CI e no ambiente local (V2-F01-E21)
 
-- **Imagem por digest.** `postgis/postgis:17-3.5@sha256:01a6a70e...` (o digest
+- **Imagem por digest.** `postgis/postgis:17-3.6@sha256:5cf98659...` (o digest
   inteiro está no `compose.yaml`) é o índice multiarquitetura da tag, conferido
   no registro em 2026-10-24. É imagem de comunidade: o digest fixo impede que uma
   tag movida entre sem revisão. Subir a versão é trocar tag e digest juntos no
@@ -201,7 +201,7 @@ Rafael, CP-44):
 | --- | --- |
 | `db/provedores/postgis.sql` | `CREATE SCHEMA IF NOT EXISTS extensions` e `CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions`, e imprime `postgis_version()`. Papel de **setup**, nunca o de aplicação. Só em HML: em PROD a extensão nasce na migration da F32 |
 | bloco "PostGIS" de `db/provedores/supabase-endurecer.sql` | Se a extensão existe: revoga tudo de `PUBLIC`, `anon`, `authenticated` e `service_role` nos objetos DA EXTENSÃO (achados por dependência, não por schema), e dá a `dc360_app` USAGE no schema, SELECT em `spatial_ref_sys` e EXECUTE nas funções. Sem a extensão, não faz nada |
-| `node scripts/conferir-ambiente.mjs --extensoes` | Confere, só leitura, que a extensão está disponível, instalada em `extensions` (nunca `public`), que ninguém do provedor a alcança e que `dc360_app` enxerga o mínimo |
+| `node scripts/conferir-ambiente.mjs --extensoes` | Confere, só leitura, que a extensão está disponível, que o papel de setup PODE criá-la (superusuário ou `CREATE` no banco; disponível não é criável), instalada em `extensions` (nunca `public`), que ninguém do provedor a alcança (nem por herança de papel) e que `dc360_app` enxerga o mínimo |
 
 Por que revogar de `PUBLIC` e não só dos três papéis: o script da extensão
 concede SELECT a `PUBLIC` e o Postgres concede EXECUTE nas funções a `PUBLIC`
@@ -217,8 +217,15 @@ psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurece
 DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes
 ```
 
-**Em PROD**, só a pergunta de disponibilidade (não cria nada):
+**Em PROD**, só a pergunta de disponibilidade e de capacidade (não cria nada):
 `DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes --ambiente=prod`.
+Com a extensão disponível e ainda não instalada, o papel de setup precisa ser
+superusuário ou ter `CREATE` no banco, senão a conferência reprova. Se ele tem
+`CREATE` mas não é superusuário e o PostGIS não é extensão confiável, ela
+AVISA: no Postgres comum só superusuário cria a extensão, e provedores como o
+Supabase liberam isso por fora, o que só se confirma tentando em HML (CP-44).
+A URL com `sslmode=verify-full` e sem `sslrootcert` recebe a raiz do provedor
+do repositório, como no migrador (precisa de `npm run build:shared` em `dc360`).
 A URL vem da variável de ambiente, nunca de argumento, e a saída só traz nomes
 de papel, de objeto e contagens (nunca a URL, o usuário ou a senha). Sem banco,
 `--fatos=ARQUIVO` avalia fatos já coletados.
@@ -227,7 +234,7 @@ de papel, de objeto e contagens (nunca a URL, o usuário ou a senha). Sem banco,
 
 | Ambiente | Versão | Como foi obtida |
 | --- | --- | --- |
-| CI e `compose.yaml` | 3.5 (imagem por digest) | `postgis_lib_version()` no teste espacial |
+| CI e `compose.yaml` | 3.6 (imagem por digest) | `postgis_lib_version()` no teste espacial |
 | HML | A PREENCHER (CP-44) | saída de `postgis.sql` em HML |
 | PROD | não instalada até a F32 | `--extensoes --ambiente=prod` informa a versão disponível |
 

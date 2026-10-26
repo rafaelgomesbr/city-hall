@@ -1,0 +1,8 @@
+{
+  "problemas": [
+    "o papel de setup não pode criar a extensão: não é superusuário, não é dono do banco e não tem CREATE nele. Disponível no provedor não é criável por este papel (CP-44)"
+  ],
+  "avisos": [
+    "postgis ainda não está instalado em PROD: a extensão nasce na migration da F32"
+  ]
+}

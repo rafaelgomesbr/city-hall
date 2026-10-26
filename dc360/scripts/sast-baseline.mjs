@@ -8,12 +8,25 @@
  * foi LIDO por uma pessoa e tem classe (falso positivo, aceito, defeito), motivo,
  * dono e prazo. Defeito real vira trabalho de V2-F25-E01, não some em silêncio.
  *
- * Impressão digital do achado: regra + arquivo + a PRIMEIRA linha do trecho
- * (sem espaços repetidos) + ordem entre achados iguais. Número de linha fica
- * de fora de propósito: inserir código acima não pode transformar achado triado
- * em achado novo. Editar a primeira linha do trecho, sim: a consulta mudou e
- * alguém precisa olhar de novo. O Semgrep CE não entrega a impressão própria
- * (`fingerprint` vem como "requires login"), por isso ela é calculada aqui.
+ * Impressão do achado: regra + arquivo + o TRECHO INTEIRO do achado (da linha em
+ * que ele começa à linha em que termina, cada linha sem a indentação e sem
+ * espaços repetidos) + ordem entre achados iguais. Número de linha fica de fora
+ * de propósito: inserir código acima não pode transformar achado triado em
+ * achado novo. Editar QUALQUER linha do trecho, sim: a consulta mudou e alguém
+ * precisa olhar de novo. (Antes só a primeira linha entrava, e uma mudança na
+ * parte perigosa de uma consulta multilinha já triada conservava o id: correção
+ * 1 da F01, E05.) O Semgrep CE não entrega a impressão própria (`fingerprint`
+ * vem como "requires login"), por isso ela é calculada aqui.
+ *
+ * Cobertura: análise que não examinou arquivo nenhum não é análise limpa. O
+ * validador lê `paths.scanned` do JSON e reprova quando ele vem ausente, vazio ou
+ * abaixo do piso declarado (`PISO_DE_ARQUIVOS_ANALISADOS`, e dentro de
+ * `dc360/apps/api/src/` também), o que pega uma exclusão excessiva no
+ * `.semgrepignore` ou numa seleção de arquivos.
+ *
+ * Duas baselines usam o mesmo mecanismo: `.semgrep/baseline.json` (regras próprias)
+ * e `.semgrep/baseline-registro.json` (regras do registro, fixadas por SHA no
+ * `sast.yml`), esta escolhida por `--baseline`.
  *
  * Erro de análise (arquivo que o Semgrep não conseguiu ler por inteiro) também
  * reprova quando está em `dc360/apps/api/src/` ou é de nível `error` (DV-16); fora
@@ -31,6 +44,15 @@ import { hojeEmIso, problemasDaExcecao } from "./excecoes-de-seguranca.mjs";
 
 export const CLASSES = ["falso-positivo", "aceito", "defeito"];
 export const ARQUIVO_DA_BASELINE = ".semgrep/baseline.json";
+export const ARQUIVO_DA_BASELINE_DO_REGISTRO = ".semgrep/baseline-registro.json";
+/**
+ * Piso de arquivos examinados (`paths.scanned` do Semgrep). A varredura das regras próprias
+ * examinou 72 em 2026-10-24; o piso fica bem abaixo disso, só para pegar o colapso
+ * (exclusão excessiva, seleção vazia), e sobe junto com o produto, nunca desce em silêncio.
+ */
+export const PISO_DE_ARQUIVOS_ANALISADOS = 30;
+/** O mesmo piso, só para os arquivos de `dc360/apps/api/src/`, onde as regras próprias valem. */
+export const PISO_NA_PASTA_DAS_REGRAS_PROPRIAS = 30;
 /** Defeito real da baseline é tratado nesta etapa, nunca escondido. */
 export const ETAPA_DOS_DEFEITOS = "V2-F25-E01";
 
@@ -41,10 +63,25 @@ export function idCurto(checkId) {
   return String(checkId).split(".").pop();
 }
 
-function primeiraLinha(achado, lerLinhas) {
-  const linhas = lerLinhas(achado.path);
-  const texto = linhas?.[achado.start.line - 1] ?? "";
+function limpar(texto) {
   return texto.trim().replace(/\s+/g, " ");
+}
+
+function primeiraLinha(achado, lerLinhas) {
+  return limpar(lerLinhas(achado.path)?.[achado.start.line - 1] ?? "");
+}
+
+/**
+ * O trecho inteiro do achado: as linhas de `start.line` a `end.line`, cada uma sem a
+ * indentação e sem espaços repetidos, separadas por quebra de linha. Sem `end`, só a inicial.
+ */
+function trechoCompleto(achado, lerLinhas) {
+  const linhas = lerLinhas(achado.path);
+  const inicio = achado.start.line;
+  const fim = Math.max(inicio, Number.isInteger(achado.end?.line) ? achado.end.line : inicio);
+  const partes = [];
+  for (let n = inicio; n <= fim; n++) partes.push(limpar(linhas?.[n - 1] ?? ""));
+  return partes.join("\n");
 }
 
 /**
@@ -66,13 +103,14 @@ export function normalizarAchados(json, lerLinhas) {
       linha: r.start.line,
       severidade: r.extra?.severity ?? "INFO",
       trecho: primeiraLinha(r, lerLinhas),
+      completo: trechoCompleto(r, lerLinhas),
     });
   }
   lista.sort((a, b) => a.arquivo.localeCompare(b.arquivo) || a.linha - b.linha);
 
   const contagem = new Map();
   for (const a of lista) {
-    const base = createHash("sha256").update(`${a.regra}\n${a.arquivo}\n${a.trecho}`).digest("hex").slice(0, 24);
+    const base = createHash("sha256").update(`${a.regra}\n${a.arquivo}\n${a.completo}`).digest("hex").slice(0, 24);
     const n = (contagem.get(base) ?? 0) + 1;
     contagem.set(base, n);
     a.id = `${base}#${n}`;
@@ -148,21 +186,64 @@ export function classificarErrosDeAnalise(erros) {
   return { bloqueantes, avisos };
 }
 
+/**
+ * Problemas de cobertura do JSON do Semgrep: `paths.scanned` ausente, vazio ou abaixo do piso.
+ * Sem isso, "nenhum achado" também é o que sai de uma análise que não leu arquivo nenhum.
+ */
+export function problemasDeCobertura(json) {
+  const lista = json?.paths?.scanned;
+  if (!Array.isArray(lista)) {
+    return ["o JSON do Semgrep não traz `paths.scanned`: não dá para provar que algum arquivo foi examinado"];
+  }
+  if (lista.length === 0) {
+    return ["a análise não examinou nenhum arquivo (`paths.scanned` vazio): ausência de achado aqui não prova nada"];
+  }
+  const problemas = [];
+  if (lista.length < PISO_DE_ARQUIVOS_ANALISADOS) {
+    problemas.push(`só ${lista.length} arquivo(s) examinado(s), abaixo do piso de ${PISO_DE_ARQUIVOS_ANALISADOS}: exclusão excessiva ou seleção quebrada?`);
+  }
+  const naPasta = lista.filter((c) => {
+    const caminho = String(c).replace(/\\/g, "/").replace(/^\.\//, "");
+    return caminho.startsWith(PASTA_DAS_REGRAS_PROPRIAS) || caminho.includes(`/${PASTA_DAS_REGRAS_PROPRIAS}`);
+  }).length;
+  if (naPasta < PISO_NA_PASTA_DAS_REGRAS_PROPRIAS) {
+    problemas.push(`só ${naPasta} arquivo(s) examinado(s) em ${PASTA_DAS_REGRAS_PROPRIAS}, abaixo do piso de ${PISO_NA_PASTA_DAS_REGRAS_PROPRIAS}: é onde as regras próprias valem`);
+  }
+  return problemas;
+}
+
 function lerLinhasDoDisco(caminho) {
   try { return readFileSync(join(RAIZ, caminho), "utf8").split(/\r?\n/); } catch { return undefined; }
 }
 
-export function lerBaseline(raiz = RAIZ) {
-  return JSON.parse(readFileSync(join(raiz, ARQUIVO_DA_BASELINE), "utf8"));
+export function lerBaseline(raiz = RAIZ, arquivo = ARQUIVO_DA_BASELINE) {
+  return JSON.parse(readFileSync(join(raiz, arquivo), "utf8"));
 }
 
+const USO = "uso: node dc360/scripts/sast-baseline.mjs <conferir|propor> [--baseline <arquivo>] <saida-do-semgrep.json>";
+
 function principal(argv) {
-  const [modo, arquivoJson] = argv;
-  if (!["conferir", "propor"].includes(modo) || !arquivoJson) {
-    console.error("uso: node dc360/scripts/sast-baseline.mjs <conferir|propor> <saida-do-semgrep.json>");
+  const [modo, ...resto] = argv;
+  let arquivoDaBaseline = ARQUIVO_DA_BASELINE;
+  const posicionais = [];
+  for (let i = 0; i < resto.length; i++) {
+    if (resto[i] === "--baseline") {
+      arquivoDaBaseline = resto[++i];
+      if (!arquivoDaBaseline) { console.error(USO); return 2; }
+    } else posicionais.push(resto[i]);
+  }
+  const [arquivoJson] = posicionais;
+  if (!["conferir", "propor"].includes(modo) || !arquivoJson || posicionais.length !== 1) {
+    console.error(USO);
     return 2;
   }
   const json = JSON.parse(readFileSync(arquivoJson, "utf8"));
+  const semCobertura = problemasDeCobertura(json);
+  if (semCobertura.length) {
+    console.error("O Semgrep não provou que examinou o código; o portão reprova.");
+    for (const p of semCobertura) console.error(`  - ${p}`);
+    return 2;
+  }
   const { bloqueantes, avisos: errosFora } = classificarErrosDeAnalise(json.errors);
   for (const e of errosFora) console.log(`  erro de análise fora de ${PASTA_DAS_REGRAS_PROPRIAS} (não reprova): [${e.nivel}] ${e.tipo} em ${e.caminho}`);
   if (bloqueantes.length) {
@@ -181,8 +262,15 @@ function principal(argv) {
     return 0;
   }
 
-  const baseline = lerBaseline();
+  let baseline;
+  try {
+    baseline = lerBaseline(RAIZ, arquivoDaBaseline);
+  } catch (erro) {
+    console.error(`Não foi possível ler a baseline ${arquivoDaBaseline}: ${erro.message}`);
+    return 2;
+  }
   const hoje = hojeEmIso();
+  console.log(`Baseline: ${arquivoDaBaseline}; ${json.paths.scanned.length} arquivo(s) examinado(s).`);
   const dela = problemasDaBaseline(baseline, hoje);
   const { novos, casados, obsoletas } = compararComBaseline(achados, baseline);
   const novosErro = novos.filter((a) => a.severidade === "ERROR");

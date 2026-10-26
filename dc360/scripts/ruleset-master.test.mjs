@@ -65,9 +65,13 @@ function problemasDoRuleset(ruleset, nomesReais) {
   if ((ruleset.bypass_actors ?? []).length > 0) problemas.push("tem exceção (bypass_actors)");
 
   const regras = new Map((ruleset.rules ?? []).map((r) => [r.type, r]));
-  for (const tipo of ["deletion", "non_fast_forward", "required_linear_history"]) {
+  for (const tipo of ["deletion", "non_fast_forward"]) {
     if (!regras.has(tipo)) problemas.push(`falta a regra ${tipo}`);
   }
+  // Decisão do Rafael (H09, docs/roadmap-v2/28-execucao-e-validacao.md): o merge em master é
+  // commit de merge, nunca squash. Histórico linear só admite squash ou rebase, e ambos reescrevem
+  // os SHAs citados nos VEREDITOs; por isso a regra não pode existir.
+  if (regras.has("required_linear_history")) problemas.push("exige histórico linear (impede o commit de merge)");
 
   const pr = regras.get("pull_request")?.parameters;
   if (!pr) problemas.push("falta a regra pull_request");
@@ -75,7 +79,7 @@ function problemasDoRuleset(ruleset, nomesReais) {
     if (pr.required_approving_review_count !== 0) problemas.push("aprovações exigidas não são 0 (travaria quem contribui sozinho)");
     if (pr.require_code_owner_review !== false) problemas.push("exige revisão do dono do código (travaria quem contribui sozinho)");
     const metodos = pr.allowed_merge_methods ?? [];
-    if (metodos.length !== 1 || metodos[0] !== "squash") problemas.push("o merge não é só squash");
+    if (metodos.length !== 1 || metodos[0] !== "merge") problemas.push("o merge não é só commit de merge (nunca squash nem rebase)");
   }
 
   const checks = regras.get("required_status_checks")?.parameters;
@@ -124,25 +128,28 @@ test("sem exceção para ninguém, nem para administrador", () => {
   assert.deepEqual(ruleset.bypass_actors, []);
 });
 
-test("o merge é só por squash e a master não aceita force-push nem exclusão", () => {
+test("o merge é só por commit de merge (nunca squash) e a master não aceita force-push nem exclusão", () => {
   const tipos = ruleset.rules.map((r) => r.type);
   assert.ok(tipos.includes("non_fast_forward"));
   assert.ok(tipos.includes("deletion"));
-  assert.deepEqual(ruleset.rules.find((r) => r.type === "pull_request").parameters.allowed_merge_methods, ["squash"]);
+  assert.deepEqual(ruleset.rules.find((r) => r.type === "pull_request").parameters.allowed_merge_methods, ["merge"]);
+  assert.ok(!tipos.includes("required_linear_history"), "histórico linear impediria o commit de merge");
 });
 
-test("negativo: ruleset com exceção, check inventado, 2 métodos de merge e sem os checks novos é reprovado", () => {
+test("negativo: ruleset com exceção, check inventado, squash permitido, histórico linear e sem os checks novos é reprovado", () => {
   const estragado = structuredClone(ruleset);
   estragado.bypass_actors = [{ actor_id: 5, actor_type: "RepositoryRole", bypass_mode: "always" }];
   const pr = estragado.rules.find((r) => r.type === "pull_request").parameters;
   pr.allowed_merge_methods = ["squash", "merge"];
+  estragado.rules.push({ type: "required_linear_history" });
   pr.required_approving_review_count = 1;
   const checks = estragado.rules.find((r) => r.type === "required_status_checks").parameters;
   checks.required_status_checks = [{ context: "Testes, tipos e auditoria", integration_id: 15368 }];
   checks.strict_required_status_checks_policy = false;
   const problemas = problemasDoRuleset(estragado, nomesReais).join(" | ");
   assert.match(problemas, /bypass_actors/);
-  assert.match(problemas, /só squash/);
+  assert.match(problemas, /só commit de merge/);
+  assert.match(problemas, /histórico linear/);
   assert.match(problemas, /não são 0/);
   assert.match(problemas, /Testes, tipos e auditoria/);
   assert.match(problemas, /Varredura de segredos/);

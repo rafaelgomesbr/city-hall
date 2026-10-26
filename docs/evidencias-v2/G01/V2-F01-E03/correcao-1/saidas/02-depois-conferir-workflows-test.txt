@@ -1,0 +1,328 @@
+TAP version 13
+# Subtest: a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia)
+ok 1 - a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia)
+  ---
+  duration_ms: 3.1021
+  type: 'test'
+  ...
+# Subtest: todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target
+ok 2 - todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target
+  ---
+  duration_ms: 9.7092
+  type: 'test'
+  ...
+# Subtest: nenhum workflow declara escrita em permissions, a não ser a lista nomeada de jobs da E12
+ok 3 - nenhum workflow declara escrita em permissions, a não ser a lista nomeada de jobs da E12
+  ---
+  duration_ms: 3.3352
+  type: 'test'
+  ...
+# Subtest: os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master)
+ok 4 - os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master)
+  ---
+  duration_ms: 1.0592
+  type: 'test'
+  ...
+# Subtest: o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml
+ok 5 - o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml
+  ---
+  duration_ms: 1.8867
+  type: 'test'
+  ...
+# Subtest: cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas)
+ok 6 - cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas)
+  ---
+  duration_ms: 0.6427
+  type: 'test'
+  ...
+# Subtest: os navegadores do Playwright vêm de cache nos workflows que os instalam
+ok 7 - os navegadores do Playwright vêm de cache nos workflows que os instalam
+  ---
+  duration_ms: 1.0098
+  type: 'test'
+  ...
+# Subtest: o job aplicativo guarda o cache de npm dos DOIS lockfiles
+ok 8 - o job aplicativo guarda o cache de npm dos DOIS lockfiles
+  ---
+  duration_ms: 1.084
+  type: 'test'
+  ...
+# Subtest: todo comando do script `verificar` aparece em algum run: de algum workflow
+ok 9 - todo comando do script `verificar` aparece em algum run: de algum workflow
+  ---
+  duration_ms: 43.3346
+  type: 'test'
+  ...
+# Subtest: o script `verificar` ainda tem os nove comandos conhecidos (um comando novo exige este teste ciente)
+ok 10 - o script `verificar` ainda tem os nove comandos conhecidos (um comando novo exige este teste ciente)
+  ---
+  duration_ms: 0.6827
+  type: 'test'
+  ...
+# Subtest: o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide
+ok 11 - o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide
+  ---
+  duration_ms: 2.6355
+  type: 'test'
+  ...
+# Subtest: o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo
+ok 12 - o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo
+  ---
+  duration_ms: 1.674
+  type: 'test'
+  ...
+# Subtest: o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39)
+ok 13 - o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39)
+  ---
+  duration_ms: 1.153
+  type: 'test'
+  ...
+# Subtest: o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26)
+ok 14 - o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26)
+  ---
+  duration_ms: 1.3405
+  type: 'test'
+  ...
+# Subtest: o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14)
+ok 15 - o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14)
+  ---
+  duration_ms: 0.9316
+  type: 'test'
+  ...
+# Subtest: E12: o deploy de HML dispara só pelo Verificar verde de um push na master e implanta por digest
+ok 16 - E12: o deploy de HML dispara só pelo Verificar verde de um push na master e implanta por digest
+  ---
+  duration_ms: 20.9414
+  type: 'test'
+  ...
+# Subtest: E12: a promoção para PROD é só manual, valida o pedido, usa o ambiente producao e implanta por digest
+ok 17 - E12: a promoção para PROD é só manual, valida o pedido, usa o ambiente producao e implanta por digest
+  ---
+  duration_ms: 2.1496
+  type: 'test'
+  ...
+# Subtest: E12: HML migra o banco ANTES de implantar a API, com a cópia do E15, e só depois move o painel e põe o selo
+ok 18 - E12: HML migra o banco ANTES de implantar a API, com a cópia do E15, e só depois move o painel e põe o selo
+  ---
+  duration_ms: 1.0105
+  type: 'test'
+  ...
+# Subtest: E12: carimbo de versão e commit no build das duas imagens, e o /saude confere o que foi carimbado
+ok 19 - E12: carimbo de versão e commit no build das duas imagens, e o /saude confere o que foi carimbado
+  ---
+  duration_ms: 0.3592
+  type: 'test'
+  ...
+# Subtest: E12: o app de HML de cada fly*.toml é o que o workflow usa, e a promoção usa os de PROD
+ok 20 - E12: o app de HML de cada fly*.toml é o que o workflow usa, e a promoção usa os de PROD
+  ---
+  duration_ms: 155.5267
+  type: 'test'
+  ...
+# Subtest: E12: os segredos de cada workflow são só os esperados, cada um no seu ambiente, e HML e PROD não se misturam
+ok 21 - E12: os segredos de cada workflow são só os esperados, cada um no seu ambiente, e HML e PROD não se misturam
+  ---
+  duration_ms: 1.1535
+  type: 'test'
+  ...
+# Subtest: E12: o flyctl é o do release oficial, fixado por versão e SHA-256, igual nos dois workflows
+ok 22 - E12: o flyctl é o do release oficial, fixado por versão e SHA-256, igual nos dois workflows
+  ---
+  duration_ms: 1.0956
+  type: 'test'
+  ...
+# Subtest: E12: o vercel.json deixa de publicar a master, e o painel de PROD sai do ramo producao
+ok 23 - E12: o vercel.json deixa de publicar a master, e o painel de PROD sai do ramo producao
+  ---
+  duration_ms: 29.9996
+  type: 'test'
+  ...
+# Subtest: negativo: o workflow sintético correto passa (a base dos outros casos)
+ok 24 - negativo: o workflow sintético correto passa (a base dos outros casos)
+  ---
+  duration_ms: 0.3916
+  type: 'test'
+  ...
+# Subtest: negativo: uses por tag móvel reprova
+ok 25 - negativo: uses por tag móvel reprova
+  ---
+  duration_ms: 0.3226
+  type: 'test'
+  ...
+# Subtest: negativo: SHA sem a versão em comentário reprova
+ok 26 - negativo: SHA sem a versão em comentário reprova
+  ---
+  duration_ms: 0.1457
+  type: 'test'
+  ...
+# Subtest: negativo: job sem timeout-minutes reprova
+ok 27 - negativo: job sem timeout-minutes reprova
+  ---
+  duration_ms: 0.191
+  type: 'test'
+  ...
+# Subtest: negativo: workflow sem permissions reprova, e com escrita no topo também
+ok 28 - negativo: workflow sem permissions reprova, e com escrita no topo também
+  ---
+  duration_ms: 0.3896
+  type: 'test'
+  ...
+# Subtest: negativo: pull_request_target reprova, mas citado só em comentário não
+ok 29 - negativo: pull_request_target reprova, mas citado só em comentário não
+  ---
+  duration_ms: 0.2178
+  type: 'test'
+  ...
+# Subtest: negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também
+ok 30 - negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também
+  ---
+  duration_ms: 0.3896
+  type: 'test'
+  ...
+# Subtest: negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta)
+ok 31 - negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta)
+  ---
+  duration_ms: 73.1566
+  type: 'test'
+  ...
+# Subtest: negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test`
+ok 32 - negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test`
+  ---
+  duration_ms: 142.6407
+  type: 'test'
+  ...
+# Subtest: negativo: comando só IMPRESSO (echo, printf, texto entre aspas) não é comando executado (correção 1 da F01, E03)
+ok 33 - negativo: comando só IMPRESSO (echo, printf, texto entre aspas) não é comando executado (correção 1 da F01, E03)
+  ---
+  duration_ms: 0.7674
+  type: 'test'
+  ...
+# Subtest: o comando executado é aceito em todas as formas reais de `run:` (início de linha, encadeado, com variável, em laço)
+ok 34 - o comando executado é aceito em todas as formas reais de `run:` (início de linha, encadeado, com variável, em laço)
+  ---
+  duration_ms: 0.3794
+  type: 'test'
+  ...
+# Subtest: negativo: `npm audit` que decide reprova, o de evidência com `|| true` não
+ok 35 - negativo: `npm audit` que decide reprova, o de evidência com `|| true` não
+  ---
+  duration_ms: 0.1711
+  type: 'test'
+  ...
+# Subtest: negativo: comando que só aparece em comentário ou em name: não conta como run:
+ok 36 - negativo: comando que só aparece em comentário ou em name: não conta como run:
+  ---
+  duration_ms: 0.2482
+  type: 'test'
+  ...
+# Subtest: o leitor de run: entende bloco, inline e para no recuo certo
+ok 37 - o leitor de run: entende bloco, inline e para no recuo certo
+  ---
+  duration_ms: 0.1476
+  type: 'test'
+  ...
+# Subtest: negativo E12: gatilho de HML que não espera o CI (push) ou aceita outro ramo reprova
+ok 38 - negativo E12: gatilho de HML que não espera o CI (push) ou aceita outro ramo reprova
+  ---
+  duration_ms: 3.2323
+  type: 'test'
+  ...
+# Subtest: negativo E12: tirar uma trava do if (CI verde, push, master, mesmo repositório) reprova
+ok 39 - negativo E12: tirar uma trava do if (CI verde, push, master, mesmo repositório) reprova
+  ---
+  duration_ms: 15.2519
+  type: 'test'
+  ...
+# Subtest: negativo E12: checkout da ponta do ramo, em vez do commit que o CI aprovou, reprova
+ok 40 - negativo E12: checkout da ponta do ramo, em vez do commit que o CI aprovou, reprova
+  ---
+  duration_ms: 1.5346
+  type: 'test'
+  ...
+# Subtest: negativo E12: deploy sem imagem por digest (reconstruiria no Fly), sem -a ou sem /saude reprova
+ok 41 - negativo E12: deploy sem imagem por digest (reconstruiria no Fly), sem -a ou sem /saude reprova
+  ---
+  duration_ms: 4.4601
+  type: 'test'
+  ...
+# Subtest: negativo E12: o deploy de HML com o fly.toml, o ambiente ou o banco de PROD reprova
+ok 42 - negativo E12: o deploy de HML com o fly.toml, o ambiente ou o banco de PROD reprova
+  ---
+  duration_ms: 4.3726
+  type: 'test'
+  ...
+# Subtest: autorização E12: token de deploy fora de ambiente protegido, token trocado ou vazado em log reprova
+ok 43 - autorização E12: token de deploy fora de ambiente protegido, token trocado ou vazado em log reprova
+  ---
+  duration_ms: 5.9256
+  type: 'test'
+  ...
+# Subtest: negativo E12: a promoção que aceita push, schedule ou perde uma entrada reprova (PROD só por workflow_dispatch)
+ok 44 - negativo E12: a promoção que aceita push, schedule ou perde uma entrada reprova (PROD só por workflow_dispatch)
+  ---
+  duration_ms: 4.4526
+  type: 'test'
+  ...
+# Subtest: autorização E12: a promoção sem ambiente producao, sem validar ou fora da master reprova
+ok 45 - autorização E12: a promoção sem ambiente producao, sem validar ou fora da master reprova
+  ---
+  duration_ms: 4.3718
+  type: 'test'
+  ...
+# Subtest: negativo E12: promoção que dispensa o selo de HML, a tag ou a confirmação digitada reprova
+ok 46 - negativo E12: promoção que dispensa o selo de HML, a tag ou a confirmação digitada reprova
+  ---
+  duration_ms: 20.9814
+  type: 'test'
+  ...
+# Subtest: negativo E12: a promoção que migra o banco de PROD em CI, usa HML ou cria tag reprova
+ok 47 - negativo E12: a promoção que migra o banco de PROD em CI, usa HML ou cria tag reprova
+  ---
+  duration_ms: 6.5073
+  type: 'test'
+  ...
+# Subtest: negativo E12: promover o painel antes de conferir o console, ou implantar o console antes da API, reprova
+ok 48 - negativo E12: promover o painel antes de conferir o console, ou implantar o console antes da API, reprova
+  ---
+  duration_ms: 3.4229
+  type: 'test'
+  ...
+# Subtest: negativo E12: escrita fora da lista (permissão a mais, ou a mesma em outro job) reprova
+ok 49 - negativo E12: escrita fora da lista (permissão a mais, ou a mesma em outro job) reprova
+  ---
+  duration_ms: 0.8006
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml para o SHA, ou só pela tag, reprova
+ok 50 - negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml para o SHA, ou só pela tag, reprova
+  ---
+  duration_ms: 6.1285
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): selo hml-ok com digest diferente do construído reprova
+ok 51 - negativo E12 (revisão 1): selo hml-ok com digest diferente do construído reprova
+  ---
+  duration_ms: 2.8423
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): promoção sem verificar a atestação assinada pelo deploy-hml.yml reprova
+ok 52 - negativo E12 (revisão 1): promoção sem verificar a atestação assinada pelo deploy-hml.yml reprova
+  ---
+  duration_ms: 3.2964
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada imagem, ou sem id-token e attestations, reprova
+ok 53 - negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada imagem, ou sem id-token e attestations, reprova
+  ---
+  duration_ms: 5.4351
+  type: 'test'
+  ...
+1..53
+# tests 53
+# suites 0
+# pass 53
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1378.4136

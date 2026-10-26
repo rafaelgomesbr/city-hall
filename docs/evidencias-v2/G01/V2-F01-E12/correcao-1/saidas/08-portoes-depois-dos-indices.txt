@@ -1,0 +1,14 @@
+Depois de acrescentar aos INDEX.md da E10, E12, E15 e E16 as linhas da
+correcao-1 (só acréscimo; nenhuma linha antiga mudou), no mesmo Windows:
+
+test-scripts: codigo 0 (57 s): env CI=true npm run test:scripts
+  # tests 864
+  # pass 841
+  # fail 0
+  # skipped 23
+indices: codigo 0 (8 s): node dc360/scripts/conferir-indices-de-evidencia.mjs
+  Índices de evidência: 139 INDEX.md, 5641 arquivo(s) conferido(s) byte a byte.
+  RESULTADO: OK
+
+(Este arquivo entrou no índice da E12 depois desta rodada; a conferência dos
+índices foi repetida com ele dentro antes do commit.)

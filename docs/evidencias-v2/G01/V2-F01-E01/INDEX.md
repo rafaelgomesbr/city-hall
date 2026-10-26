@@ -17,3 +17,7 @@
 | correcao-revisao-1/saidas/01-teste-da-area.txt | 2883ad23865e5be197369944713e22591e6ff435857000f69d9295e7049e75a3 |
 | correcao-revisao-1/saidas/02-test-scripts.txt | ec1f3e6da60f460904abaebdfbf28b42ff8012351e19f6982de296eb054695a5 |
 | correcao-revisao-1/saidas/03-lint-teto-formato-numeros.txt | 79b4ccc1cece6019330974e979844b84e77eaa73cacd1d3b4ba72d00316e88a3 |
+| correcao-1/RESUMO.md | 2431b4a708668cfdd61f6f6f97bdf20c57d11fd7c0c9b37859c56e18e2c65157 |
+| correcao-1/saidas/01-antes-ruleset-master-test.txt | bce40e798e669158cb8f73604d1f0e35881ca686cd0638d665b4087f6e80a2b0 |
+| correcao-1/saidas/02-depois-ruleset-master-test.txt | 6638f6927f9895990e7d25a839e2896caeb1555366bfb0b32fd33488edc7d03c |
+| correcao-1/saidas/03-ruleset-master-depois.json | aad02e113c1a6dd3bcef927bb52a45b987b75baaa802d1086d4ad89e67f99434 |

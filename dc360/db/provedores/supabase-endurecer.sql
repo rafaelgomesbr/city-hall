@@ -145,6 +145,10 @@ END $$;
 --     relação, sequência e função QUE PERTENCE À EXTENSÃO (achadas por
 --     `pg_depend`, nunca por "tudo no schema", que atingiria `pgcrypto` e
 --     companhia, de que o próprio Supabase depende);
+--   - revoga também de qualquer papel INTERMEDIÁRIO que tenha concessão direta
+--     no objeto e de que um dos três seja membro (herança): sem isso a porta
+--     continuaria aberta por associação de papéis (correção 1 da F01). Poupa o
+--     dono do objeto, o papel de setup e `dc360_app`;
 --   - devolve a `dc360_app` o mínimo para a aplicação consultar: USAGE no
 --     schema da extensão, SELECT em `spatial_ref_sys` e EXECUTE nas funções.
 --
@@ -163,6 +167,7 @@ DO $$
 DECLARE
   esquema    text;
   obj        record;
+  interm     record;
   papel      text;
   falhas     integer := 0;
   tem_app    boolean := EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'dc360_app');
@@ -194,7 +199,14 @@ BEGIN
              ELSE format('ROUTINE %s', pr.oid::regprocedure)
            END AS alvo,
            (d.classid = 'pg_proc'::regclass) AS e_funcao,
-           (c.relname = 'spatial_ref_sys') AS e_srs
+           (c.relname = 'spatial_ref_sys') AS e_srs,
+           CASE
+             WHEN d.classid = 'pg_proc'::regclass THEN
+               coalesce(pr.proacl, acldefault('f'::"char", pr.proowner))
+             ELSE
+               coalesce(c.relacl, acldefault((CASE c.relkind WHEN 'S' THEN 's' ELSE 'r' END)::"char", c.relowner))
+           END AS acl,
+           CASE WHEN d.classid = 'pg_proc'::regclass THEN pr.proowner ELSE c.relowner END AS dono
     FROM pg_depend d
     JOIN pg_extension e ON e.oid = d.refobjid
     LEFT JOIN pg_class c ON d.classid = 'pg_class'::regclass AND c.oid = d.objid
@@ -209,6 +221,20 @@ BEGIN
       EXECUTE format('REVOKE ALL ON %s FROM PUBLIC', obj.alvo);
       FOREACH papel IN ARRAY fechados LOOP
         EXECUTE format('REVOKE ALL ON %s FROM %I', obj.alvo, papel);
+      END LOOP;
+      -- Concessão intermediária: um papel que NÃO é dos três, mas de que um
+      -- deles é membro e herda. Revogar só dos três deixaria a porta aberta por
+      -- herança (a conferência vê o privilégio efetivo e reprovaria). Poupa o
+      -- dono do objeto, o papel de setup e `dc360_app`.
+      FOR interm IN
+        SELECT DISTINCT pg_get_userbyid(a.grantee) AS nome
+        FROM aclexplode(obj.acl) a
+        WHERE a.grantee <> 0
+          AND a.grantee <> obj.dono
+          AND pg_get_userbyid(a.grantee) <> ALL (fechados || ARRAY['dc360_app', current_user::text])
+          AND EXISTS (SELECT 1 FROM unnest(fechados) f WHERE pg_has_role(f, a.grantee, 'USAGE'))
+      LOOP
+        EXECUTE format('REVOKE ALL ON %s FROM %I', obj.alvo, interm.nome);
       END LOOP;
       IF tem_app AND obj.e_funcao THEN
         EXECUTE format('GRANT EXECUTE ON %s TO dc360_app', obj.alvo);

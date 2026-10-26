@@ -19,10 +19,14 @@ import {
   CONSULTAS,
   ESQUEMA_PADRAO,
   PAPEIS_DO_PROVEDOR,
+  PRIVILEGIOS_DE_SEQUENCIA,
+  PRIVILEGIOS_DE_TABELA,
+  PRIVILEGIO_DE_CRIACAO,
   avaliarExtensoes,
   coletarFatos,
   executarExtensoes,
   lerArgumentosDeExtensoes,
+  urlParaConferencia,
 } from "./conferir-extensoes.mjs";
 import { lerArgumentos } from "./conferir-ambiente.mjs";
 
@@ -35,6 +39,7 @@ const SQL_ENDURECER = fileURLToPath(
 const saudavel = () => ({
   disponivel: { versaoPadrao: "3.5.2", versaoInstalada: "3.5.2" },
   instalada: { esquema: "extensions", versao: "3.5.2" },
+  criacao: { superusuario: false, donoDoBanco: true, criaNoBanco: true, confiavel: true },
   exposicao: [],
   aplicacao: {
     existe: true,
@@ -158,7 +163,8 @@ test("coletarFatos monta os fatos das linhas e não consulta o resto sem instala
   const fatos = await coletarFatos(consultar);
   assert.deepEqual(fatos.disponivel, { versaoPadrao: "3.5.2", versaoInstalada: null });
   assert.equal(fatos.instalada, null);
-  assert.deepEqual(chamadas, [CONSULTAS.disponivel, CONSULTAS.instalada]);
+  // Disponível e não instalada: também pergunta se o papel de setup consegue criar.
+  assert.deepEqual(chamadas, [CONSULTAS.disponivel, CONSULTAS.instalada, CONSULTAS.criacao]);
 });
 
 test("coletarFatos com a extensão instalada passa os papéis do provedor e o schema reais", async () => {
@@ -173,7 +179,11 @@ test("coletarFatos com a extensão instalada passa os papéis do provedor e o sc
     return [{ existe: true, uso_no_esquema: true, select_srs: true, funcoes_sem_execute: 0 }];
   };
   const fatos = await coletarFatos(consultar);
-  assert.deepEqual(recebidos[CONSULTAS.exposicao], [PAPEIS_DO_PROVEDOR]);
+  assert.deepEqual(recebidos[CONSULTAS.exposicao], [
+    PAPEIS_DO_PROVEDOR,
+    PRIVILEGIOS_DE_TABELA,
+    PRIVILEGIOS_DE_SEQUENCIA,
+  ]);
   assert.deepEqual(recebidos[CONSULTAS.aplicacao], ["extensions", "dc360_app"]);
   assert.equal(fatos.exposicao[0].papel, "anon");
   assert.equal(avaliarExtensoes(fatos).problemas.length, 1);
@@ -242,7 +252,11 @@ test("o comando: fatos saudáveis saem com 0; anon exposto sai com 1 e nomeia o 
 });
 
 test("o comando: PROD com a extensão só disponível confere com 0", () => {
-  const fatos = { disponivel: { versaoPadrao: "3.5.2", versaoInstalada: null }, instalada: null };
+  const fatos = {
+    disponivel: { versaoPadrao: "3.5.2", versaoInstalada: null },
+    instalada: null,
+    criacao: { superusuario: false, donoDoBanco: true, criaNoBanco: true, confiavel: true },
+  };
   const r = rodarComFatos(fatos, ["--ambiente=prod"]);
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /aviso: .*F32/);
@@ -350,4 +364,238 @@ test("a coleta funciona com um papel sem USAGE no schema da extensão (o papel d
   } finally {
     await db.close();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Correção 1 da F01 (E22): disponível não é criável.
+// ---------------------------------------------------------------------------
+
+const semInstalar = (criacao) => ({
+  disponivel: { versaoPadrao: "3.5.2", versaoInstalada: null },
+  instalada: null,
+  criacao,
+  exposicao: [],
+  aplicacao: null,
+});
+
+test("PROD com PostGIS disponível e não instalado, e papel de setup SEM poder criar, reprova (o verde falso achado na revisão)", () => {
+  const fatos = semInstalar({
+    superusuario: false,
+    donoDoBanco: false,
+    criaNoBanco: false,
+    confiavel: false,
+  });
+  const prod = avaliarExtensoes(fatos, { ambiente: "prod" });
+  assert.equal(prod.problemas.length, 1);
+  assert.match(prod.problemas[0], /papel de setup não pode criar a extensão.*CREATE.*CP-44/);
+  // Em HML a falta de privilégio soma-se ao "não está instalado".
+  assert.equal(avaliarExtensoes(fatos, { ambiente: "hml" }).problemas.length, 2);
+});
+
+test("PROD com CREATE no banco passa, mas avisa quando não é superusuário e a extensão não é confiável (só o CP-44 confirma)", () => {
+  const r = avaliarExtensoes(
+    semInstalar({ superusuario: false, donoDoBanco: false, criaNoBanco: true, confiavel: false }),
+    { ambiente: "prod" },
+  );
+  assert.deepEqual(r.problemas, []);
+  assert.ok(r.avisos.some((a) => /não é superusuário.*não é extensão confiável.*CP-44/.test(a)));
+});
+
+test("PROD com superusuário, ou com CREATE no banco e extensão confiável, passa sem aviso de privilégio", () => {
+  for (const criacao of [
+    { superusuario: true, donoDoBanco: false, criaNoBanco: true, confiavel: false },
+    { superusuario: false, donoDoBanco: true, criaNoBanco: true, confiavel: true },
+  ]) {
+    const r = avaliarExtensoes(semInstalar(criacao), { ambiente: "prod" });
+    assert.deepEqual(r.problemas, []);
+    assert.ok(r.linhas.some((l) => /pode criar a extensão/.test(l)));
+    assert.ok(!r.avisos.some((a) => /confiável/.test(a)));
+  }
+});
+
+test("fatos de PROD sem a capacidade de criar não são aprovados em silêncio", () => {
+  const r = avaliarExtensoes(semInstalar(null), { ambiente: "prod" });
+  assert.equal(r.problemas.length, 1);
+  assert.match(r.problemas[0], /não consegui conferir se o papel de setup pode criar/);
+});
+
+test("coletarFatos pergunta a capacidade de criar com o privilégio CREATE como parâmetro e monta os fatos", async () => {
+  const recebidos = {};
+  const consultar = async (sql, parametros) => {
+    recebidos[sql] = parametros;
+    if (sql === CONSULTAS.disponivel)
+      return [{ default_version: "3.5.2", installed_version: null }];
+    if (sql === CONSULTAS.criacao)
+      return [{ superusuario: false, dono_do_banco: false, cria_no_banco: true, confiavel: false }];
+    return [];
+  };
+  const fatos = await coletarFatos(consultar);
+  assert.deepEqual(recebidos[CONSULTAS.criacao], [PRIVILEGIO_DE_CRIACAO]);
+  assert.equal(PRIVILEGIO_DE_CRIACAO, "CREATE");
+  assert.deepEqual(fatos.criacao, {
+    superusuario: false,
+    donoDoBanco: false,
+    criaNoBanco: true,
+    confiavel: false,
+  });
+});
+
+test("a consulta de capacidade responde num Postgres real (PGlite): superusuário, dono e CREATE no banco", async () => {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const db = new PGlite();
+  try {
+    const [c] = (await db.query(CONSULTAS.criacao, [PRIVILEGIO_DE_CRIACAO])).rows;
+    assert.equal(c.superusuario, true);
+    assert.equal(c.cria_no_banco, true);
+    assert.equal(c.dono_do_banco, true);
+    assert.equal(typeof c.confiavel, "boolean");
+    // Um papel comum, sem CREATE no banco: a consulta diz que não pode.
+    const banco = (await db.query("SELECT current_database() AS nome")).rows[0].nome;
+    assert.match(banco, /^[a-z0-9_]+$/, "nome de banco simples, seguro de interpolar no teste");
+    await db.exec(`
+      CREATE ROLE sem_poder NOLOGIN;
+      REVOKE CREATE ON DATABASE ${banco} FROM PUBLIC;
+      SET ROLE sem_poder;`);
+    const [d] = (await db.query(CONSULTAS.criacao, [PRIVILEGIO_DE_CRIACAO])).rows;
+    assert.equal(d.superusuario, false);
+    assert.equal(d.cria_no_banco, false);
+    assert.equal(d.dono_do_banco, false);
+    // Com CREATE concedido no banco, passa a poder.
+    await db.exec(`RESET ROLE; GRANT CREATE ON DATABASE ${banco} TO sem_poder; SET ROLE sem_poder`);
+    const [e] = (await db.query(CONSULTAS.criacao, [PRIVILEGIO_DE_CRIACAO])).rows;
+    assert.equal(e.cria_no_banco, true);
+  } finally {
+    await db.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Correção 1 da F01 (E22): privilégio herdado por associação de papéis.
+// ---------------------------------------------------------------------------
+
+test("privilégio herdado por papel intermediário: a consulta vê o anon e o endurecimento tira a concessão intermediária", async () => {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { pg_trgm } = await import("@electric-sql/pglite/contrib/pg_trgm");
+  const trocar = (sql) => sql.replaceAll("'postgis'", "'pg_trgm'");
+  const db = new PGlite({ extensions: { pg_trgm } });
+  try {
+    await db.exec(`
+      CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
+      CREATE ROLE service_role NOLOGIN; CREATE ROLE dc360_app NOLOGIN;
+      CREATE ROLE intermediario NOLOGIN;
+      CREATE SCHEMA extensions;
+      CREATE EXTENSION pg_trgm WITH SCHEMA extensions;
+      -- PUBLIC fora; só o papel intermediário executa, e anon é membro dele.
+      REVOKE ALL ON ALL FUNCTIONS IN SCHEMA extensions FROM PUBLIC;
+      GRANT EXECUTE ON FUNCTION extensions.similarity(text, text) TO intermediario;
+      GRANT intermediario TO anon;`);
+    const consultar = async (sql, parametros) => (await db.query(trocar(sql), parametros)).rows;
+
+    // A leitura só da ACL (a consulta de antes) não via nada: o grantee é o intermediário.
+    const daAcl = await db.query(
+      `SELECT pg_get_userbyid(a.grantee) AS papel
+         FROM pg_proc p, LATERAL aclexplode(p.proacl) a
+        WHERE p.oid = 'extensions.similarity(text, text)'::regprocedure
+          AND pg_get_userbyid(a.grantee) = ANY ($1::text[])`,
+      [PAPEIS_DO_PROVEDOR],
+    );
+    assert.deepEqual(daAcl.rows, [], "premissa: nenhum dos três está na ACL");
+
+    const antes = await coletarFatos(consultar);
+    assert.deepEqual(
+      antes.exposicao.map((e) => e.papel),
+      ["anon"],
+      "o privilégio efetivo pega a herança",
+    );
+    assert.match(avaliarExtensoes(antes).problemas.join("\n"), /anon tem privilégio em 1 objeto/);
+
+    await db.exec(trocar(readFileSync(SQL_ENDURECER, "utf8")));
+    const depois = await coletarFatos(consultar);
+    assert.deepEqual(depois.exposicao, []);
+    const intermediario = await db.query(
+      `SELECT has_function_privilege('intermediario', 'extensions.similarity(text, text)'::regprocedure, 'EXECUTE') AS ok`,
+    );
+    assert.equal(intermediario.rows[0].ok, false, "a concessão intermediária foi revogada");
+    const app = await db.query(
+      `SELECT has_function_privilege('dc360_app', 'extensions.similarity(text, text)'::regprocedure, 'EXECUTE') AS ok`,
+    );
+    assert.equal(app.rows[0].ok, true, "dc360_app segue com o mínimo");
+  } finally {
+    await db.close();
+  }
+});
+
+test("a consulta de exposição não repete como concessão própria o que só PUBLIC concede", async () => {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { pg_trgm } = await import("@electric-sql/pglite/contrib/pg_trgm");
+  const trocar = (sql) => sql.replaceAll("'postgis'", "'pg_trgm'");
+  const db = new PGlite({ extensions: { pg_trgm } });
+  try {
+    await db.exec(`
+      CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;
+      CREATE SCHEMA extensions;
+      CREATE EXTENSION pg_trgm WITH SCHEMA extensions;`);
+    const consultar = async (sql, parametros) => (await db.query(trocar(sql), parametros)).rows;
+    const fatos = await coletarFatos(consultar);
+    assert.deepEqual(
+      fatos.exposicao.map((e) => e.papel),
+      ["PUBLIC"],
+      "só PUBLIC aparece; anon herda de PUBLIC e não ganha linha repetida",
+    );
+  } finally {
+    await db.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Correção 1 da F01 (E22): a âncora TLS do migrador.
+// ---------------------------------------------------------------------------
+
+test("a URL de conferência recebe a âncora de confiança do migrador: verify-full sem sslrootcert ganha a raiz do provedor", async () => {
+  const sem = "postgres://setup:segredo@db.exemplo.supabase.co:5432/postgres?sslmode=verify-full";
+  const com = await urlParaConferencia(sem);
+  assert.match(com, /sslrootcert=/);
+  assert.match(decodeURIComponent(com), /supabase-prod-ca-2021\.crt/);
+  // O resto da URL fica como estava.
+  const antes = new URL(sem);
+  const depois = new URL(com);
+  assert.equal(depois.host, antes.host);
+  assert.equal(depois.password, antes.password);
+  assert.equal(depois.searchParams.get("sslmode"), "verify-full");
+});
+
+test("a âncora não mexe no que não deve: sem sslmode que verifica, ou com sslrootcert já escrito", async () => {
+  const semModo = "postgres://u:p@127.0.0.1:5432/banco";
+  assert.equal(await urlParaConferencia(semModo), semModo);
+  const comRaiz = "postgres://u:p@h:5432/b?sslmode=verify-full&sslrootcert=/outra/raiz.crt";
+  assert.equal(await urlParaConferencia(comRaiz), comRaiz);
+  const frouxo = "postgres://u:p@h:5432/b?sslmode=disable";
+  assert.equal(await urlParaConferencia(frouxo), frouxo);
+});
+
+test("a conferência usa a MESMA função do migrador, e não uma cópia", async () => {
+  const doMigrador = await import("../db/dist/conexao.js");
+  assert.equal(typeof doMigrador.urlComAncoraDeConfianca, "function");
+  // O carregador padrão entrega a função do próprio migrador.
+  const url = "postgres://u:p@h/b?sslmode=require";
+  assert.equal(await urlParaConferencia(url), doMigrador.urlComAncoraDeConfianca(url));
+  // E a conexão de verdade passa a URL por ela.
+  const fonte = readFileSync(
+    fileURLToPath(new URL("./conferir-extensoes.mjs", import.meta.url)),
+    "utf8",
+  );
+  assert.match(fonte, /import\("\.\.\/db\/dist\/conexao\.js"\)/);
+  assert.match(fonte, /connectionString: await urlParaConferencia\(url\)/);
+  assert.doesNotMatch(fonte, /new pg\.Client\(\{ connectionString: url \}\)/);
+});
+
+test("sem a compilação do migrador, a conferência recusa com a instrução em vez de conectar sem âncora", async () => {
+  await assert.rejects(
+    urlParaConferencia("postgres://u:p@h/b?sslmode=verify-full", async () => {
+      throw new Error(
+        "a âncora de confiança do migrador não está compilada: rode `npm run build:shared` em dc360",
+      );
+    }),
+    /build:shared/,
+  );
 });
