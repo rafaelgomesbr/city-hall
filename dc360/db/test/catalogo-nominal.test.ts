@@ -754,6 +754,15 @@ describe("sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão", () => 
 
 describe("sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos", () => {
   const reais = fontesDoRepositorio();
+  /*
+    Número de migração que NUNCA existe: a última real mais 900, calculado. Era a
+    literal "053", que a parte 1A (E04) passou a ocupar; as etapas da F03 trazem a
+    053 a 066, e uma literal futura colidiria com a migração de verdade.
+  */
+  const INEXISTENTE = String(Math.max(...[...reais.migracoes.keys()].map(Number)) + 900).padStart(
+    3,
+    "0",
+  );
   const comMigracao = (numero: string, texto: string): FontesDoCatalogo => ({
     migracoes: new Map([...reais.migracoes, [numero, texto]]),
     ler: reais.ler,
@@ -764,15 +773,19 @@ describe("sonda 10 (S5a): a origem declarada de cada função é conferida contr
   ];
 
   it("S5a: redefinir com uma migração que não existe reprova", () => {
-    expect(conferirFontes(comS5a("053"), reais).join("\n")).toMatch(
-      /public\.trocar_senha\(uuid,text,uuid\) \(V2-F03-E04\): a migração 053 não existe/,
+    expect(conferirFontes(comS5a(INEXISTENTE), reais).join("\n")).toMatch(
+      new RegExp(
+        `public\\.trocar_senha\\(uuid,text,uuid\\) \\(V2-F03-E04\\): a migração ${INEXISTENTE} não existe`,
+      ),
     );
   });
 
   it("S5a: redefinir com uma migração que não recria a função reprova", () => {
-    const fontes = comMigracao("053", "CREATE TABLE qualquer (id integer);");
-    expect(conferirFontes(comS5a("053"), fontes).join("\n")).toMatch(
-      /redefine, mas a migração 053 não tem CREATE OR REPLACE FUNCTION trocar_senha/,
+    const fontes = comMigracao(INEXISTENTE, "CREATE TABLE qualquer (id integer);");
+    expect(conferirFontes(comS5a(INEXISTENTE), fontes).join("\n")).toMatch(
+      new RegExp(
+        `redefine, mas a migração ${INEXISTENTE} não tem CREATE OR REPLACE FUNCTION trocar_senha`,
+      ),
     );
   });
 
@@ -784,20 +797,20 @@ describe("sonda 10 (S5a): a origem declarada de cada função é conferida contr
 
   it("com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)", () => {
     const fontes = comMigracao(
-      "053",
+      INEXISTENTE,
       "CREATE OR REPLACE FUNCTION trocar_senha(p_usuario_id uuid, p_senha_hash text, p_sessao_preservada uuid) RETURNS void LANGUAGE sql AS $$ SELECT 1 $$;",
     );
-    expect(conferirFontes(comS5a("053"), fontes)).toEqual([]);
+    expect(conferirFontes(comS5a(INEXISTENTE), fontes)).toEqual([]);
   });
 
   it("uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova", () => {
     const fontes = comMigracao(
-      "053",
+      INEXISTENTE,
       "-- comentário: CREATE FUNCTION dono_do_token( não conta\nCREATE OR REPLACE FUNCTION public.sessao_por_token(p text) RETURNS void LANGUAGE sql AS $$ SELECT 1 $$;",
     );
     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontes)).toEqual([
       "public.sessao_por_token(text): o catálogo diz que a forma atual vem da migração 046, mas a " +
-        "última que cria a função é a 053. A etapa que a recriou declara a entrada nova no arquivo " +
+        `última que cria a função é a ${INEXISTENTE}. A etapa que a recriou declara a entrada nova no arquivo ` +
         "dela, com redefine: true.",
     ]);
   });
