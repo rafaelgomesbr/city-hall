@@ -1,0 +1,16 @@
+== pasta com concessao explicita herdavel ao grupo Usuarios (S-1-5-32-545), antes do roteiro ==
+<TEMP>\dc360-sonda-acl-VS7KDw\prod BUILTIN\Usuarios:(OI)(CI)(R)
+== o roteiro RECUSOU antes de gravar qualquer byte ==
+A ACL de <TEMP>\dc360-sonda-acl-VS7KDw\prod tem acesso além do seu usuário (<MAQUINA>\<OPERADOR>):
+  BUILTIN\Usuarios:(OI)(CI)(R)
+Recuso gravar a cópia: o dump traz dado de cidadão, e essas entradas o deixariam legível
+por outra pessoa desta máquina enquanto o pg_dump escreve. Tire cada uma e rode de novo:
+  icacls "<TEMP>\dc360-sonda-acl-VS7KDw\prod" /remove:g "BUILTIN\Usuarios"
+(Se um nome aparecer com acento trocado, a página de código do console o estragou: rode
+icacls "<TEMP>\dc360-sonda-acl-VS7KDw\prod" num PowerShell para ver o nome certo.)
+arquivo do dump existe? false
+== pasta limpa: aceito; DACL do arquivo vazio, antes do pg_dump ==
+<TEMP>\dc360-sonda-acl-VS7KDw\limpa\sonda.dump <MAQUINA>\<OPERADOR>:(F)
+
+Successfully processed 1 files; Failed processing 0 files
+

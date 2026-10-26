@@ -37,8 +37,13 @@
  * `~/dc360-copias/<ambiente>/<data>.dump`, fora do repositório. Cada ambiente
  * tem a sua subpasta: a cópia de HML nunca vale como cópia de PROD para o
  * portão do migrador. Permissão só de quem rodou: 0600 no macOS e no Linux; no
- * Windows, ACL por `icacls` só para o usuário, e se a ACL não puder ser
- * aplicada o roteiro RECUSA gravar (apaga o que gravou e sai com erro).
+ * Windows, ACL por `icacls` só para o usuário. Desde a correção 1 da F01 o
+ * arquivo nasce VAZIO, é restringido e a permissão que o disco devolve é LIDA
+ * e conferida (no Windows, a DACL inteira: só o operador e o SYSTEM) antes de
+ * o `pg_dump` escrever o primeiro byte, e de novo depois. Se a ACL não puder
+ * ser aplicada ou sobrar qualquer outra entrada, o roteiro RECUSA gravar
+ * (apaga o que gravou e sai com erro). No fim, imprime o comando exato que
+ * apaga a cópia.
  *
  * O dump traz DADO REAL DE CIDADÃO em PROD (`ocorrencias` guarda endereço,
  * coordenada, nome e contato do solicitante, descrição de vulnerabilidade). Em
@@ -76,7 +81,7 @@
  * e a senha em `DC360_SENHA_BANCO_HML`, antes de migrar.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { chmodSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, posix, resolve, sep, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -188,8 +193,8 @@ export function clienteServe(versaoDoCliente, versaoMaiorDoServidor = VERSAO_MAI
 }
 
 /**
- * Onde procurar o `pg_dump` em cada sistema, em ordem. O primeiro que responder
- * `--version` com uma versão legível vence (e a versão é conferida depois).
+ * Onde procurar o `pg_dump` em cada sistema, em ordem. Vence o primeiro que
+ * responder `--version` com uma versão que SERVE (ver `localizarPgDump`).
  *
  * Os caminhos são montados com `posix` ou `win32` explícitos, e não com o
  * `path` do sistema em que o teste roda: assim "como é no Windows" se prova em
@@ -222,23 +227,33 @@ export function candidatosDePgDump({ plataforma = process.platform, env = proces
  * Acha o `pg_dump`: no PATH, ou nos lugares padrão do sistema para quem
  * instalou e não mexeu no PATH (o Homebrew, por exemplo, não linka o `libpq`,
  * de propósito).
+ *
+ * Vence o primeiro candidato, na ordem de `candidatosDePgDump`, cuja versão
+ * SERVE (`versaoMinima` ou mais nova). Até a correção 1 da F01 vencia o
+ * primeiro com versão LEGÍVEL: um 16 no PATH escondia o 17 instalado em
+ * Program Files, e o roteiro recusava mesmo havendo cliente que serve. Sem
+ * nenhum que sirva, devolve o primeiro legível, para a recusa dizer o que achou.
  */
 export function localizarPgDump({
   plataforma = process.platform,
   env = process.env,
   candidatos = candidatosDePgDump({ plataforma, env }),
+  versaoMinima = VERSAO_MAIOR_DO_SERVIDOR,
   executar = (caminho) => execFileSync(caminho, ["--version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }),
 } = {}) {
+  let primeiroLegivel = null;
   for (const caminho of candidatos) {
+    let versao = null;
     try {
-      const saida = executar(caminho);
-      const versao = versaoDoPgDump(saida);
-      if (versao) return { caminho, versao };
+      versao = versaoDoPgDump(executar(caminho));
     } catch {
       // próximo candidato
     }
+    if (!versao) continue;
+    if (clienteServe(versao, versaoMinima)) return { caminho, versao };
+    primeiroLegivel ??= { caminho, versao };
   }
-  return null;
+  return primeiroLegivel;
 }
 
 const SOBRE_A_VERSAO =
@@ -304,8 +319,108 @@ export function usuarioDoWindows({ env = process.env, executar } = {}) {
 }
 
 /**
- * Restringe a pasta ou o arquivo ao dono. macOS e Linux: `chmod`. Windows:
- * `icacls` tira as permissões herdadas e concede controle total só ao usuário.
+ * Lê a DACL que `icacls <caminho>` imprime: o caminho e a primeira entrada na
+ * mesma linha, as outras alinhadas embaixo, uma linha em branco e o resumo.
+ * Devolve `[{ principal, permissoes }]`. Saída que não tem esse formato LANÇA:
+ * uma DACL que não se consegue ler não é uma DACL conferida.
+ */
+export function lerDaclDoIcacls(saida, caminho) {
+  const ilegivel = (motivo) => new ErroDeUso(
+    `Não consegui ler a ACL de ${caminho} na saída do icacls (${motivo}). Recuso gravar a cópia:\n`
+    + "uma permissão que não se confere não protege o dado de cidadão.",
+    1,
+  );
+  const linhas = String(saida ?? "").split(/\r?\n/);
+  const primeira = linhas[0] ?? "";
+  if (!primeira.toLowerCase().startsWith(caminho.toLowerCase())) throw ilegivel("a primeira linha não é o caminho pedido");
+  const brutas = [primeira.slice(caminho.length)];
+  for (const linha of linhas.slice(1)) {
+    if (linha.trim() === "") break;
+    brutas.push(linha);
+  }
+  const entradas = [];
+  for (const bruta of brutas.map((l) => l.trim()).filter(Boolean)) {
+    const m = /^(.+?):((?:\([^()]*\))+)$/.exec(bruta);
+    if (!m) throw ilegivel(`entrada fora do formato: ${bruta}`);
+    entradas.push({ principal: m[1], permissoes: m[2] });
+  }
+  if (entradas.length === 0) throw ilegivel("nenhuma entrada");
+  return entradas;
+}
+
+/** O SYSTEM, com o nome em inglês e em português: ele lê tudo de qualquer jeito. */
+const NOMES_DO_SYSTEM = new Set(["nt authority\\system", "autoridade nt\\sistema"]);
+
+/** As entradas que não são do operador nem do SYSTEM (comparação sem caixa). */
+export function entradasAlheias(entradas, usuario) {
+  const dono = usuario.toLowerCase();
+  return entradas.filter((e) => {
+    const nome = e.principal.toLowerCase();
+    return nome !== dono && !NOMES_DO_SYSTEM.has(nome);
+  });
+}
+
+/**
+ * Confere a permissão que o DISCO devolve, depois de restringir: no Windows, a
+ * DACL lida do `icacls`, que só pode ter o operador (e o SYSTEM); no macOS e
+ * no Linux, o modo, sem nenhum bit de grupo ou de outros, e o dono. Reprova
+ * com `ErroDeUso`, nomeando o que sobrou e como tirar.
+ */
+export function conferirAclDoDono(caminho, {
+  plataforma = process.platform,
+  env = process.env,
+  executar = (cmd, args) => execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }),
+  stat = statSync,
+  uid = typeof process.getuid === "function" ? process.getuid() : undefined,
+} = {}) {
+  if (plataforma !== "win32") {
+    const info = stat(caminho);
+    const modo = info.mode & 0o777;
+    if ((modo & 0o077) !== 0) {
+      throw new ErroDeUso(
+        `${caminho} ficou com modo ${modo.toString(8).padStart(4, "0")}: grupo ou outros têm acesso. Recuso gravar a cópia.`,
+        1,
+      );
+    }
+    if (uid !== undefined && info.uid !== uid) {
+      throw new ErroDeUso(`${caminho} não tem você como dono (uid ${info.uid}). Recuso gravar a cópia.`, 1);
+    }
+    return;
+  }
+  const usuario = usuarioDoWindows({ env, executar });
+  let saida;
+  try {
+    saida = executar("icacls", [caminho]);
+  } catch {
+    throw new ErroDeUso(`Não consegui ler a ACL de ${caminho} (o icacls falhou). Recuso gravar a cópia.`, 1);
+  }
+  const entradas = lerDaclDoIcacls(saida, caminho);
+  const alheias = entradasAlheias(entradas, usuario);
+  if (alheias.length > 0) {
+    throw new ErroDeUso(
+      `A ACL de ${caminho} tem acesso além do seu usuário (${usuario}):\n`
+      + alheias.map((e) => `  ${e.principal}:${e.permissoes}`).join("\n")
+      + "\nRecuso gravar a cópia: o dump traz dado de cidadão, e essas entradas o deixariam legível\n"
+      + "por outra pessoa desta máquina enquanto o pg_dump escreve. Tire cada uma e rode de novo:\n"
+      + alheias.map((e) => `  icacls "${caminho}" /remove:g "${e.principal}"`).join("\n")
+      + "\n(Se um nome aparecer com acento trocado, a página de código do console o estragou: rode\n"
+      + `icacls "${caminho}" num PowerShell para ver o nome certo.)`,
+      1,
+    );
+  }
+  if (!entradas.some((e) => e.principal.toLowerCase() === usuario.toLowerCase())) {
+    throw new ErroDeUso(`O seu usuário (${usuario}) não consta da ACL de ${caminho}. Recuso gravar a cópia.`, 1);
+  }
+}
+
+/**
+ * Restringe a pasta ou o arquivo ao dono e CONFERE o resultado. macOS e Linux:
+ * `chmod`, depois o modo lido do disco. Windows: `icacls` tira as permissões
+ * herdadas e concede controle total só ao usuário, depois a DACL é lida de
+ * volta (`conferirAclDoDono`). A leitura existe porque `/inheritance:r` NÃO
+ * tira concessão explícita: uma pasta que já dava leitura herdável a outro
+ * grupo continuava dando, e o arquivo do dump nascia legível por ele (achado 1
+ * da revisão independente da F01, provado numa sonda real no Windows).
  * Se não der, LANÇA: quem chama apaga o que gravou e recusa, porque um dump com
  * dado de cidadão legível por outro usuário da máquina é pior que nenhum dump.
  */
@@ -315,9 +430,12 @@ export function restringirAoDono(caminho, {
   env = process.env,
   executar = (cmd, args) => execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }),
   chmod = chmodSync,
+  stat = statSync,
+  uid = typeof process.getuid === "function" ? process.getuid() : undefined,
 } = {}) {
   if (plataforma !== "win32") {
     chmod(caminho, pasta ? 0o700 : 0o600);
+    conferirAclDoDono(caminho, { plataforma, stat, uid });
     return;
   }
   try {
@@ -330,6 +448,67 @@ export function restringirAoDono(caminho, {
       1,
     );
   }
+  conferirAclDoDono(caminho, { plataforma, env, executar });
+}
+
+/**
+ * Prepara o destino da cópia ANTES de qualquer byte: a pasta do ambiente
+ * restrita e conferida, e o arquivo criado VAZIO (`wx`: nunca sobrescreve),
+ * restrito e conferido. Só depois disto o `pg_dump` pode escrever nele, e ele
+ * escreve no arquivo que já existe, mantendo a permissão (o `pg_dump` abre com
+ * truncamento, e truncar não troca a ACL nem o modo). Se a conferência do
+ * arquivo reprovar, ele é apagado antes de a recusa subir.
+ */
+export function prepararDestinoDaCopia({ pasta, destino, criarVazio, ...opcoes }) {
+  mkdirSync(pasta, { recursive: true, mode: 0o700 });
+  restringirAoDono(pasta, { ...opcoes, pasta: true });
+  const criar = criarVazio ?? ((alvo) => closeSync(openSync(alvo, "wx", 0o600)));
+  try {
+    criar(destino);
+  } catch (erro) {
+    if (erro?.code === "EEXIST") throw new ErroDeUso(`${destino} já existe: a cópia nunca sobrescreve outra (EEXIST).`, 1);
+    throw erro;
+  }
+  try {
+    restringirAoDono(destino, opcoes);
+  } catch (erro) {
+    rmSync(destino, { force: true });
+    throw erro;
+  }
+}
+
+/**
+ * A cópia inteira, sem o banco: prepara o destino, roda o `pg_dump` (que quem
+ * chama passa em `rodarPgDump(destino)`, devolvendo o código de saída) e
+ * confere a permissão DE NOVO depois que ele escreveu. Falha do `pg_dump` apaga
+ * o que tiver ficado e devolve o código; permissão errada depois apaga o dump
+ * e lança. Devolve `{ status, bytes }`.
+ */
+export function tirarCopia({ pasta, destino, rodarPgDump, ...opcoes }) {
+  prepararDestinoDaCopia({ pasta, destino, ...opcoes });
+  const status = rodarPgDump(destino);
+  if (status !== 0) {
+    rmSync(destino, { force: true });
+    return { status: status ?? 1, bytes: 0 };
+  }
+  try {
+    conferirAclDoDono(destino, opcoes);
+  } catch (erro) {
+    rmSync(destino, { force: true });
+    throw erro;
+  }
+  return { status: 0, bytes: statSync(destino).size };
+}
+
+/**
+ * O comando que apaga ESTA cópia, com o caminho exato entre aspas simples. O
+ * roteiro o imprime no fim: o runbook dizia um caminho que não era o da cópia
+ * (achado 12 da revisão independente da F01), e quem seguia o runbook deixava
+ * o dump com dado pessoal no disco.
+ */
+export function comandoParaApagar(caminho, plataforma = process.platform) {
+  if (plataforma === "win32") return `Remove-Item -LiteralPath '${caminho.replace(/'/g, "''")}'`;
+  return `rm -- '${caminho.replace(/'/g, "'\\''")}'`;
 }
 
 /**
@@ -357,7 +536,7 @@ async function principal(argv) {
   const plataforma = process.platform;
   const problemas = [];
 
-  const pgDump = localizarPgDump();
+  let pgDump = localizarPgDump();
   if (!pgDump) problemas.push(comoInstalar(plataforma));
   else if (!clienteServe(pgDump.versao)) {
     problemas.push(`O pg_dump encontrado (${pgDump.caminho}) é ${pgDump.versao}, e o servidor é ${VERSAO_MAIOR_DO_SERVIDOR}.x. ${comoInstalar(plataforma)}`);
@@ -392,44 +571,45 @@ async function principal(argv) {
   const servidor = await versaoDoServidor(url);
   const maiorDoServidor = Number.parseInt(servidor.split(".")[0], 10);
   if (!clienteServe(pgDump.versao, maiorDoServidor)) {
+    // O servidor pode ser mais novo que o 17 que a busca supôs: procura de novo, com a versão real.
+    pgDump = localizarPgDump({ versaoMinima: maiorDoServidor }) ?? pgDump;
+  }
+  if (!clienteServe(pgDump.versao, maiorDoServidor)) {
     console.error(`O servidor é ${servidor} e o pg_dump é ${pgDump.versao}: o cliente precisa ser ${maiorDoServidor}.x ou mais novo.\n\n${comoInstalar(plataforma)}`);
     process.exit(1);
   }
 
   /*
-    A pasta é restringida ANTES do dump, e o arquivo depois: o dump nunca existe
-    num lugar que outro usuário da máquina consiga abrir. No Windows, se a ACL
-    falhar, o roteiro recusa (e apaga o que tiver gravado).
+    A pasta e o ARQUIVO são restringidos e conferidos ANTES do dump: o arquivo
+    nasce vazio, só do operador, e o pg_dump escreve nele. Depois a permissão é
+    conferida de novo. Se qualquer conferência falhar, o roteiro apaga o que
+    tiver gravado e recusa.
   */
-  mkdirSync(pasta, { recursive: true, mode: 0o700 });
-  restringirAoDono(pasta, { pasta: true });
   const destino = join(pasta, nomeDaCopia(new Date()));
-
-  console.log(`Copiando o banco de ${ambiente.toUpperCase()} (servidor ${servidor}) para ${destino} ...`);
   const semSenha = new URL(url);
   semSenha.password = "";
-  const r = spawnSync(
-    pgDump.caminho,
-    argumentosDoPgDump({ destino, urlSemSenha: semSenha.toString() }),
-    { stdio: "inherit", env: { ...process.env, PGPASSWORD: senha } },
-  );
+  const r = tirarCopia({
+    pasta,
+    destino,
+    rodarPgDump: (alvo) => {
+      console.log(`Copiando o banco de ${ambiente.toUpperCase()} (servidor ${servidor}) para ${alvo} ...`);
+      return spawnSync(
+        pgDump.caminho,
+        argumentosDoPgDump({ destino: alvo, urlSemSenha: semSenha.toString() }),
+        { stdio: "inherit", env: { ...process.env, PGPASSWORD: senha } },
+      ).status;
+    },
+  });
   if (r.status !== 0) {
-    rmSync(destino, { force: true });
     console.error(`\nO pg_dump saiu com código ${r.status}. Nenhuma cópia válida foi gravada.`);
-    process.exit(r.status ?? 1);
+    process.exit(r.status);
   }
-  try {
-    restringirAoDono(destino);
-  } catch (erro) {
-    rmSync(destino, { force: true });
-    throw erro;
-  }
-  const bytes = statSync(destino).size;
   console.log(
-    `\nPronto: ${destino} (${bytes} bytes, legível só por você).\n`
+    `\nPronto: ${destino} (${r.bytes} bytes, legível só por você).\n`
     + `A cópia vale por trinta minutos para \`node scripts/migrar-producao.mjs --ambiente ${ambiente} --aplicar\`.\n`
     + "Ela pode trazer dado real de cidadão: não copie para nuvem de arquivos, não mande por\n"
-    + "mensagem, e apague quando a migração tiver sido conferida no ar.",
+    + "mensagem, e apague quando a migração tiver sido conferida no ar, com:\n\n"
+    + `  ${comandoParaApagar(destino, plataforma)}`,
   );
 }
 

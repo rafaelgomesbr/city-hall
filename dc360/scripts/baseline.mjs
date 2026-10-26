@@ -408,6 +408,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     USAGE no schema, que o CI 2 mostrou falhar com 42501).
   */
   "V2-F01-E22": 24,
+  /*
+    Correção 1 da F01, parte B (revisão independente). `copiar-producao.test.mjs`,
+    que já existia (por isso fora da tabela de arquivos), ganha 12 (achados 1,
+    10 e 12: a DACL lida da saída do icacls, a recusa de entrada alheia na
+    pasta e no arquivo, o arquivo vazio e conferido antes do pg_dump, o modo
+    conferido no macOS e no Linux, o pg_dump compatível entre todos os
+    candidatos e o comando exato de apagar a cópia).
+  */
+  "V2-F01-correcao-1-B-acrescimos": 12,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
