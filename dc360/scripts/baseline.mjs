@@ -630,6 +630,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
   // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
   "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
+  // V2-F00-POS, painel (H05, H26 e H08, decisões do Rafael de 2026-10-26): `menu-mais.test.ts` é novo, com 27 casos (quantos destinos cabem na barra por largura, quem fica na barra e quem vai para o menu Mais, a marcação com aria-expanded e aria-controls, o Esc, a folha só com tokens), e `janela-da-senha-temporaria.test.ts` é novo, com 10 (o Esc não fecha a janela da senha, o aviso espera a janela aberta). Os casos de `acessibilidade.test.ts`, `correcao-6-da-e09.test.ts` e `correcao-8-da-e09.test.ts` foram reescritos no lugar, sem caso novo. Nenhuma falha nova.
+  "V2-F00-POS-painel": { total: 37, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
