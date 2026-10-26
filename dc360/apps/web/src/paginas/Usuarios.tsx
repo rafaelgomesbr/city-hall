@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ROTULO_PAPEL, cadastroUsuarioSchema, papeisQuePodeConceder, type Papel,
+  ROTULO_PAPEL, cadastroUsuarioSchema, ehPapelDeServidor, papeisQuePodeConceder,
+  type PapelDeServidor,
 } from "@dc360/shared";
 import {
   MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, encerrarSessoesDeUsuario,
@@ -46,7 +47,7 @@ export function Usuarios() {
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
   const [email, setEmail] = useState("");
-  const [papel, setPapel] = useState<Papel>("agente_campo");
+  const [papel, setPapel] = useState<PapelDeServidor>("agente_campo");
   const [equipeId, setEquipeId] = useState("");
   const [senha, setSenha] = useState("");
   /*
@@ -173,6 +174,13 @@ export function Usuarios() {
   }
 
   function editar(u: LinhaUsuario): void {
+    /*
+      Conta de `usuario_orgao` não se corrige por este formulário (V2-F03-E04):
+      o papel dela não está entre os que ele oferece, e o papel de servidor não
+      se converte nela (409 `papel_nao_se_converte`). O botão já vem travado
+      com o motivo; este retorno é só para o código não depender da tela.
+    */
+    if (!ehPapelDeServidor(u.papel)) return;
     setEditando(u.id);
     setNome(u.nome);
     setMatricula(u.matricula);
@@ -236,7 +244,7 @@ export function Usuarios() {
                 <Campo id="usuario-papel" rotulo="Papel">
                   {(campo) => (
                     <select {...campo} value={papel}
-                            onChange={(e) => setPapel(e.target.value as Papel)}>
+                            onChange={(e) => setPapel(e.target.value as PapelDeServidor)}>
                       {/*
                         Só os papéis que este posto concede. Um coordenador não
                         cria administrador, e o servidor recusa; oferecer a opção
@@ -394,8 +402,12 @@ export function Usuarios() {
                             o que vai ser negado. Ver `usuarios-regras.ts`.
                           */}
                           <button type="button" className="botao botao--discreto"
-                                  disabled={motivoParaNaoAdministrar(sessao.papel, u) !== null}
-                                  title={motivoParaNaoAdministrar(sessao.papel, u) ?? undefined}
+                                  disabled={motivoParaNaoAdministrar(sessao.papel, u) !== null
+                                    || !ehPapelDeServidor(u.papel)}
+                                  title={motivoParaNaoAdministrar(sessao.papel, u)
+                                    ?? (ehPapelDeServidor(u.papel)
+                                      ? undefined
+                                      : "Conta de órgão externo: o papel dela não se troca por este formulário")}
                                   onClick={() => editar(u)}>
                             Corrigir
                           </button>

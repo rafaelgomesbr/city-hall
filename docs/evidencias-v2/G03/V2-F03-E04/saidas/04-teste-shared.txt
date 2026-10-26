@@ -1,0 +1,58 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aad9f3acc17a05798/dc360/packages/shared
+
+ ✓ test/ressalva-saida-a-campo.test.ts (38 tests) 97ms
+ ✓ test/fuso.test.ts (115 tests) 149ms
+ ✓ src/localizacao.test.ts (16 tests) 12ms
+ ✓ test/chave-de-criacao.test.ts (4 tests) 14ms
+ ✓ test/permissoes.test.ts (16 tests) 13ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 18ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 21ms
+ ✓ test/evidencia.test.ts (10 tests) 20ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 24ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 27ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 23ms
+ ✓ test/mensagens-em-portugues.test.ts (30 tests) 60ms
+ ✓ test/catalogo-de-erros.test.ts (28 tests) 86ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 16ms
+ ✓ test/varredura-de-esquemas.test.ts (17 tests) 123ms
+ ✓ test/dominio.test.ts (14 tests) 300ms
+ ✓ test/telefone.test.ts (10 tests) 8ms
+ ✓ test/campos.test.ts (7 tests) 7ms
+ ✓ src/pessoas.test.ts (11 tests) 17ms
+ ✓ test/csv.test.ts (8 tests) 6ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 10ms
+ ✓ test/observabilidade.test.ts (9 tests) 6ms
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 3060ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  905ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  1038ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  698ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  331ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 24ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 18ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 22ms
+     → EPERM: operation not permitted, symlink 'C:\Users\usuario\AppData\Local\Temp\dc360-conteudo-VI8Njv\alvo-que-nao-existe.md' -> 'C:\Users\usuario\AppData\Local\Temp\dc360-conteudo-VI8Njv\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 20ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\usuario\AppData\Local\Temp\dc360-conteudo-VI8Njv\alvo-que-nao-existe.md' -> 'C:\Users\usuario\AppData\Local\Temp\dc360-conteudo-VI8Njv\docs\sumiu-depois-da-listagem.md'
+ ❯ test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 22 passed (23)
+      Tests  1 failed | 417 passed (418)
+   Start at  07:14:01
+   Duration  3.93s (transform 1.60s, setup 0ms, collect 12.64s, tests 4.12s, environment 7ms, prepare 6.27s)
+

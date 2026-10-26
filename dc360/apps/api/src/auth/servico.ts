@@ -314,7 +314,23 @@ export function servicoDeAutenticacao(
       return r.rows[0] ?? null;
     });
 
-    if (!linha) {
+    /*
+      A CONTA `usuario_orgao` NÃO ENTRA (V2-F03-E04, ADR 0009 decisão 5, P-09).
+
+      É o papel genérico de quem representa outro órgão, e nenhuma rota do
+      município sabe ainda o que fazer com ele: 32 rotas só pedem
+      "autenticado" e ele herdaria o município inteiro (BZ-D:AUT-10). O login
+      dela fica FECHADO até o G03, e fechado SEM chave de configuração: não há
+      valor de ambiente que o abra por engano. A E02 declara `PORTAL_ATIVO`
+      (padrão `nao`) e é ela quem o liga, depois da lista positiva de leitura.
+
+      A resposta é a de email inexistente, no corpo, no status e no tempo (o
+      mesmo caminho abaixo): quem tenta não descobre que a conta existe nem de
+      que tipo ela é. Fica ANTES da senha, então nem a senha certa muda a
+      resposta, e a recusa não conta falha na conta (que ficaria bloqueada
+      sem culpa de ninguém quando o portal abrir).
+    */
+    if (!linha || linha.papel === "usuario_orgao") {
       // Gasta o mesmo tempo de uma verificação real: sem isso, a resposta
       // rápida denuncia que o email não existe. E conta a falha como se a
       // conta existisse, pela razão escrita em `registrarFalhaDeEmailInexistente`.

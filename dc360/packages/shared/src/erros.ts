@@ -470,6 +470,12 @@ export const CODIGOS_DE_ERRO = {
     categoria: "permanente",
     titulo: "Município precisa de ao menos um administrador",
   },
+  /** V2-F03-E04: `PATCH /usuarios/:id` recusa mudar o papel de ou para `usuario_orgao`. */
+  papel_nao_se_converte: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Papel de servidor e usuario_orgao não se convertem",
+  },
   vulnerabilidade_depois_do_nome: {
     status: 422,
     categoria: "corrigir",
@@ -509,15 +515,10 @@ export const CODIGOS_RESERVADOS = {
     emitir e então move a linha para `CODIGOS_DE_ERRO` no mesmo commit.
     (`pessoa_em_varios_municipios` saiu da lista na junção do lote 0: a ADR 0009
     corrigida eliminou esse 409.)
+    (`papel_nao_se_converte` saiu da lista na V2-F03-E04: a API passou a emiti-lo.)
     Não entram aqui os códigos que a fase só reaproveita: `segundo_fator_desligado`
     (503, E11) e `usuario_repetido` (409, E09) já são emitidos.
   */
-  /** V2-F03-E04: `PATCH /usuarios/:id` recusa mudar o papel de ou para `usuario_orgao`. */
-  papel_nao_se_converte: {
-    status: 409,
-    categoria: "permanente",
-    titulo: "Papel de servidor e usuario_orgao não se convertem",
-  },
   /**
    * V2-F03-E10: convite usado, vencido, reemitido ou aceito com a sessão de outra
    * pessoa. Um código e um status só para todos os casos, para o link não virar

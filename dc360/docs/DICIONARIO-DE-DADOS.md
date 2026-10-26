@@ -81,7 +81,7 @@ trilha.
 | `nome` | Como aparece assinando o laudo |
 | `matricula` | Matrícula funcional. É por ela que se entra no sistema |
 | `email` | Institucional. Usado em recuperação de senha |
-| `papel` | `administrador`, `coordenador`, `operador` ou `agente_campo`. A hierarquia é por posto numérico: ver ADR 0006 |
+| `papel` | Domínio `papel_de_conta` (migração 053): `administrador`, `coordenador`, `operador`, `agente_campo` ou `usuario_orgao`. A hierarquia é por posto numérico: ver ADR 0006. `usuario_orgao` é o papel genérico de quem representa outro órgão: nasce só por convite, sem ação de servidor, e nunca se converte de ou para papel de servidor (gatilho `usuarios_papel_nao_se_converte`). Ver "O domínio de papel (migração 053)", abaixo |
 | `equipe_id` | A equipe do agente. Decide quais tarefas ele recebe. Nulo para quem não vai a campo |
 | `ativo` | `false` é o "apagado" deste sistema. O município nunca fica sem administrador ativo |
 | `foto_chave` | A foto de perfil, como chave no armazenamento (nunca URL). Opcional, escolhida pelo próprio servidor. Prefixo obrigatório `tenant/<org>/usuarios/<id>/`, por CHECK (migração 040). Dado pessoal do servidor: ver `PRIVACIDADE.md`, seção 2.2 |
@@ -198,7 +198,7 @@ Trilha operacional. **Append-only.**
 | --- | --- |
 | `tipo` | O que aconteceu |
 | `autor_id`, `autor_nome`, `autor_papel` | Quem fez. O nome e o papel são copiados no momento do evento, de propósito: se a pessoa mudar de papel amanhã, a trilha continua dizendo em que papel ela agiu |
-| `origem` | `campo` ou `escritorio` |
+| `origem` | `campo`, `escritorio` ou `portal` (o portal do órgão externo; aceita desde a migração 053) |
 | `ocorrido_em` | Quando o ato aconteceu |
 | `registrado_em` | Quando o sistema soube. Diferente do anterior em coleta offline |
 | `detalhe` | `JSONB` com o que é próprio daquele tipo de evento. **Não carrega texto livre nem nome de cidadão**: é a regra que mantém a trilha permanente sem virar cópia do dado que a minimização descarta. O evento `vistoria` a descumpriu até 15/09/2026 (`assinante`), e a varredura de minimização redige esse valor para "removido por prazo" nas ocorrências que ela minimiza, preservando o resto do objeto. O evento `minimizacao_por_prazo` traz `campos` (quais colunas saíram, entre `solicitante_nome`, `solicitante_contato`, `vulnerabilidade_descricao`, `descricao`, `devolucao_observacao`, `vistoria_observacoes`, `trilha_vistoria_assinante`) e `trilha_eventos_redigidos` (quantos eventos foram redigidos), e nunca o que os campos continham |
@@ -477,6 +477,40 @@ As três rodam com `row_security = off`: com um dono de tabelas sem
 `BYPASSRLS`, a escrita que alcançaria zero linha em silêncio vira erro
 (`DC362`) nomeando a causa, e senha e código ficam como estavam. Sem isso, o
 desfecho seria "senha redefinida" com a senha velha no lugar.
+
+---
+
+## O domínio de papel (migração 053)
+
+Até a 053, o papel de uma conta era escrito em quatro CHECKs soltos, cada um
+com a sua cópia da lista. A V2-F03-E04 pôs a lista em **três domínios**, um lugar
+para cada uma, e o teste `apps/api/test/papeis-batem-com-o-banco.test.ts` cobra
+que o pacote compartilhado (`PAPEIS`, `ORIGENS`) e o banco continuem iguais.
+
+| Domínio | Valores | Onde é usado |
+| --- | --- | --- |
+| `papel_de_conta` | `coordenador`, `operador`, `agente_campo`, `administrador`, `usuario_orgao` | `usuarios.papel`, `trilha_eventos.autor_papel`, `ocorrencia_consultas.usuario_papel` |
+| `papel_de_autor_administrativo` | os cinco acima, mais `operador_da_plataforma` (quem provisiona o município; não é conta de município nenhum) | `trilha_administrativa.autor_papel` |
+| `tipo_de_ator` | `servidor`, `usuario_orgao`, `sistema` | Nenhuma coluna ainda: a E06 (contexto do ator) o liga |
+
+- **`usuario_orgao`** tem posto 1 e NENHUMA ação de servidor. O que a conta faz
+  vem do vínculo com o órgão e das ações do encaminhamento (F04), nunca do papel.
+  Nasce só por convite (E10), e o login dela fica fechado até o G03 (a API
+  responde credenciais inválidas, como para um e-mail que não existe).
+- **Não se converte.** `PATCH /usuarios/:id` responde 409 `papel_nao_se_converte`
+  para a troca de ou para `usuario_orgao`, e o gatilho `usuarios_papel_nao_se_converte`
+  (função SECURITY INVOKER, `BEFORE UPDATE OF papel`) recusa o mesmo no banco, com
+  `check_violation` e a constraint `papel_nao_se_converte`, para quem escrever SQL
+  por fora da API.
+- **Papel novo no futuro** é `ALTER DOMAIN ... DROP CONSTRAINT / ADD CONSTRAINT`
+  em um lugar, mais a linha em `PAPEIS` no pacote compartilhado.
+- **Trilhas append-only** (`trilha_eventos`, `trilha_administrativa`,
+  `ocorrencia_consultas`) seguem sem policy de UPDATE e DELETE. Trocar o tipo da
+  coluna reescreve a tabela uma vez, sem disparar gatilho de linha nem abrir
+  privilégio; o motivo de a lista morar em domínio é justamente que uma trilha que
+  recusa um papel novo não se corrige depois.
+- A volta (`db/migrations/desfazer/053_*.sql`) devolve os CHECKs e RECUSA se já
+  existir dado `usuario_orgao` ou origem `portal`, em vez de apagar histórico.
 
 ---
 

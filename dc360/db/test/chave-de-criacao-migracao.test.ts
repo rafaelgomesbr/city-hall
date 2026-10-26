@@ -74,6 +74,16 @@ async function fotografia(bd: ExecutorSql): Promise<Record<string, unknown[]>> {
 
 const chave = () => crypto.randomUUID();
 
+/**
+ * As migrações até a 052 inclusive. A 052 deixou de ser a última (a F03 traz a
+ * 053 em diante): as provas de "aplicar a 052" e de "desfazer a 052" precisam
+ * parar nela, e não no fim da fila.
+ */
+function ateA052() {
+  const todas = carregarMigracoes();
+  return todas.slice(0, todas.findIndex((m) => m.versao === ARQUIVO_052) + 1);
+}
+
 async function ocorrenciasDe(db: PGlite, org: string, quantas: number): Promise<string[]> {
   const r = await db.query<{ id: string }>(
     "SELECT id FROM ocorrencias WHERE organizacao_id = $1 ORDER BY id LIMIT $2",
@@ -135,7 +145,7 @@ describe("a 052 sobre dado que já existia", () => {
   });
 
   it("aplica sem erro sobre esses dados, e o chamado antigo fica com a chave nula", async () => {
-    const r = await aplicarMigracoes(executorDe(db), carregarMigracoes());
+    const r = await aplicarMigracoes(executorDe(db), ateA052());
     expect(r.aplicadas).toEqual([ARQUIVO_052]);
 
     const nulos = await db.query<{ total: number; nulas: number }>(
@@ -263,7 +273,7 @@ describe("a volta da 052", () => {
     await db.waitReady;
     const bd = executorDe(db);
     try {
-      const todas = carregarMigracoes();
+      const todas = ateA052();
       const ate051 = todas.slice(0, 51);
       await aplicarMigracoes(bd, ate051);
       const antes = await fotografia(bd);

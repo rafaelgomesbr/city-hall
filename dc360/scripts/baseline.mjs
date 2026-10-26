@@ -890,6 +890,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-4B-correcao-1": { total: 5, falhas: 0, puladas: 0 },
   // V2-F02-E05, correção 1 (revisão independente dos lotes 3 e 4): 8 casos novos em `contrato-cliente-rota.test.ts` (`globalThis.fetch`, `window.fetch` e `self.fetch` contam, são extraídos e conferidos, 3 casos; o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova; `globalThis['fetch'](...)` conta e reprova como não lido; `cliente.fetch` não é o fetch global; a varredura `usosDeRedeDoGlobal`; e a varredura dos arquivos cobertos cujo perfil não declara fetch). O arquivo vai de 82 para 90 casos.
   "V2-F02-E05-correcao-1": { total: 8, falhas: 0, puladas: 0 },
+  // V2-F03-E04: `apps/api/test/papeis-batem-com-o-banco.test.ts` e novo, com 26 casos (o shared e o banco falam a mesma lista de papeis e de origens; `usuario_orgao` tem posto 1 e nenhuma acao; PATCH recusa converter nos dois sentidos com 409; POST nao cria a conta; o login dela responde igual a email inexistente, sem contar falha; a conta de A nao aparece para B).
+  "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -1135,6 +1137,16 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     demais `*.espacial.test.ts`. Total 75, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0D": { total: 75, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E04 (dominio de papel e usuario_orgao): `db/test/dominio-de-papel.test.ts`
+    e novo, com 36 casos (a 053 sobre dado antigo, os tres dominios, positivos e
+    negativos nas quatro colunas e na origem `portal`, o gatilho que impede a
+    conversao nos dois sentidos, o isolamento intacto e a volta, que recusa quando
+    ja existe dado que os CHECKs antigos nao aceitam). `migracoes-regras.test.ts`
+    e `chave-de-criacao-migracao.test.ts` trocaram numeros e uma fatia no lugar
+    (a 053 de mentira virou 900; a prova da 052 para na 052), sem caso novo.
+  */
+  "V2-F03-E04": { total: 36, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

@@ -254,7 +254,31 @@ export function ocorrenciaAtiva(status: StatusOcorrencia): boolean {
   return status !== "encerrada" && status !== "rascunho";
 }
 
-export const PAPEIS = ["coordenador", "operador", "agente_campo", "administrador"] as const;
+/**
+ * Os papéis de SERVIDOR: quem trabalha para o município. É a lista que o
+ * formulário de usuários oferece e que o cadastro aceita.
+ */
+export const PAPEIS_DE_SERVIDOR = [
+  "coordenador",
+  "operador",
+  "agente_campo",
+  "administrador",
+] as const;
+export type PapelDeServidor = (typeof PAPEIS_DE_SERVIDOR)[number];
+
+/**
+ * Todos os papéis de CONTA, na ordem do domínio `papel_de_conta` do banco
+ * (migração 053; o teste `papeis-batem-com-o-banco` cobra que as duas listas
+ * continuem iguais).
+ *
+ * `usuario_orgao` é o papel genérico de quem representa outro órgão no
+ * município (ADR 0009, decisão 5): posto 1, NENHUMA permissão de servidor, nasce
+ * só por convite e nunca se converte de ou para papel de servidor. O que ele
+ * pode fazer vem do vínculo com o órgão e das ações do encaminhamento (F04),
+ * nunca deste papel. Por isso ele está aqui (a conta existe, a trilha o grava)
+ * e NÃO está em `PAPEIS_DE_SERVIDOR` (ninguém cadastra um por formulário).
+ */
+export const PAPEIS = [...PAPEIS_DE_SERVIDOR, "usuario_orgao"] as const;
 export type Papel = (typeof PAPEIS)[number];
 
 export const ROTULO_PAPEL: Record<Papel, string> = {
@@ -262,10 +286,19 @@ export const ROTULO_PAPEL: Record<Papel, string> = {
   operador: "Operador de plantão",
   agente_campo: "Agente de campo",
   administrador: "Administrador da organização",
+  usuario_orgao: "Usuário de órgão externo",
 };
 
-/** Origem do registro na trilha de auditoria. */
-export const ORIGENS = ["campo", "escritorio"] as const;
+/** Se o papel é de servidor do município (e não o papel genérico de órgão). */
+export function ehPapelDeServidor(papel: string): papel is PapelDeServidor {
+  return (PAPEIS_DE_SERVIDOR as readonly string[]).includes(papel);
+}
+
+/**
+ * Origem do registro na trilha de auditoria. `portal` é o portal do órgão
+ * externo (F11); a coluna aceita o valor desde a migração 053.
+ */
+export const ORIGENS = ["campo", "escritorio", "portal"] as const;
 export type Origem = (typeof ORIGENS)[number];
 
 export const CANAIS_ENTRADA = [

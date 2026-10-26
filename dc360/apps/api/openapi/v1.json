@@ -581,7 +581,8 @@
                                 "coordenador",
                                 "operador",
                                 "agente_campo",
-                                "administrador"
+                                "administrador",
+                                "usuario_orgao"
                               ]
                             },
                             "organizacaoId": {
@@ -788,7 +789,8 @@
                         "coordenador",
                         "operador",
                         "agente_campo",
-                        "administrador"
+                        "administrador",
+                        "usuario_orgao"
                       ]
                     },
                     "organizacaoId": {
@@ -1210,7 +1212,8 @@
                             "coordenador",
                             "operador",
                             "agente_campo",
-                            "administrador"
+                            "administrador",
+                            "usuario_orgao"
                           ]
                         },
                         "organizacaoId": {
@@ -1503,7 +1506,8 @@
                             "coordenador",
                             "operador",
                             "agente_campo",
-                            "administrador"
+                            "administrador",
+                            "usuario_orgao"
                           ]
                         },
                         "organizacaoId": {
@@ -6011,7 +6015,8 @@
                             "type": "string",
                             "enum": [
                               "campo",
-                              "escritorio"
+                              "escritorio",
+                              "portal"
                             ]
                           },
                           "ocorrido_em": {
@@ -10814,7 +10819,8 @@
                               "coordenador",
                               "operador",
                               "agente_campo",
-                              "administrador"
+                              "administrador",
+                              "usuario_orgao"
                             ]
                           },
                           "recurso": {
@@ -13172,7 +13178,8 @@
                                 "coordenador",
                                 "operador",
                                 "agente_campo",
-                                "administrador"
+                                "administrador",
+                                "usuario_orgao"
                               ]
                             },
                             "organizacaoId": {
@@ -14771,7 +14778,8 @@
                 "coordenador",
                 "operador",
                 "agente_campo",
-                "administrador"
+                "administrador",
+                "usuario_orgao"
               ]
             }
           },
@@ -14843,7 +14851,8 @@
                               "coordenador",
                               "operador",
                               "agente_campo",
-                              "administrador"
+                              "administrador",
+                              "usuario_orgao"
                             ]
                           },
                           "origem": {
@@ -15117,7 +15126,8 @@
                               "coordenador",
                               "operador",
                               "agente_campo",
-                              "administrador"
+                              "administrador",
+                              "usuario_orgao"
                             ]
                           },
                           "equipe_id": {
@@ -15438,7 +15448,8 @@
                       "coordenador",
                       "operador",
                       "agente_campo",
-                      "administrador"
+                      "administrador",
+                      "usuario_orgao"
                     ]
                   },
                   "equipeId": {
@@ -16147,7 +16158,8 @@
                         "coordenador",
                         "operador",
                         "agente_campo",
-                        "administrador"
+                        "administrador",
+                        "usuario_orgao"
                       ]
                     },
                     "equipeId": {
