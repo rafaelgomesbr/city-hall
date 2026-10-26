@@ -564,7 +564,7 @@ fica em aberto, com o número de cada coisa no relatório
    gerado (F08-E04).
 
 6. **Um só status de sucesso por entrada (limite do gerador). RESOLVIDO na
-   parte 4B (SHA_4B).** A entrada ganhou `tambemResponde?: readonly { status;
+   parte 4B (5f74611a).** A entrada ganhou `tambemResponde?: readonly { status;
    descricao; resposta? }[]` (`src/contrato/tipos.ts`), e o gerador a lista como
    resposta adicional (com o esquema da principal quando não declara outro).
    `POST /v1/ocorrencias`, `POST /v1/sincronizacao/vistoria`, `/devolucao` e
@@ -573,7 +573,7 @@ fica em aberto, com o número de cada coisa no relatório
    casa com o esquema. O gerador falha se o status adicional repete outro, colide
    com um status de erro da entrada ou aparece numa entrada sem `resposta`.
 7. **A anotação de regras adicionais visita cada esquema uma vez (limite do
-   gerador). RESOLVIDO na parte 4B (SHA_4B).** `refinamentosDe`
+   gerador). RESOLVIDO na parte 4B (5f74611a).** `refinamentosDe`
    (`src/contrato/openapi.ts`) agora visita por CAMINHO: o mesmo esquema em dois
    campos gera uma anotação por caminho (`POST /v1/rota` anota a coordenada 0,0
    em `origem` e em `destino`), o mesmo par (esquema, caminho) não repete, e o
