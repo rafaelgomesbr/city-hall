@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   PAPEIS, POSTO, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_STATUS,
-  ROTULO_TIPO_COBRADE, montarCsv,
+  ROTULO_TIPO_COBRADE, dataHoraNoFuso, dataNoFuso, fusoDoEstado, montarCsv,
   type CanalEntrada, type Papel, type Severidade, type StatusOcorrencia,
   type TipoDeEntrada,
 } from "@dc360/shared";
@@ -151,14 +151,16 @@ function exigirPostoParaDadoPessoal(papel: Papel): void {
  *
  * `dd/MM/yyyy HH:mm` é o formato que o Excel em português reconhece sozinho,
  * sem assistente de importação.
+ *
+ * O fuso é o do MUNICÍPIO (V2-F02-E09), e é obrigatório, sem valor padrão:
+ * antes saía o do processo, que em contêiner é UTC, e uma ocorrência das 22h
+ * de Brasília ia para a planilha com a data do dia seguinte.
  */
-function dataParaPlanilha(valor: string | Date | null): string {
+function dataParaPlanilha(valor: string | Date | null, fuso: string): string {
   if (!valor) return "";
   const d = valor instanceof Date ? valor : new Date(valor);
   if (Number.isNaN(d.getTime())) return "";
-  const doisDigitos = (n: number) => String(n).padStart(2, "0");
-  return `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)}/${d.getFullYear()}`
-    + ` ${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+  return dataHoraNoFuso(d, fuso);
 }
 
 export async function rotasPrestacaoDeContas(
@@ -324,7 +326,17 @@ export async function rotasPrestacaoDeContas(
     */
     if (completo) exigirPostoParaDadoPessoal(quem.papel);
 
+    /*
+      O fuso do município sai da UF cadastrada da organização do TOKEN, lida na
+      mesma transação da exportação. Nada vem da requisição.
+    */
+    let ufDoMunicipio: string | null = null;
     const linhas = await banco.comTenant(quem.organizacaoId, async (c) => {
+      const org = await c.query<{ uf: string | null }>(
+        "SELECT uf FROM organizacoes WHERE id = $1",
+        [quem.organizacaoId],
+      );
+      ufDoMunicipio = org.rows[0]?.uf ?? null;
       const condicoes: string[] = [];
       const params: unknown[] = [];
       if (f.de) { params.push(f.de); condicoes.push(`o.criado_em >= $${params.length}`); }
@@ -459,6 +471,7 @@ export async function rotasPrestacaoDeContas(
       return r.rows;
     });
 
+    const fuso = fusoDoEstado(ufDoMunicipio);
     const csv = montarCsv(
       [
         "Protocolo", "Tipo (COBRADE)", "Situação", "Severidade", "Endereço",
@@ -481,9 +494,9 @@ export async function rotasPrestacaoDeContas(
         ROTULO_CANAL[l.canal_entrada as CanalEntrada] ?? l.canal_entrada,
         l.vulnerabilidade_presente ? "sim" : "não",
         l.equipe_nome ?? "",
-        dataParaPlanilha(l.criado_em),
-        dataParaPlanilha(l.prazo_em),
-        dataParaPlanilha(l.encerrado_em),
+        dataParaPlanilha(l.criado_em, fuso),
+        dataParaPlanilha(l.prazo_em, fuso),
+        dataParaPlanilha(l.encerrado_em, fuso),
         l.motivo_encerramento ?? "",
         l.horas_ate_vistoria ?? "", l.horas_ate_encerramento ?? "",
         l.providencias, l.providencias_sem_resposta,
@@ -498,7 +511,7 @@ export async function rotasPrestacaoDeContas(
       ]),
     );
 
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = dataNoFuso(new Date(), fuso);
     /*
       O NOME DO ARQUIVO DIZ O QUE ELE CARREGA.
 

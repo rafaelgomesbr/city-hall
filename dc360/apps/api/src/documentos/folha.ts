@@ -16,6 +16,11 @@
  * dia em que o caminho mudar.
  */
 
+import { fusoDoEstado } from "@dc360/shared";
+
+/** Reexportado: os documentos importavam daqui antes de o fuso ir para o shared. */
+export { FUSO_PADRAO, fusoDoEstado } from "@dc360/shared";
+
 export function escapar(texto: unknown): string {
   return String(texto ?? "")
     .replace(/&/g, "&amp;")
@@ -23,80 +28,6 @@ export function escapar(texto: unknown): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-/**
- * O fuso de cada unidade da federação, para o documento não depender do
- * relógio do contêiner.
- *
- * O DEFEITO QUE ISTO ACABA, e ele foi medido. `formatarDataHora` chamava
- * `toLocaleString("pt-BR")` sem `timeZone`, então o horário impresso era o do
- * processo. Não existe `TZ` em lugar nenhum deste produto: nem no Dockerfile,
- * nem no fly.toml, nem no `.env.example`. Contêiner Node sem tzdata configurada
- * roda em UTC. Uma coleta de 09/09/2026 às 21:30 de Brasília imprime
- * "09/09/2026, 21:30" na máquina de quem desenvolve e "10/09/2026, 00:30" em
- * produção: toda coleta entre 21h e a meia-noite, que é justamente a janela de
- * temporal, sai no laudo com o DIA SEGUINTE.
- *
- * E o laudo declara, em texto, que "a data de referência do ato é a da vistoria
- * em campo". Um termo de interdição que erra o dia do ato é papel contestável.
- *
- * POR QUE A UF, E NÃO UMA VARIÁVEL DE AMBIENTE. Fixar `TZ` no contêiner
- * resolveria hoje e só hoje: este produto é um banco só para muitos municípios,
- * e no dia em que entrar uma prefeitura do Acre ou de Mato Grosso o documento
- * dela sairia no horário de Brasília, com a mesma cara de certo. O fuso é
- * propriedade do MUNICÍPIO, e o município já tem UF cadastrada, que é dado
- * obrigatório de organização. Vindo daí, o documento sai igual em qualquer
- * servidor, em qualquer região de nuvem, e o teste que confere isso vale
- * também na máquina de quem desenvolve.
- *
- * Os identificadores são os da IANA, um por estado, mesmo onde vários compartem
- * o mesmo deslocamento hoje. Bahia e Tocantins tiveram horário de verão em anos
- * em que outros estados de UTC-3 não tiveram, e um documento que imprime data
- * antiga precisa continuar imprimindo a hora que era naquele dia.
- */
-const FUSO_POR_UF: Record<string, string> = {
-  AC: "America/Rio_Branco",
-  AL: "America/Maceio",
-  AM: "America/Manaus",
-  AP: "America/Belem",
-  BA: "America/Bahia",
-  CE: "America/Fortaleza",
-  DF: "America/Sao_Paulo",
-  ES: "America/Sao_Paulo",
-  GO: "America/Sao_Paulo",
-  MA: "America/Fortaleza",
-  MG: "America/Sao_Paulo",
-  MS: "America/Campo_Grande",
-  MT: "America/Cuiaba",
-  PA: "America/Belem",
-  PB: "America/Fortaleza",
-  PE: "America/Recife",
-  PI: "America/Fortaleza",
-  PR: "America/Sao_Paulo",
-  RJ: "America/Sao_Paulo",
-  RN: "America/Fortaleza",
-  RO: "America/Porto_Velho",
-  RR: "America/Boa_Vista",
-  RS: "America/Sao_Paulo",
-  SC: "America/Sao_Paulo",
-  SE: "America/Maceio",
-  SP: "America/Sao_Paulo",
-  TO: "America/Araguaina",
-};
-
-/**
- * O fuso de reserva quando a UF não é reconhecida.
- *
- * Nunca o do processo: cair no relógio do contêiner é exatamente o defeito, e
- * ele é silencioso. Um fuso brasileiro fixo erra no máximo em horas, num
- * cadastro com UF inválida, e erra igual em toda máquina, o que faz o problema
- * aparecer em teste em vez de aparecer em produção.
- */
-export const FUSO_PADRAO = "America/Sao_Paulo";
-
-export function fusoDoEstado(uf: string | null | undefined): string {
-  return FUSO_POR_UF[String(uf ?? "").trim().toUpperCase()] ?? FUSO_PADRAO;
 }
 
 /**

@@ -854,6 +854,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     sem caso novo. Nenhuma falha nem pulo novos.
   */
   "V2-F02-E01": { total: 49, falhas: 0, puladas: 0 },
+  // V2-F02-E09: `apps/api/test/fuso-do-protocolo.test.ts` e novo, com 9 casos (o ano do protocolo na virada de 01/01/2027 em São Paulo e no Acre, o fuso vindo da organização do token, UF desconhecida, a sequência por ano, e as datas e o nome do CSV no fuso do município com o servidor em UTC).
+  "V2-F02-E09": { total: 9, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -902,6 +904,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E19-correcao-11": { total: 12, falhas: 0 },
   // V2-F02-E03 (parte do shared, 1D): `catalogo-de-erros.test.ts` (26 casos: forma de cada entrada, acesso e entrada dentro do catálogo, reservados, cobertura dos códigos literais de `apps/api/src` nos dois sentidos, `erroDaApiSchema`, funções do cliente e tabela gerada), `varredura-de-esquemas.test.ts` (17 casos: DV-20 e DV-37, comportamento do Zod 4 preso e varredura de todos os esquemas exportados e do texto do produto) e 5 casos de item de lista ausente em `mensagens-em-portugues.test.ts` (DV-44). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
   "V2-F02-E03": { total: 48, falhas: 0 },
+  // V2-F02-E09: `packages/shared/test/fuso.test.ts` e novo, com 115 casos (a virada do dia, um minuto antes e na meia-noite local, nas 27 unidades da federação, com o processo em UTC e em Pacific/Auckland; a janela de 03:30Z; o mapa de UF e o fuso padrão).
+  "V2-F02-E09": { total: 115, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
