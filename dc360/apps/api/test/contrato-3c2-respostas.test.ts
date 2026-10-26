@@ -20,8 +20,9 @@ import { GRUPOS, ROTAS_DO_CONTRATO } from "../src/contrato/rotas.js";
  * e o corpo que veio é lido pelo esquema de RESPOSTA do próprio registro
  * (`ROTAS_DO_CONTRATO`). Duas conferências por rota:
  *
- *  1. o status é o descrito (ou o alternativo declarado: 200 no reenvio
- *     idempotente, onde a primeira vez é 201);
+ *  1. o status é o descrito, ou um dos que a entrada declara em `tambemResponde`
+ *     (200 no reenvio idempotente, onde a primeira vez é 201), e o corpo é lido
+ *     pelo esquema DAQUELE status;
  *  2. o esquema ACEITA o corpo, e o que ele devolve é IGUAL ao corpo. Zod
  *     descarta chave que não conhece, então `esquema.parse(corpo)` diferente do
  *     `corpo` é campo que o handler devolve e o contrato esqueceu de descrever.
@@ -75,20 +76,20 @@ function pedir(metodo: "GET" | "POST", url: string, quem: string, payload?: unkn
  * Confere uma resposta real contra a descrita no registro.
  * `modelo` é o caminho como o registro o escreve (`/v1/ocorrencias/:id`).
  */
-function conferir(
-  metodo: string,
-  modelo: string,
-  r: LightMyRequestResponse,
-  alternativos: number[] = [],
-): unknown {
+function conferir(metodo: string, modelo: string, r: LightMyRequestResponse): unknown {
   const chave = `${metodo} ${modelo}`;
   const entrada = ENTRADAS.get(chave);
   expect(entrada, `sem entrada no registro: ${chave}`).toBeDefined();
   const resposta = entrada!.resposta;
   expect(resposta?.esquema, `sem esquema de resposta: ${chave}`).toBeDefined();
-  expect([resposta!.status, ...alternativos], `${chave}: ${r.body}`).toContain(r.statusCode);
+  /* O 200 do reenvio vem de `tambemResponde`; sem ele declarado, o status não é aceito. */
+  const adicionais = entrada!.tambemResponde ?? [];
+  const adicional = adicionais.find((x) => x.status === r.statusCode);
+  expect([resposta!.status, ...adicionais.map((x) => x.status)], `${chave}: ${r.body}`).toContain(
+    r.statusCode,
+  );
   const corpo = r.json();
-  const lido = resposta!.esquema!.safeParse(corpo);
+  const lido = (adicional?.resposta ?? resposta!.esquema!).safeParse(corpo);
   expect(lido.success, `${chave} fora do esquema: ${JSON.stringify(lido.error?.issues)}`).toBe(
     true,
   );
@@ -111,7 +112,7 @@ function abertura(endereco: string, extra: Record<string, unknown> = {}) {
 
 async function abrir(endereco: string, extra: Record<string, unknown> = {}): Promise<string> {
   const r = await pedir("POST", "/v1/ocorrencias", "helena", abertura(endereco, extra));
-  conferir("POST", "/v1/ocorrencias", r, [200]);
+  conferir("POST", "/v1/ocorrencias", r);
   return (r.json() as { id: string }).id;
 }
 
@@ -233,7 +234,7 @@ describe("ocorrências: o fluxo da coordenação", () => {
       "helena",
       abertura("Rua do Talude, 10", { chaveDeCriacao }),
     );
-    expect(conferir("POST", "/v1/ocorrencias", repetida, [200])).toEqual(corpo);
+    expect(conferir("POST", "/v1/ocorrencias", repetida)).toEqual(corpo);
     expect(repetida.statusCode).toBe(200);
   });
 
@@ -460,7 +461,7 @@ describe("campo: o trabalho do agente", () => {
     expect(s.statusCode).toBe(201);
 
     const repetida = await pedir("POST", "/v1/saida-a-campo", "diego", corpoDaSaida);
-    const igual = conferir("POST", "/v1/saida-a-campo", repetida, [200]) as { duplicada: boolean };
+    const igual = conferir("POST", "/v1/saida-a-campo", repetida) as { duplicada: boolean };
     expect(repetida.statusCode).toBe(200);
     expect(igual.duplicada).toBe(true);
 
@@ -559,7 +560,7 @@ describe("campo: o trabalho do agente", () => {
       "diego",
       vistoria(ocorrenciaA, chave),
     );
-    const repetida = conferir("POST", "/v1/sincronizacao/vistoria", reenvio, [200]) as {
+    const repetida = conferir("POST", "/v1/sincronizacao/vistoria", reenvio) as {
       vistoriaId: string;
       duplicada: boolean;
     };
@@ -612,7 +613,7 @@ describe("campo: o trabalho do agente", () => {
     expect(d.statusCode).toBe(201);
 
     const repetida = await pedir("POST", "/v1/sincronizacao/devolucao", "diego", corpo);
-    const igual = conferir("POST", "/v1/sincronizacao/devolucao", repetida, [200]) as {
+    const igual = conferir("POST", "/v1/sincronizacao/devolucao", repetida) as {
       devolucaoId: string;
       duplicada: boolean;
     };

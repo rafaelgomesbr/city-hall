@@ -75,6 +75,7 @@ function parametrosDoCaminho(caminho: string): string[] {
 
 function respostasDe(r: RotaComGrupo): Json {
   const respostas: Record<string, Json> = {};
+  const chave = `${r.metodo} ${r.caminho}`;
 
   if (r.resposta) {
     const { status, descricao, esquema, tipo } = r.resposta;
@@ -88,7 +89,28 @@ function respostasDe(r: RotaComGrupo): Json {
       resposta.content = Object.fromEntries(conteudo);
     }
     respostas[String(status)] = resposta;
+
+    /* Os outros status de sucesso: o corpo é o da principal, salvo esquema próprio. */
+    for (const outra of r.tambemResponde ?? []) {
+      if (String(outra.status) in respostas) {
+        throw new Error(
+          `${chave}: o status ${outra.status} de \`tambemResponde\` repete outra resposta da entrada`,
+        );
+      }
+      const adicional: Json = { description: outra.descricao };
+      if (outra.resposta) {
+        adicional.content = {
+          "application/json": { schema: esquemaJson(outra.resposta, "output") },
+        };
+      } else if (resposta.content) {
+        adicional.content = resposta.content;
+      }
+      respostas[String(outra.status)] = adicional;
+    }
   } else {
+    if ((r.tambemResponde ?? []).length > 0) {
+      throw new Error(`${chave}: \`tambemResponde\` exige a \`resposta\` principal descrita`);
+    }
     respostas.default = { description: SEM_RESPOSTA };
   }
 
@@ -105,6 +127,11 @@ function respostasDe(r: RotaComGrupo): Json {
   }
   for (const status of [...porStatus.keys()].sort((a, b) => a - b)) {
     const codigos = porStatus.get(status)!;
+    if (String(status) in respostas) {
+      throw new Error(
+        `${chave}: o status ${status} dos erros colide com uma resposta de sucesso da entrada`,
+      );
+    }
     respostas[String(status)] = {
       description: codigos.map((c) => `${c}: ${CODIGOS_DE_ERRO[c].titulo}`).join("; "),
       "x-codigos-de-erro": codigos,
@@ -194,14 +221,27 @@ function textoDaRegra(erro: unknown): string {
  * (objeto dentro de lista, união, opcional, pipe...). Passeia pela definição
  * interna do Zod, sem depender do tipo de nó: toda propriedade que for esquema,
  * lista de esquemas ou mapa de esquemas (`shape`) é visitada.
+ *
+ * A visita é por CAMINHO, não por objeto: o mesmo esquema usado em dois campos
+ * (o `pontoSchema` de `origem` e de `destino`) é uma regra em cada lugar e sai
+ * duas vezes. Duas coisas impedem a repetição inútil: o par (esquema, caminho)
+ * nunca é visitado duas vezes (união com a mesma opção repetida, `optional` em
+ * volta do mesmo nó), e um esquema que já está na cadeia de quem o contém não
+ * é visitado de novo (esquema recursivo, com `get` que devolve o próprio
+ * esquema): sem isso o caminho cresceria para sempre.
  */
 export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
   const achadas: RegraAdicional[] = [];
-  const vistos = new WeakSet<object>();
+  const vistos = new WeakMap<object, Set<string>>();
+  const naCadeia = new Set<object>();
 
   const visitar = (no: ZodType, caminho: string[]): void => {
-    if (vistos.has(no)) return;
-    vistos.add(no);
+    const chaveDoCaminho = caminho.join(".");
+    const jaNesteCaminho = vistos.get(no) ?? new Set<string>();
+    if (naCadeia.has(no) || jaNesteCaminho.has(chaveDoCaminho)) return;
+    jaNesteCaminho.add(chaveDoCaminho);
+    vistos.set(no, jaNesteCaminho);
+    naCadeia.add(no);
     const def = no.def as unknown as Record<string, unknown>;
 
     const checks = Array.isArray(def.checks) ? (def.checks as unknown[]) : [];
@@ -210,7 +250,7 @@ export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
       if (d?.check !== "custom") continue;
       const campo = [...caminho, ...(d.path ?? []).map(String)].join(".");
       achadas.push({
-        caminho: caminho.join("."),
+        caminho: chaveDoCaminho,
         campo: campo || "(corpo inteiro)",
         regra: textoDaRegra(d.error),
       });
@@ -228,6 +268,7 @@ export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
         }
       }
     }
+    naCadeia.delete(no);
   };
 
   visitar(esquema, []);

@@ -34,8 +34,8 @@ import { rota, type GrupoDoContrato } from "../tipos.js";
  *   confere uma resposta real de cada rota (e que nenhum campo é cortado).
  * - As três rotas de idempotência por chave (`/sincronizacao/vistoria`,
  *   `/sincronizacao/devolucao`, `POST /saida-a-campo`) respondem 201 na primeira
- *   vez e 200 com o MESMO corpo (`duplicada: true`) no reenvio. O registro só
- *   comporta um status de sucesso: vai o 201, e a descrição conta o 200.
+ *   vez e 200 com o MESMO corpo (`duplicada: true`) no reenvio. O 201 é a
+ *   `resposta` e o 200 do reenvio sai em `tambemResponde`.
  * - As rotas da fila (`ROTA_DA_FILA_DO_CAMPO`) respondem 503 `acesso_suspenso`
  *   quando o município está suspenso, em vez do 403 das demais, para a fila do
  *   aparelho esperar em vez de bloquear a coleta.
@@ -265,6 +265,13 @@ export const grupo: GrupoDoContrato = {
           "A vistoria foi gravada. Com a mesma `idempotencyKey` de novo, a rota responde 200 com `duplicada: true` e o mesmo `vistoriaId`, sem gravar nada.",
         esquema: respostaDeVistoria,
       },
+      tambemResponde: [
+        {
+          status: 200,
+          descricao:
+            "Reenvio com a mesma `idempotencyKey`: o mesmo corpo, com `duplicada: true` e o `vistoriaId` já gravado, sem gravar nada de novo.",
+        },
+      ],
       erros: [
         ...ERROS_AUTORIZADA,
         "dados_invalidos",
@@ -288,6 +295,13 @@ export const grupo: GrupoDoContrato = {
           "A tarefa voltou para a triagem, sem equipe. Com a mesma chave de novo, ou quando um colega da equipe já devolveu, a rota responde 200 com `duplicada: true`.",
         esquema: respostaDeDevolucao,
       },
+      tambemResponde: [
+        {
+          status: 200,
+          descricao:
+            "Reenvio com a mesma chave, ou devolução que um colega da equipe já fez: o mesmo corpo, com `duplicada: true` e o `devolucaoId` já gravado.",
+        },
+      ],
       erros: [
         ...ERROS_AUTORIZADA,
         "dados_invalidos",
@@ -353,6 +367,12 @@ export const grupo: GrupoDoContrato = {
           "A saída aberta, com o prazo calculado pelo servidor. Com a mesma chave de novo, a rota responde 200 com `duplicada: true`.",
         esquema: respostaDaSaidaDeclarada,
       },
+      tambemResponde: [
+        {
+          status: 200,
+          descricao: "Reenvio com a mesma chave: a saída que já foi aberta, com `duplicada: true`.",
+        },
+      ],
       erros: [
         ...ERROS_AUTORIZADA,
         "dados_invalidos",
