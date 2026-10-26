@@ -1,0 +1,164 @@
+TAP version 13
+# Subtest: o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso
+ok 1 - o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso
+  ---
+  duration_ms: 15.1927
+  type: 'test'
+  ...
+# Subtest: a política versionada tem as listas propostas pelo roadmap e não decide nada pelo Rafael
+ok 2 - a política versionada tem as listas propostas pelo roadmap e não decide nada pelo Rafael
+  ---
+  duration_ms: 0.6265
+  type: 'test'
+  ...
+# Subtest: componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; mantém devOptional
+ok 3 - componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; mantém devOptional
+  ---
+  duration_ms: 0.7899
+  type: 'test'
+  ...
+# Subtest: componentesDeProducao: o grafo de runtime decide, e a marca `dev: true` inconsistente não esconde o componente
+not ok 4 - componentesDeProducao: o grafo de runtime decide, e a marca `dev: true` inconsistente não esconde o componente
+  ---
+  duration_ms: 1.9267
+  type: 'test'
+  location: '<repo>\\dc360\\scripts\\licencas.test.mjs:138:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    só o de runtime; o de verdade-dev segue de fora
+    + actual - expected
+    
+    + []
+    - [
+    -   'fast-uri@4.2.3:AGPL-3.0'
+    - ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'fast-uri@4.2.3:AGPL-3.0'
+  actual:
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///<repo>/dc360/scripts/licencas.test.mjs:150:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: componentesDeProducao: dependência transitiva de runtime também é alcançada pelo grafo, mesmo marcada dev
+not ok 5 - componentesDeProducao: dependência transitiva de runtime também é alcançada pelo grafo, mesmo marcada dev
+  ---
+  duration_ms: 0.8658
+  type: 'test'
+  location: '<repo>\\dc360\\scripts\\licencas.test.mjs:161:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'a',
+    -   'b'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'a'
+    1: 'b'
+  actual:
+    0: 'a'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///<repo>/dc360/scripts/licencas.test.mjs:170:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência
+ok 6 - normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência
+  ---
+  duration_ms: 0.2526
+  type: 'test'
+  ...
+# Subtest: expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam
+ok 7 - expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam
+  ---
+  duration_ms: 0.3934
+  type: 'test'
+  ...
+# Subtest: expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida
+ok 8 - expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida
+  ---
+  duration_ms: 0.21
+  type: 'test'
+  ...
+# Subtest: fixture com AGPL: reprova com a política decidida e só avisa com a proposta
+ok 9 - fixture com AGPL: reprova com a política decidida e só avisa com a proposta
+  ---
+  duration_ms: 0.5782
+  type: 'test'
+  ...
+# Subtest: componente sem licença reprova com a política decidida (e UNLICENSED também)
+ok 10 - componente sem licença reprova com a política decidida (e UNLICENSED também)
+  ---
+  duration_ms: 0.4618
+  type: 'test'
+  ...
+# Subtest: licença fora das duas listas reprova com a política decidida (nega por padrão) e a exceção nomeada a libera
+ok 11 - licença fora das duas listas reprova com a política decidida (nega por padrão) e a exceção nomeada a libera
+  ---
+  duration_ms: 0.3511
+  type: 'test'
+  ...
+# Subtest: exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado
+ok 12 - exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado
+  ---
+  duration_ms: 0.3183
+  type: 'test'
+  ...
+# Subtest: exceção sem motivo, sem dono, sem data, com prazo longo demais ou sem versão: defeito da política
+ok 13 - exceção sem motivo, sem dono, sem data, com prazo longo demais ou sem versão: defeito da política
+  ---
+  duration_ms: 0.2878
+  type: 'test'
+  ...
+# Subtest: exceção desnecessária (a licença já é permitida) e política mal formada também são defeito
+ok 14 - exceção desnecessária (a licença já é permitida) e política mal formada também são defeito
+  ---
+  duration_ms: 0.3391
+  type: 'test'
+  ...
+# Subtest: lockfile sem componente algum não passa por verde (não leu nada)
+ok 15 - lockfile sem componente algum não passa por verde (não leu nada)
+  ---
+  duration_ms: 0.1002
+  type: 'test'
+  ...
+# Subtest: linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2
+ok 16 - linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2
+  ---
+  duration_ms: 393.0638
+  type: 'test'
+  ...
+# Subtest: o job produto do verificar.yml roda a conferência de licenças, sem continue-on-error e sem escrita
+ok 17 - o job produto do verificar.yml roda a conferência de licenças, sem continue-on-error e sem escrita
+  ---
+  duration_ms: 0.9793
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 15
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 500.6896
