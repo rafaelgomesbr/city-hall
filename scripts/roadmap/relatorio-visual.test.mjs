@@ -126,6 +126,12 @@ test("blocos: soma de etapas e marca de onde estamos", () => {
   assert.match(montar().html, /estamos aqui/);
 });
 
+test("blocos: a barra mede o progresso do próprio bloco, e bloco todo feito enche a barra", () => {
+  const { html } = montar();
+  assert.match(html, /<div class="trilho"[^>]*><i style="width:100%"><\/i><\/div><div class="v">4 de 4<\/div>/);
+  assert.match(html, /<div class="trilho"[^>]*><i style="width:0%"><\/i><\/div><div class="v">0 de 3<\/div>/);
+});
+
 test("seção de prazo traz meta, três cenários, ritmo e a tabela por etapa", () => {
   const { html } = montar();
   assert.match(html, /Prazo e estimativa de entrega/);

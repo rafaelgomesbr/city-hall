@@ -286,11 +286,12 @@ export function estatisticasPorFase(statusPorEtapa) {
 
 function secaoBlocos({ coleta, blocos }) {
   const grupos = agruparPorBloco({ blocos, estatisticasPorFase: estatisticasPorFase(coleta.statusPorEtapa), faseAtual: coleta.fase.fase });
-  const maximo = Math.max(...grupos.map((g) => g.total));
+  // Cada trilho é o bloco inteiro: a barra mede o progresso do próprio bloco, não o tamanho dele frente aos outros.
   const linhas = grupos
     .map((g, i) => {
       const faixaFases = g.fases.length === 1 ? g.fases[0] : `${g.fases[0]} a ${g.fases[g.fases.length - 1]}`;
-      return `<div class="bl${g.aqui ? " aqui" : ""}"><div class="n">${i + 1}. ${esc(g.nome)}${g.aqui ? '<span class="aqui-tag">estamos aqui</span>' : ""}<small>${esc(faixaFases)}</small></div><div class="trilho"><i style="width:${pct(g.total, maximo)}%"><b style="width:${pct(g.feitas, g.total)}%"></b></i></div><div class="v">${g.total}</div></div>`;
+      const rotulo = `${g.feitas} de ${g.total} etapas do bloco já saíram de "ainda não começou"`;
+      return `<div class="bl${g.aqui ? " aqui" : ""}"><div class="n">${i + 1}. ${esc(g.nome)}${g.aqui ? '<span class="aqui-tag">estamos aqui</span>' : ""}<small>${esc(faixaFases)}</small></div><div class="trilho" role="img" aria-label="${esc(rotulo)}"><i style="width:${pct(g.feitas, g.total)}%"></i></div><div class="v">${g.feitas} de ${g.total}</div></div>`;
     })
     .join("\n    ");
   return `<section class="sec" aria-labelledby="h-falta">
@@ -299,7 +300,7 @@ function secaoBlocos({ coleta, blocos }) {
   <div class="card blocos">
     ${linhas}
   </div>
-  <p class="nota">Número de etapas por bloco. A parte colorida de cada barra é o que já saiu de "ainda não começou".</p>
+  <p class="nota">Cada barra é o bloco inteiro. A parte colorida é o que já saiu de "ainda não começou", e o número diz quantas etapas isso é, do total do bloco.</p>
 </section>`;
 }
 
