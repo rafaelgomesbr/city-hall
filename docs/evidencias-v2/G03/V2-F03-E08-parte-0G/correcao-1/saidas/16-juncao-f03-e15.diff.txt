@@ -1,0 +1,36 @@
+diff --git a/dc360/db/test/catalogo/f03-e15.ts b/dc360/db/test/catalogo/f03-e15.ts
+index cc1c2ac1..3be623aa 100644
+--- a/dc360/db/test/catalogo/f03-e15.ts
++++ b/dc360/db/test/catalogo/f03-e15.ts
+@@ -100,6 +100,12 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
+       migracao: "054",
+       etapa: ETAPA,
+       executavelPor: [],
++      gatilhoEm: ["usuarios"],
++      gatilhos: [
++        { tabela: "usuarios", nome: "usuarios_ganha_pessoa", momento: "BEFORE", nivel: "ROW", eventos: ["INSERT"] },
++        { tabela: "usuarios", nome: "usuarios_origem_da_pessoa", momento: "AFTER", nivel: "ROW", eventos: ["INSERT"], adiado: "INITIALLY DEFERRED" },
++        { tabela: "usuarios", nome: "usuarios_nenhuma_pessoa_sem_conta", momento: "AFTER", nivel: "STATEMENT", eventos: ["INSERT"] },
++      ],
+       motivo:
+         "Função dos três gatilhos de INSERT de `public.usuarios`: o criador (BEFORE) cria a pessoa " +
+         "NOVA da conta que chega sem `pessoa_id` e grava a marca `criador` em `origens_de_conta`; " +
+@@ -124,6 +130,18 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
+       migracao: "054",
+       etapa: ETAPA,
+       executavelPor: [],
++      gatilhoEm: ["usuarios"],
++      gatilhos: [
++        {
++          tabela: "usuarios",
++          nome: "pessoa_recebe_a_credencial_da_conta",
++          momento: "AFTER",
++          nivel: "ROW",
++          eventos: ["UPDATE"],
++          colunasDoUpdate: ["senha_hash", "falhas_login", "bloqueado_ate", "senha_provisoria_ate", "email"],
++          quando: "((old.senha_hash IS DISTINCT FROM new.senha_hash) OR (old.falhas_login IS DISTINCT FROM new.falhas_login) OR (old.bloqueado_ate IS DISTINCT FROM new.bloqueado_ate) OR (old.senha_provisoria_ate IS DISTINCT FROM new.senha_provisoria_ate) OR (old.email IS DISTINCT FROM new.email))",
++        },
++      ],
+       motivo:
+         "Espelho de mão única da credencial e do e-mail de `usuarios` para `pessoas` (P-04, passo " +
+         "1 da ADR 0009), no gatilho `pessoa_recebe_a_credencial_da_conta`, que dispara antes do " +

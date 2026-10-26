@@ -24,7 +24,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
+  CHAVES_PARA_GLOBAIS,
   COLUNAS_COM_UPDATE_DO_APP,
+  COLUNAS_PROIBIDAS,
   CONTRIBUICOES_DO_CATALOGO,
   EXCECOES_AO_ISOLAMENTO,
   FUNCOES_PRIVILEGIADAS,
@@ -32,6 +34,7 @@ import {
   POLICIES_DO_FORNECEDOR,
   POLICIES_RESTRITIVAS,
   PREPAROS,
+  PRIVILEGIOS_DE_COLUNA,
   SEM_PROVA_COMPORTAMENTAL,
   SEQUENCIAS_DO_PRODUTO,
   TIPOS_PROPRIOS,
@@ -40,21 +43,30 @@ import {
   comoAtor,
   composicoesDePolicies,
   conferirAclDeExtensoes,
+  conferirChavesEstrangeiras,
+  conferirColunasProibidas,
   conferirCorpoDasFuncoes,
+  conferirCriacaoDeObjetos,
+  conferirDeclaracoesCompletas,
+  conferirDisparoDosGatilhos,
+  conferirEliminacaoSemMunicipio,
   conferirDefinicaoInstalada,
   conferirEsquemas,
   conferirExcecoes,
   conferirFontes,
   conferirFuncoesPrivilegiadas,
   conferirGatilhoForaDoAlcance,
+  conferirGatilhosPrivilegiados,
   conferirMarcaDeLiberacao,
   conferirModoDasPolicies,
   conferirPoliciesDoFornecedor,
+  conferirPrivilegiosDeColuna,
   conferirQuemCitaOrigensDeConta,
   conferirSequenciasETipos,
   conferirVisoes,
   fontesDoRepositorio,
   provarIsolamento,
+  provarRecusaForaDaTabela,
   semear,
   tabelasDaProva,
   visoesLegiveis,
@@ -557,42 +569,94 @@ describe("CA-06: isolamento entre organizações", () => {
       isso já foi vazamento real aqui (ver migração 008). Este teste impede que
       volte por uma migração futura.
     */
-    const r = await db.query<{ tabela: string; nome: string; colunas: string; alvo: string }>(`
-      SELECT c.conrelid::regclass::text AS tabela,
-             c.conname AS nome,
-             (SELECT string_agg(a.attname, ',' ORDER BY a.attnum)
-                FROM unnest(c.conkey) AS k(attnum)
-                JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) AS colunas,
-             c.confrelid::regclass::text AS alvo
-        FROM pg_constraint c
-       WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace
-    `);
-
-    for (const fk of r.rows) {
-      // Referência para `organizacoes` é a âncora do tenant: ela não precisa
-      // (nem pode) incluir organizacao_id duas vezes.
-      if (fk.alvo === "organizacoes") continue;
+    /*
+      A regra mora em `catalogo/conferir.ts` (`conferirChavesEstrangeiras`,
+      parte 0G), para as sondas de `catalogo-nominal.test.ts` a verem
+      reprovar, e agora olha TODO esquema fora do sistema, não só `public`.
+      Passa: a chave que inclui `organizacao_id`; a que aponta para
+      `organizacoes`, a âncora do tenant (não precisa, nem pode, incluir
+      organizacao_id duas vezes); as duas referências do fornecedor isentas
+      AQUI, por nome; e a chave DECLARADA em `CHAVES_PARA_GLOBAIS` para uma
+      tabela `global` do catálogo (a `usuarios.pessoa_id -> pessoas` da ADR
+      0009), conferida por inteiro: alvo global, sem cascata, colunas que
+      nenhum papel do produto grava. Qualquer outra reprova.
+    */
+    const ISENTAS_DO_FORNECEDOR: ReadonlyArray<readonly [string, string]> = [
       /*
         `console_operadores.criado_por` aponta para a própria tabela (quem
         criou o operador), e a tabela não tem município: é do fornecedor
         (migração 038, e a exceção nominal em `EXCECOES_AO_ISOLAMENTO`). Não há "outro município"
-        a alcançar por ela. É a única referência isenta, e por nome: uma
-        chave nova numa tabela nova continua reprovando aqui.
+        a alcançar por ela.
       */
-      if (fk.tabela === "console_operadores" && fk.alvo === "console_operadores") continue;
+      ["console_operadores", "console_operadores"],
       /*
         `console_codigos_de_recuperacao.operador_id` aponta para
         `console_operadores` (migração 039): código de recuperação de um
-        operador do fornecedor, e nenhuma das duas tabelas tem município. A
-        segunda referência isenta, e também por nome.
+        operador do fornecedor, e nenhuma das duas tabelas tem município.
       */
-      if (fk.tabela === "console_codigos_de_recuperacao" && fk.alvo === "console_operadores") continue;
-      expect(
-        fk.colunas.split(",").includes("organizacao_id"),
-        `${fk.tabela} -> ${fk.alvo} (${fk.nome}) não inclui organizacao_id: ` +
-        "essa referência alcança linha de outro município",
-      ).toBe(true);
-    }
+      ["console_codigos_de_recuperacao", "console_operadores"],
+    ];
+    expect(
+      await conferirChavesEstrangeiras(db, EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS, ISENTAS_DO_FORNECEDOR),
+    ).toEqual([]);
+  });
+
+  it("toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)", async () => {
+    /*
+      `pessoas` e `origens_de_conta` (ADR 0009) não têm `organizacao_id`, então
+      a eliminação de município não as alcança pela ordem de apagamento. O que
+      acontece com as linhas ligadas ao município eliminado é declarado no
+      catálogo (`semMunicipio.naEliminacao`) e provado aqui executando a
+      eliminação, numa transação desfeita no fim.
+    */
+    expect(await conferirEliminacaoSemMunicipio(db, EXCECOES_AO_ISOLAMENTO)).toEqual([]);
+  });
+
+  it("nenhum papel do produto, nem PUBLIC, tem TEMP ou CREATE no banco, nem CREATE em esquema nenhum (parte 0G)", async () => {
+    /*
+      Com TEMP, o `dc360_app` criava `pg_temp.usuarios`, de mesmo nome que a
+      tabela real, e anexava a ela um gatilho privilegiado. Sem criar objeto,
+      não há onde anexar.
+    */
+    expect(await conferirCriacaoDeObjetos(db)).toEqual([]);
+  });
+
+  it("função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G)", async () => {
+    expect(await conferirGatilhosPrivilegiados(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)", async () => {
+    /*
+      `gatilhoEm` só dizia a tabela. Uma migração que desabilitasse o gatilho,
+      o deixasse só para réplica, ou trocasse o evento e a condição WHEN
+      continuava batendo com ele.
+    */
+    expect(await conferirDisparoDosGatilhos(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)", async () => {
+    /*
+      A conferência do corpo é textual e aceitava `PERFORM TG_RELID = ...`,
+      que não recusa nada. Aqui cada função SECURITY DEFINER que retorna
+      trigger, perguntada ao banco, é disparada pela cópia de cada gatilho
+      real numa `pg_temp.<tabela>`, numa transação desfeita.
+    */
+    expect(await provarRecusaForaDaTabela(db)).toEqual([]);
+  });
+
+  it("nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G)", async () => {
+    expect(
+      await conferirColunasProibidas(
+        db,
+        COLUNAS_PROIBIDAS,
+        PRIVILEGIOS_DE_COLUNA,
+        fontesDoRepositorio().migracoes.keys(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G)", () => {
+    expect(conferirDeclaracoesCompletas(EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS)).toEqual([]);
   });
 
 });
@@ -3996,8 +4060,23 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       "detalhe), 027 (provedor_id), 029 (observacao), 031 (o bloco de encerramento da saida " +
       "a campo), 032 (a chave da prorrogacao) e 035 (a decisao sobre o objeto orfao)",
     ).toEqual(
-      COLUNAS_COM_UPDATE_DO_APP.map((c) => `${c.tabela}.${c.coluna}:UPDATE`).sort(),
+      /*
+        Parte 0G: a lista é a de TODO privilégio por coluna do papel de
+        aplicação (INSERT, SELECT e UPDATE), e não mais só o UPDATE. A de
+        hoje continua sendo só a de UPDATE de `COLUNAS_COM_UPDATE_DO_APP`.
+      */
+      PRIVILEGIOS_DE_COLUNA.filter((c) => c.papel === "dc360_app")
+        .map((c) => `${c.tabela}.${c.coluna}:${c.privilegio}`)
+        .sort(),
     );
+    expect(
+      COLUNAS_COM_UPDATE_DO_APP.every((c) =>
+        PRIVILEGIOS_DE_COLUNA.some(
+          (p) => p.papel === "dc360_app" && p.privilegio === "UPDATE" && p.tabela === c.tabela && p.coluna === c.coluna,
+        ),
+      ),
+      "COLUNAS_COM_UPDATE_DO_APP ficou fora de PRIVILEGIOS_DE_COLUNA",
+    ).toBe(true);
 
     // E a ancora do caminho das funcoes privilegiadas.
     const funcoes = new Set(doApp.filter((a) => a.especie === "funcao").map((a) => a.relacao));
@@ -4014,6 +4093,17 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       visoes.has("console_situacao_dos_municipios"),
       "a varredura de visao nao enxergou a unica visao que o schema tem hoje",
     ).toBe(true);
+  });
+
+  it("todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)", async () => {
+    /*
+      Nos dois sentidos, contra `information_schema.column_privileges` e a ACL
+      de cada coluna: nada a mais, nada a menos, sem opcao de concessao, e a
+      tabela de um grupo declarado sem o mesmo privilegio de tabela para o
+      mesmo papel. Os do console (as duas colunas de cancelamento do livro de
+      eliminacoes) tambem passam por `O_CONSOLE_ALCANCA_POR_COLUNA`, abaixo.
+    */
+    expect(await conferirPrivilegiosDeColuna(db, PRIVILEGIOS_DE_COLUNA)).toEqual([]);
   });
 
   it("nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio", async () => {

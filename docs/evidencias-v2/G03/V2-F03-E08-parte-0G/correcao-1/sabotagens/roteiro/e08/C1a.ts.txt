@@ -1,0 +1,18 @@
+// C1a: redefine AMPLIANDO a lista da E15 sem declarar a ampliacao
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+const ETAPA = "V2-F03-E08";
+const MOTIVO = "Sabotagem da correcao 1 da 0G: a E08 encolhe o privilegio de usuarios (passo 3 da P-04).";
+
+export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [],
+  colunasComUpdate: [],
+  privilegiosDeColuna: [
+    {
+      tabela: "usuarios", papel: "dc360_app", privilegio: "UPDATE",
+      colunas: ["nome", "matricula", "email", "papel", "equipe_id", "ativo", "senha_hash", "falhas_login", "bloqueado_ate", "senha_provisoria_ate", "foto_chave", "foto_bytes", "ultimo_acesso"],
+      migracao: "999", etapa: ETAPA, motivo: MOTIVO, redefine: true,
+    },
+  ],
+};

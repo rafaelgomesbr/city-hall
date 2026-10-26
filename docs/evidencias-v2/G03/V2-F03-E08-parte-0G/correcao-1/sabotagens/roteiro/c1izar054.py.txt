@@ -1,0 +1,14 @@
+"""A 054 adaptada da 0G com a recusa por TG_RELID em 42501 (a forma da 1B corrigida, 037ab8ab)."""
+import sys
+
+entrada, saida = sys.argv[1], sys.argv[2]
+t = open(entrada, encoding="utf-8").read()
+for velho in [
+    "    RAISE EXCEPTION 'conta_ganha_pessoa so serve aos gatilhos de INSERT de usuarios';",
+    "    RAISE EXCEPTION 'pessoa_espelha_a_conta so serve ao gatilho AFTER UPDATE de usuarios';",
+]:
+    if t.count(velho) != 1:
+        raise SystemExit("nao achei " + velho)
+    t = t.replace(velho, velho[:-1] + " USING ERRCODE = 'insufficient_privilege';")
+open(saida, "w", encoding="utf-8", newline="\n").write(t)
+print("ok", saida)

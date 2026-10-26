@@ -1,0 +1,122 @@
+# Gera o f03-e15.ts da 1B ADAPTADO as formas da parte 0G. So para a prova; nunca commitado.
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src, encoding="utf8").read()
+
+
+def troca(a, b, n=1):
+    global s
+    assert s.count(a) == n, (a, s.count(a))
+    s = s.replace(a, b)
+
+
+troca('import type { ColunaComUpdate, ContribuicaoDoCatalogo } from "./tipos.js";',
+      'import type { ContribuicaoDoCatalogo, DestinoNaEliminacao, PrivilegioDeColuna } from "./tipos.js";')
+troca("""const colunasComUpdate: readonly ColunaComUpdate[] = UPDATE_DE_USUARIOS.map(([coluna, uso]) => ({
+  tabela: "usuarios",
+  coluna,
+  migracao: "054",
+  etapa: ETAPA,
+  motivo:
+    `UPDATE por coluna, e não mais de tabela (054): ${uso}. A lista positiva deixa ` +
+    "`pessoa_id` fora do alcance do papel de aplicação.",
+}));""", """const privilegiosDeColuna: readonly PrivilegioDeColuna[] = [
+  {
+    tabela: "usuarios",
+    papel: "dc360_app",
+    privilegio: "UPDATE",
+    colunas: UPDATE_DE_USUARIOS.map(([coluna]) => coluna),
+    migracao: "054",
+    etapa: ETAPA,
+    motivo:
+      "UPDATE por coluna, e não mais de tabela (054), numa lista positiva das colunas que a API " +
+      "grava hoje (" + UPDATE_DE_USUARIOS.map(([c, uso]) => `${c}: ${uso}`).join("; ") + "). " +
+      "`pessoa_id` fica fora; a E08 encolhe a lista com redefine.",
+  },
+  {
+    tabela: "usuarios",
+    papel: "dc360_app",
+    privilegio: "INSERT",
+    colunas: [
+      "id", "organizacao_id", "nome", "matricula", "email", "papel", "equipe_id", "ativo",
+      "senha_hash", "falhas_login", "bloqueado_ate", "senha_provisoria_ate", "foto_chave", "foto_bytes",
+    ],
+    migracao: "054",
+    etapa: ETAPA,
+    motivo:
+      "INSERT por coluna, e não mais de tabela (decisão 1 da ADR 0009): o cadastro de conta não " +
+      "informa `pessoa_id`, que o gatilho criador atribui; a recusa passa a ser de privilégio (42501).",
+  },
+];
+
+const SEMEAR_CONTA =
+  "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +
+  "VALUES (:org, 'Servidor da Prova', 'P-1', 'prova-eliminacao@exemplo.gov.br', 'administrador')";
+
+const PESSOA_FICA: DestinoNaEliminacao = {
+  destino: "fica",
+  porque:
+    "A pessoa não se apaga na eliminação do município (ADR 0009, consequências; H98 decide o " +
+    "destino definitivo): ela pode ter conta noutro município, e a linha é global.",
+  semear: SEMEAR_CONTA,
+  linhasDoMunicipio: "SELECT pessoa_id AS chave FROM usuarios WHERE organizacao_id = :org",
+  coluna: "id",
+};
+
+const ORIGEM_FICA: DestinoNaEliminacao = {
+  destino: "fica",
+  porque:
+    "A marca é o registro permanente de como a conta ganhou a pessoa (correção 3): sobrevive à " +
+    "eliminação junto com a pessoa, sem `organizacao_id` e fora da ordem de apagamento (H98).",
+  semear: SEMEAR_CONTA,
+  linhasDoMunicipio:
+    "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id " +
+    "WHERE u.organizacao_id = :org",
+  coluna: "usuario_id",
+};""")
+troca("""      executavelPor: ["dc360_app"],
+      motivo:
+        "Função dos dois gatilhos de INSERT""", """      executavelPor: [],
+      gatilhoEm: ["usuarios"],
+      motivo:
+        "Função dos dois gatilhos de INSERT""")
+troca("""      executavelPor: ["dc360_app"],
+      motivo:
+        "Espelho de mão única""", """      executavelPor: [],
+      gatilhoEm: ["usuarios"],
+      motivo:
+        "Espelho de mão única""")
+troca("""      grants: SEM_GRANT,
+      etapa: ETAPA,
+      motivo:
+        "A pessoa GLOBAL""", """      grants: SEM_GRANT,
+      semMunicipio: { especie: "global", naEliminacao: PESSOA_FICA },
+      etapa: ETAPA,
+      motivo:
+        "A pessoa GLOBAL""")
+troca("""      grants: SEM_GRANT,
+      etapa: ETAPA,
+      motivo:
+        "De onde veio""", """      grants: SEM_GRANT,
+      semMunicipio: { especie: "protegida", naEliminacao: ORIGEM_FICA },
+      etapa: ETAPA,
+      motivo:
+        "De onde veio""")
+troca("""  colunasComUpdate,
+  preparos: [""", """  colunasComUpdate: [],
+  privilegiosDeColuna,
+  chavesParaGlobais: [
+    {
+      tabela: "usuarios",
+      restricao: "usuarios_pessoa_id_fkey",
+      colunas: ["pessoa_id"],
+      alvo: "pessoas",
+      migracao: "054",
+      etapa: ETAPA,
+      motivo:
+        "A conta aponta para a pessoa GLOBAL (decisão 1 da ADR 0009): a chave não pode incluir " +
+        "`organizacao_id`, porque a pessoa não tem município; nenhum papel do produto grava a coluna.",
+    },
+  ],
+  preparos: [""")
+open(dst, "w", encoding="utf8", newline="\n").write(s)

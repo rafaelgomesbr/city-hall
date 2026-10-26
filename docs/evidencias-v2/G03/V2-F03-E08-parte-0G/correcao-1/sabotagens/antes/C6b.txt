@@ -1,0 +1,64 @@
+### C6b (antes)
+--- 054 (diff contra a 1B adaptada c1):
+342,344d341
+<   IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'INSERT' OR TG_LEVEL <> 'ROW' THEN
+<     RAISE EXCEPTION 'conta_ganha_pessoa so serve aos gatilhos de INSERT de usuarios' USING ERRCODE = 'insufficient_privilege';
+<   END IF;
+373a371,373
+>       IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'INSERT' OR TG_LEVEL <> 'ROW' THEN
+>         RAISE EXCEPTION 'conta_ganha_pessoa so serve aos gatilhos de INSERT de usuarios' USING ERRCODE = 'insufficient_privilege';
+>       END IF;
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+13:37:19 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+stdout | test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1834ms
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta 17ms
+     → o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+ ✓ test/catalogo-nominal.test.ts (94 tests) 31784ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  3422ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  3718ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  3306ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  3619ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  3471ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  3644ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  3667ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  3518ms
+ ✓ test/isolamento.test.ts (166 tests) 34368ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1001ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  3575ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1043ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  23030ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+AssertionError: o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts:53:44
+     51|   const depois = await contar();
+     52|   console.log(`GT: antes ${JSON.stringify(antes)}, depois ${JSON.strin…
+     53|   expect(erro, "o banco recusou o ataque").toBe("");
+       |                                            ^
+     54|   expect(depois.p).toBe(antes.p + 1);
+     55|   expect(depois.o).toBe(antes.o + 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 260 passed (261)
+   Start at  13:37:18
+   Duration  35.54s (transform 443ms, setup 0ms, collect 1.35s, tests 67.99s, environment 1ms, prepare 487ms)
+

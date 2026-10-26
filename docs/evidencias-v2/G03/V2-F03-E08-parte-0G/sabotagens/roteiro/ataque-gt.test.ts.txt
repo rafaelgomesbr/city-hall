@@ -1,0 +1,56 @@
+/**
+ * SABOTAGEM GT, temporaria (nunca commitada): o ataque da tabela temporaria de mesmo nome, DE
+ * VERDADE, contra a 054 que estiver na arvore. Passa (o teste fica verde) quando o ataque GRAVA
+ * em `pessoas` e em `origens_de_conta` como o dono; reprova quando o banco o recusa.
+ */
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, beforeAll, expect, it } from "vitest";
+
+const pasta = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+let db: PGlite;
+
+beforeAll(async () => {
+  db = new PGlite();
+  for (const f of readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort()) {
+    await db.exec(readFileSync(join(pasta, f), "utf8"));
+  }
+}, 120_000);
+afterAll(async () => {
+  await db?.close();
+});
+
+it("GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta", async () => {
+  const contar = async () =>
+    (
+      await db.query<{ p: number; o: number }>(
+        "SELECT (SELECT count(*)::int FROM pessoas) AS p, (SELECT count(*)::int FROM origens_de_conta) AS o",
+      )
+    ).rows[0]!;
+  const antes = await contar();
+  let erro = "";
+  try {
+    await db.transaction(async (tx) => {
+      await tx.exec("SET LOCAL ROLE dc360_app");
+      await tx.exec(`CREATE TEMP TABLE usuarios (
+        id uuid DEFAULT gen_random_uuid(), organizacao_id uuid, nome text, email text, senha_hash text,
+        falhas_login integer DEFAULT 0, bloqueado_ate timestamptz, senha_provisoria_ate timestamptz,
+        ativo boolean DEFAULT true, pessoa_id uuid)`);
+      await tx.exec(
+        "CREATE TRIGGER invasor BEFORE INSERT ON pg_temp.usuarios FOR EACH ROW EXECUTE FUNCTION public.conta_ganha_pessoa()",
+      );
+      await tx.exec(
+        "INSERT INTO pg_temp.usuarios (organizacao_id, nome, email) VALUES (gen_random_uuid(), 'Invasor', 'invasor@exemplo.gov.br')",
+      );
+    });
+  } catch (e) {
+    erro = (e as Error).message;
+  }
+  const depois = await contar();
+  console.log(`GT: antes ${JSON.stringify(antes)}, depois ${JSON.stringify(depois)}, erro: ${erro || "nenhum"}`);
+  expect(erro, "o banco recusou o ataque").toBe("");
+  expect(depois.p).toBe(antes.p + 1);
+  expect(depois.o).toBe(antes.o + 1);
+});

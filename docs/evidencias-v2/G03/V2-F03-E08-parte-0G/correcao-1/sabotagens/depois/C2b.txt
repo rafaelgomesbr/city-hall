@@ -1,0 +1,115 @@
+### C2b (depois)
+--- f03-e08.ts:
+// C2b: a E08 redefine origens_de_conta de protegida para global
+import type { ContribuicaoDoCatalogo, DestinoNaEliminacao } from "./tipos.js";
+
+const ETAPA = "V2-F03-E08";
+const SEM_GRANT = { dc360_app: [], dc360_console: [], PUBLIC: [] } as const;
+const ORIGEM_FICA: DestinoNaEliminacao = {
+  destino: "fica",
+  porque: "A marca e o registro permanente de como a conta ganhou a pessoa (correcao 3), e sobrevive.",
+  semear: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, 'S', 'P-1', 'prova-eliminacao@exemplo.gov.br', 'administrador')",
+  semearOutroMunicipio: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, 'S', 'P-2', 'outro-municipio-eliminacao@exemplo.gov.br', 'administrador')",
+  linhasDoMunicipio: "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id WHERE u.organizacao_id = :org",
+  coluna: "usuario_id",
+};
+
+export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "origens_de_conta",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: SEM_GRANT,
+      semMunicipio: { especie: "global", naEliminacao: ORIGEM_FICA },
+      etapa: ETAPA,
+      redefine: true,
+      motivo:
+        "De onde veio o `pessoa_id` de cada conta (correção 3 da ADR 0009): `backfill`, `criador` " +
+        "ou `aceite`, com a transação de quem gravou, para o gatilho adiado distinguir o valor " +
+        "criado pelo gatilho criador do informado pelo chamador. É registro da ligação conta e " +
+        "pessoa, global como a pessoa; sem `organizacao_id` para não entrar na ordem de eliminação.",
+      trava:
+        "RLS forçada sem policy e nenhum privilégio de papel nenhum do produto, nem SELECT: o " +
+        "`dc360_app` não define a marca. Só a função do gatilho criador cita a tabela (regra da " +
+        "0D, `gravaOrigemDeConta`). Nada a altera nem a apaga (gatilho de linha permanente).",
+    },
+  ],
+  colunasComUpdate: [],
+};
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+13:59:38 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+stdout | test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1902ms
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta 15ms
+     → o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts [ test/catalogo-nominal.test.ts ]
+Error: EXCECOES_AO_ISOLAMENTO: "origens_de_conta" em V2-F03-E08 redefine a exceção trocando o regime (sem município protegida, fica na eliminação para sem município global, fica na eliminação): o regime de uma exceção se preserva, e mudá-lo é ampliar a exceção, o que uma redefinição não faz
+ ❯ test/catalogo/index.ts:279:15
+    277|       const novo = regimeDaExcecao(nova);
+    278|       if (regime !== novo) {
+    279|         throw new Error(
+       |               ^
+    280|           `EXCECOES_AO_ISOLAMENTO: "${nova.tabela}" em ${de} redefine …
+    281|             `(${regime} para ${novo}): o regime de uma exceção se pres…
+ ❯ juntar test/catalogo/index.ts:163:19
+ ❯ juntarCatalogo test/catalogo/index.ts:254:20
+ ❯ test/catalogo/index.ts:570:17
+ ❯ test/catalogo-nominal.test.ts:43:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/isolamento.test.ts [ test/isolamento.test.ts ]
+Error: EXCECOES_AO_ISOLAMENTO: "origens_de_conta" em V2-F03-E08 redefine a exceção trocando o regime (sem município protegida, fica na eliminação para sem município global, fica na eliminação): o regime de uma exceção se preserva, e mudá-lo é ampliar a exceção, o que uma redefinição não faz
+ ❯ test/catalogo/index.ts:279:15
+    277|       const novo = regimeDaExcecao(nova);
+    278|       if (regime !== novo) {
+    279|         throw new Error(
+       |               ^
+    280|           `EXCECOES_AO_ISOLAMENTO: "${nova.tabela}" em ${de} redefine …
+    281|             `(${regime} para ${novo}): o regime de uma exceção se pres…
+ ❯ juntar test/catalogo/index.ts:163:19
+ ❯ juntarCatalogo test/catalogo/index.ts:254:20
+ ❯ test/catalogo/index.ts:570:17
+ ❯ test/isolamento.test.ts:26:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+AssertionError: o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts:53:44
+     51|   const depois = await contar();
+     52|   console.log(`GT: antes ${JSON.stringify(antes)}, depois ${JSON.strin…
+     53|   expect(erro, "o banco recusou o ataque").toBe("");
+       |                                            ^
+     54|   expect(depois.p).toBe(antes.p + 1);
+     55|   expect(depois.o).toBe(antes.o + 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  1 failed (1)
+   Start at  13:59:37
+   Duration  2.58s (transform 524ms, setup 0ms, collect 87ms, tests 1.90s, environment 1ms, prepare 679ms)
+

@@ -1,0 +1,98 @@
+### C1a (depois)
+--- migracao 999 temporaria:
+-- C1a: uma etapa posterior amplia o UPDATE de usuarios (ultimo_acesso)
+GRANT UPDATE (ultimo_acesso) ON usuarios TO dc360_app;
+--- f03-e08.ts:
+// C1a: redefine AMPLIANDO a lista da E15 sem declarar a ampliacao
+import type { ContribuicaoDoCatalogo } from "./tipos.js";
+
+const ETAPA = "V2-F03-E08";
+const MOTIVO = "Sabotagem da correcao 1 da 0G: a E08 encolhe o privilegio de usuarios (passo 3 da P-04).";
+
+export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [],
+  colunasComUpdate: [],
+  privilegiosDeColuna: [
+    {
+      tabela: "usuarios", papel: "dc360_app", privilegio: "UPDATE",
+      colunas: ["nome", "matricula", "email", "papel", "equipe_id", "ativo", "senha_hash", "falhas_login", "bloqueado_ate", "senha_provisoria_ate", "foto_chave", "foto_bytes", "ultimo_acesso"],
+      migracao: "999", etapa: ETAPA, motivo: MOTIVO, redefine: true,
+    },
+  ],
+};
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+13:57:14 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+stdout | test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2327ms
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta 18ms
+     → o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts [ test/catalogo-nominal.test.ts ]
+Error: PRIVILEGIOS_DE_COLUNA: "dc360_app:usuarios:UPDATE" em V2-F03-E08 redefine AMPLIANDO a lista (ultimo_acesso) sem declarar a ampliação: redefinição só encolhe
+ ❯ test/catalogo/index.ts:452:17
+    450|         const declarada = [...(nova.ampliacao?.colunas ?? [])].sort();
+    451|         if (acrescenta.length && !nova.ampliacao) {
+    452|           throw new Error(
+       |                 ^
+    453|             `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} r…
+    454|               `(${acrescenta.join(", ")}) sem declarar a ampliação: re…
+ ❯ juntar test/catalogo/index.ts:163:19
+ ❯ juntarCatalogo test/catalogo/index.ts:431:5
+ ❯ test/catalogo/index.ts:570:17
+ ❯ test/catalogo-nominal.test.ts:43:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/isolamento.test.ts [ test/isolamento.test.ts ]
+Error: PRIVILEGIOS_DE_COLUNA: "dc360_app:usuarios:UPDATE" em V2-F03-E08 redefine AMPLIANDO a lista (ultimo_acesso) sem declarar a ampliação: redefinição só encolhe
+ ❯ test/catalogo/index.ts:452:17
+    450|         const declarada = [...(nova.ampliacao?.colunas ?? [])].sort();
+    451|         if (acrescenta.length && !nova.ampliacao) {
+    452|           throw new Error(
+       |                 ^
+    453|             `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} r…
+    454|               `(${acrescenta.join(", ")}) sem declarar a ampliação: re…
+ ❯ juntar test/catalogo/index.ts:163:19
+ ❯ juntarCatalogo test/catalogo/index.ts:431:5
+ ❯ test/catalogo/index.ts:570:17
+ ❯ test/isolamento.test.ts:26:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+AssertionError: o banco recusou o ataque: expected 'permission denied to create temporary…' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ permission denied to create temporary tables in database "template1"
+
+ ❯ test/ataque-gt.test.ts:53:44
+     51|   const depois = await contar();
+     52|   console.log(`GT: antes ${JSON.stringify(antes)}, depois ${JSON.strin…
+     53|   expect(erro, "o banco recusou o ataque").toBe("");
+       |                                            ^
+     54|   expect(depois.p).toBe(antes.p + 1);
+     55|   expect(depois.o).toBe(antes.o + 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  1 failed (1)
+   Start at  13:57:13
+   Duration  3.59s (transform 850ms, setup 0ms, collect 324ms, tests 2.33s, environment 1ms, prepare 663ms)
+

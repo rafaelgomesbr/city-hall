@@ -1,0 +1,51 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+15:25:04 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2815ms
+ ✓ test/pessoas.test.ts (86 tests | 9 skipped) 9192ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  1802ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  2046ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  1639ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 19993ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  3015ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  1049ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  671ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  896ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  2390ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  2361ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  2408ms
+   ✓ item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046  1645ms
+ ✓ test/isolamento.test.ts (170 tests) 49742ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1692ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  5873ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1400ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  31413ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 59489ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  6006ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  5367ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  5612ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  5171ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  5169ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  5094ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  5087ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  5141ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco  736ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova  689ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova  1364ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  1125ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão  695ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)  725ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim  680ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)  661ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa  1380ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)  622ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  1379ms
+
+ Test Files  5 passed (5)
+      Tests  432 passed | 9 skipped (441)
+   Start at  15:25:03
+   Duration  60.84s (transform 717ms, setup 0ms, collect 2.88s, tests 141.23s, environment 1ms, prepare 1.07s)
+

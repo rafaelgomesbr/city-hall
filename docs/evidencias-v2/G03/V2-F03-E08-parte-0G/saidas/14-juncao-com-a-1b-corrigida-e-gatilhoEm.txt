@@ -1,0 +1,40 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db
+
+12:02:47 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2451ms
+ ✓ test/pessoas.test.ts (86 tests | 9 skipped) 6876ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  1316ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  1378ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  1197ms
+ ✓ test/portao-comportamental.test.ts (40 tests) 12822ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  1948ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  699ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  572ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  591ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  1329ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  1224ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  1327ms
+   ✓ item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046  913ms
+ ✓ test/catalogo-nominal.test.ts (94 tests) 28394ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  3976ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  2930ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  3188ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  2780ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  2805ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  2885ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  2814ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  2908ms
+ ✓ test/isolamento.test.ts (166 tests) 31764ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1174ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  3696ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  856ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  19892ms
+
+ Test Files  5 passed (5)
+      Tests  390 passed | 9 skipped (399)
+   Start at  12:02:47
+   Duration  33.04s (transform 712ms, setup 0ms, collect 2.90s, tests 82.31s, environment 1ms, prepare 969ms)
+

@@ -1,0 +1,37 @@
+// C2a: a E08 redefine origens_de_conta SEM semMunicipio (volta a excecao comum)
+import type { ContribuicaoDoCatalogo, DestinoNaEliminacao } from "./tipos.js";
+
+const ETAPA = "V2-F03-E08";
+const SEM_GRANT = { dc360_app: [], dc360_console: [], PUBLIC: [] } as const;
+const ORIGEM_FICA: DestinoNaEliminacao = {
+  destino: "fica",
+  porque: "A marca e o registro permanente de como a conta ganhou a pessoa (correcao 3), e sobrevive.",
+  semear: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, 'S', 'P-1', 'prova-eliminacao@exemplo.gov.br', 'administrador')",
+  semearOutroMunicipio: "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES (:org, 'S', 'P-2', 'outro-municipio-eliminacao@exemplo.gov.br', 'administrador')",
+  linhasDoMunicipio: "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id WHERE u.organizacao_id = :org",
+  coluna: "usuario_id",
+};
+
+export const CATALOGO_F03_E08: ContribuicaoDoCatalogo = {
+  funcoes: [],
+  excecoes: [
+    {
+      tabela: "origens_de_conta",
+      dispensa: ["organizacao_id", "policy_de_contexto"],
+      mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+      grants: SEM_GRANT,
+      etapa: ETAPA,
+      redefine: true,
+      motivo:
+        "De onde veio o `pessoa_id` de cada conta (correção 3 da ADR 0009): `backfill`, `criador` " +
+        "ou `aceite`, com a transação de quem gravou, para o gatilho adiado distinguir o valor " +
+        "criado pelo gatilho criador do informado pelo chamador. É registro da ligação conta e " +
+        "pessoa, global como a pessoa; sem `organizacao_id` para não entrar na ordem de eliminação.",
+      trava:
+        "RLS forçada sem policy e nenhum privilégio de papel nenhum do produto, nem SELECT: o " +
+        "`dc360_app` não define a marca. Só a função do gatilho criador cita a tabela (regra da " +
+        "0D, `gravaOrigemDeConta`). Nada a altera nem a apaga (gatilho de linha permanente).",
+    },
+  ],
+  colunasComUpdate: [],
+};

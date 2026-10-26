@@ -1,0 +1,684 @@
+== G0
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2508ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 86434ms
+ ❯ test/catalogo-nominal.test.ts (131 tests | 5 failed) 121554ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2327:73
+ ❯ test/catalogo-nominal.test.ts:2341:7
+ ❯ test/catalogo-nominal.test.ts:2363:26
+ ❯ test/catalogo-nominal.test.ts:2386:81
+ ❯ test/catalogo-nominal.test.ts:2431:23
+ ❯ test/isolamento.test.ts:634:73
+      Tests  7 failed | 295 passed (302)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+== C0
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 7556ms
+ ✓ test/isolamento.test.ts (170 tests) 135109ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 147231ms
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed | 302 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+== C1a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2327ms
+ ❯ test/catalogo-nominal.test.ts:43:1
+ ❯ test/isolamento.test.ts:26:1
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed (1)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+== C1b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2549ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 53649ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 59434ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1956:21
+ ❯ test/isolamento.test.ts:655:7
+      Tests  3 failed | 300 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G)
+   × sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > as proibições do portão, ligadas no banco de HOJE como se a 061 existisse, mordem: o app ainda alcança a credencial de usuarios
+== C1c
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2336ms
+ ✓ test/isolamento.test.ts (170 tests) 50612ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 56294ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1956:21
+      Tests  2 failed | 301 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > as proibições do portão, ligadas no banco de HOJE como se a 061 existisse, mordem: o app ainda alcança a credencial de usuarios
+== C2a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1921ms
+ ❯ test/catalogo-nominal.test.ts:43:1
+ ❯ test/isolamento.test.ts:26:1
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed (1)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+== C2b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1902ms
+ ❯ test/catalogo-nominal.test.ts:43:1
+ ❯ test/isolamento.test.ts:26:1
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed (1)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+== C3a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2321ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 74233ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 7 failed) 81048ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1493:78
+ ❯ test/catalogo-nominal.test.ts:1500:7
+ ❯ test/catalogo-nominal.test.ts:1507:7
+ ❯ test/catalogo-nominal.test.ts:1517:7
+ ❯ test/catalogo-nominal.test.ts:2058:78
+ ❯ test/catalogo-nominal.test.ts:2075:7
+ ❯ test/catalogo-nominal.test.ts:2130:7
+ ❯ test/isolamento.test.ts:612:78
+      Tests  9 failed | 294 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa
+== C3b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2218ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 44884ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 50291ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1493:78
+ ❯ test/isolamento.test.ts:612:78
+      Tests  3 failed | 300 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+== C4
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2180ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 38515ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 42681ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1493:78
+ ❯ test/isolamento.test.ts:612:78
+      Tests  3 failed | 300 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+== C5
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1788ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 38703ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 43537ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1493:78
+ ❯ test/isolamento.test.ts:612:78
+      Tests  3 failed | 300 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+== C6a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1761ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 41854ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 47212ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2259:28
+ ❯ test/catalogo-nominal.test.ts:2263:78
+ ❯ test/catalogo-nominal.test.ts:2273:28
+ ❯ test/catalogo-nominal.test.ts:2282:78
+ ❯ test/catalogo-nominal.test.ts:2291:63
+ ❯ test/catalogo-nominal.test.ts:2316:7
+ ❯ test/catalogo-nominal.test.ts:2324:63
+ ❯ test/catalogo-nominal.test.ts:2342:80
+ ❯ test/catalogo-nominal.test.ts:2352:7
+ ❯ test/isolamento.test.ts:644:48
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > o banco de hoje não tem função de gatilho privilegiada, e passa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a recusa por TG_RELID antes de tudo passa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a conferência posta DEPOIS da escrita reprova: escreveu antes de recusar
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a sequência que anda antes da recusa também é efeito
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > recusar com outro erro que não 42501 não é a recusa pela tabela que disparou
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > cada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a função sem gatilho no banco é disparada de uma tabela de prova
+== C6b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1861ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 37939ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 41863ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2259:28
+ ❯ test/catalogo-nominal.test.ts:2263:78
+ ❯ test/catalogo-nominal.test.ts:2273:28
+ ❯ test/catalogo-nominal.test.ts:2282:78
+ ❯ test/catalogo-nominal.test.ts:2291:63
+ ❯ test/catalogo-nominal.test.ts:2316:7
+ ❯ test/catalogo-nominal.test.ts:2324:63
+ ❯ test/catalogo-nominal.test.ts:2342:80
+ ❯ test/catalogo-nominal.test.ts:2352:7
+ ❯ test/isolamento.test.ts:644:48
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > o banco de hoje não tem função de gatilho privilegiada, e passa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a recusa por TG_RELID antes de tudo passa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a conferência posta DEPOIS da escrita reprova: escreveu antes de recusar
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a sequência que anda antes da recusa também é efeito
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > recusar com outro erro que não 42501 não é a recusa pela tabela que disparou
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > cada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a função sem gatilho no banco é disparada de uma tabela de prova
+== C7a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1925ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 49446ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 58976ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2404:73
+ ❯ test/catalogo-nominal.test.ts:2420:7
+ ❯ test/catalogo-nominal.test.ts:2446:26
+ ❯ test/catalogo-nominal.test.ts:2469:81
+ ❯ test/catalogo-nominal.test.ts:2520:23
+ ❯ test/isolamento.test.ts:634:73
+      Tests  7 failed | 296 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+== C7b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 3420ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 40514ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 44674ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2404:73
+ ❯ test/catalogo-nominal.test.ts:2420:7
+ ❯ test/catalogo-nominal.test.ts:2446:26
+ ❯ test/catalogo-nominal.test.ts:2469:81
+ ❯ test/catalogo-nominal.test.ts:2520:23
+ ❯ test/isolamento.test.ts:634:73
+      Tests  7 failed | 296 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+== C7c
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 3189ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 65242ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 71873ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:2404:73
+ ❯ test/catalogo-nominal.test.ts:2420:7
+ ❯ test/catalogo-nominal.test.ts:2446:26
+ ❯ test/catalogo-nominal.test.ts:2469:81
+ ❯ test/catalogo-nominal.test.ts:2520:23
+ ❯ test/isolamento.test.ts:634:73
+      Tests  7 failed | 296 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+== C8a
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1845ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 62916ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 69779ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== C8b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1653ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 44703ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 50282ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== G1
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 4375ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 85592ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 16 failed) 96404ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1075:74
+ ❯ test/catalogo-nominal.test.ts:1079:62
+ ❯ test/catalogo-nominal.test.ts:1088:23
+ ❯ test/catalogo-nominal.test.ts:1101:23
+ ❯ test/catalogo-nominal.test.ts:1112:23
+ ❯ test/catalogo-nominal.test.ts:1140:23
+ ❯ test/catalogo-nominal.test.ts:1149:59
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+ ❯ test/isolamento.test.ts:4062:7
+ ❯ test/isolamento.test.ts:4106:74
+      Tests  20 failed | 283 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== G2
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1967ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 61237ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 16 failed) 68122ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1075:74
+ ❯ test/catalogo-nominal.test.ts:1079:62
+ ❯ test/catalogo-nominal.test.ts:1088:23
+ ❯ test/catalogo-nominal.test.ts:1101:23
+ ❯ test/catalogo-nominal.test.ts:1112:23
+ ❯ test/catalogo-nominal.test.ts:1140:23
+ ❯ test/catalogo-nominal.test.ts:1149:59
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+ ❯ test/isolamento.test.ts:4062:7
+ ❯ test/isolamento.test.ts:4106:74
+      Tests  20 failed | 283 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== G2b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1999ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 81948ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 7 failed) 89377ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1075:74
+ ❯ test/catalogo-nominal.test.ts:1079:62
+ ❯ test/catalogo-nominal.test.ts:1088:23
+ ❯ test/catalogo-nominal.test.ts:1101:23
+ ❯ test/catalogo-nominal.test.ts:1112:23
+ ❯ test/catalogo-nominal.test.ts:1140:23
+ ❯ test/catalogo-nominal.test.ts:1149:59
+ ❯ test/isolamento.test.ts:4062:7
+ ❯ test/isolamento.test.ts:4106:74
+      Tests  10 failed | 293 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova
+   × sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova
+== G3
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2352ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 59245ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 68810ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== G3b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2525ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 60806ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 70403ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1278:67
+ ❯ test/catalogo-nominal.test.ts:1290:56
+ ❯ test/catalogo-nominal.test.ts:1297:23
+ ❯ test/catalogo-nominal.test.ts:1308:23
+ ❯ test/catalogo-nominal.test.ts:1319:23
+ ❯ test/catalogo-nominal.test.ts:1346:79
+ ❯ test/catalogo-nominal.test.ts:2563:56
+ ❯ test/catalogo-nominal.test.ts:2573:7
+ ❯ test/catalogo-nominal.test.ts:2582:56
+ ❯ test/isolamento.test.ts:601:7
+ ❯ test/isolamento.test.ts:659:87
+      Tests  12 failed | 291 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização
+   × CA-06: isolamento entre organizações > toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G)
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando
+   × sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova
+   × sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa
+== G4
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 3187ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 61394ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 71642ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:516:64
+      Tests  11 failed | 292 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== G5
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2369ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 62493ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 9 failed) 69804ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:158:30
+ ❯ test/catalogo-nominal.test.ts:487:23
+ ❯ test/catalogo-nominal.test.ts:511:23
+ ❯ test/catalogo-nominal.test.ts:517:23
+ ❯ test/catalogo-nominal.test.ts:528:23
+ ❯ test/catalogo-nominal.test.ts:584:23
+ ❯ test/catalogo-nominal.test.ts:596:23
+ ❯ test/catalogo-nominal.test.ts:622:23
+ ❯ test/catalogo-nominal.test.ts:1380:82
+ ❯ test/isolamento.test.ts:345:73
+ ❯ test/isolamento.test.ts:516:64
+ ❯ test/isolamento.test.ts:659:87
+      Tests  13 failed | 290 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada
+   × CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO
+   × CA-06: isolamento entre organizações > toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa
+   × sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)
+   × sonda 7: exceção que o banco não confirma reprova > tabela que não existe
+   × sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova
+   × sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`
+   × sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam
+== G6
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2097ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 55149ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 66283ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1493:78
+ ❯ test/isolamento.test.ts:612:78
+ ❯ test/isolamento.test.ts:5425:77
+      Tests  4 failed | 299 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém)
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+== G7
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2793ms
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 60372ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 19 failed) 70539ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:154:29
+ ❯ test/catalogo-nominal.test.ts:309:23
+ ❯ test/catalogo-nominal.test.ts:341:23
+ ❯ test/catalogo-nominal.test.ts:349:23
+ ❯ test/catalogo-nominal.test.ts:361:23
+ ❯ test/catalogo-nominal.test.ts:370:23
+ ❯ test/catalogo-nominal.test.ts:382:23
+ ❯ test/catalogo-nominal.test.ts:394:23
+ ❯ test/catalogo-nominal.test.ts:406:23
+ ❯ test/catalogo-nominal.test.ts:429:29
+ ❯ test/catalogo-nominal.test.ts:458:23
+ ❯ test/catalogo-nominal.test.ts:473:23
+ ❯ test/catalogo-nominal.test.ts:752:24
+ ❯ test/catalogo-nominal.test.ts:1627:76
+ ❯ test/catalogo-nominal.test.ts:1673:22
+ ❯ test/catalogo-nominal.test.ts:1685:23
+ ❯ test/catalogo-nominal.test.ts:1707:7
+ ❯ test/catalogo-nominal.test.ts:2272:21
+ ❯ test/catalogo-nominal.test.ts:2445:21
+ ❯ test/isolamento.test.ts:625:76
+ ❯ test/isolamento.test.ts:705:75
+      Tests  22 failed | 281 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G)
+   × Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco
+   × sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+   × sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco
+   × sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER
+   × sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+   × sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga
+   × sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+   × sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > conferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+== G8
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2001ms
+ ❯ test/isolamento.test.ts (170 tests | 3 failed) 71477ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 10 failed) 86542ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1627:76
+ ❯ test/catalogo-nominal.test.ts:1674:22
+ ❯ test/catalogo-nominal.test.ts:1685:23
+ ❯ test/catalogo-nominal.test.ts:1707:7
+ ❯ test/catalogo-nominal.test.ts:2272:21
+ ❯ test/catalogo-nominal.test.ts:2404:73
+ ❯ test/catalogo-nominal.test.ts:2420:7
+ ❯ test/catalogo-nominal.test.ts:2445:21
+ ❯ test/catalogo-nominal.test.ts:2469:81
+ ❯ test/catalogo-nominal.test.ts:2520:23
+ ❯ test/isolamento.test.ts:625:76
+ ❯ test/isolamento.test.ts:634:73
+      Tests  14 failed | 289 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G)
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+   × Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > conferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova
+   × sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+== GT
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2495ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 60021ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 3 failed) 77857ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1626:48
+ ❯ test/catalogo-nominal.test.ts:1647:21
+ ❯ test/catalogo-nominal.test.ts:1657:84
+ ❯ test/isolamento.test.ts:621:48
+      Tests  5 failed | 298 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied for function public.conta_ganha_pessoa
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > nenhum papel do produto, nem PUBLIC, tem TEMP ou CREATE no banco, nem CREATE em esquema nenhum (parte 0G)
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TEMP e EXECUTE o ataque grava no cofre; a entrada de antes da 0G passava, e agora as três conferências reprovam
+   × sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > sem TEMP o ataque não começa, e sem EXECUTE o gatilho não se anexa
+(C0, C1b e C1c rodadas de novo depois do ajuste da sonda 17; as primeiras ficam em <s>-antes-do-ajuste-da-sonda-17.txt)
+== C0
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 2320ms
+ ✓ test/isolamento.test.ts (170 tests) 51728ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 60766ms
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed | 302 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+== C1b
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1700ms
+ ❯ test/isolamento.test.ts (170 tests | 1 failed) 52168ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 1 failed) 61982ms
+ ❯ test/ataque-gt.test.ts:53:44
+ ❯ test/catalogo-nominal.test.ts:1958:7
+ ❯ test/isolamento.test.ts:655:7
+      Tests  3 failed | 300 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+   × CA-06: isolamento entre organizações > nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G)
+   × sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > as proibições do portão passam no banco das migrações reais; enquanto a 061 não existe, ligá-las mesmo assim morde (o app ainda alcança a credencial de usuarios)
+== C1c
+ ❯ test/ataque-gt.test.ts (1 test | 1 failed) 1781ms
+ ✓ test/isolamento.test.ts (170 tests) 49758ms
+ ✓ test/catalogo-nominal.test.ts (132 tests) 62457ms
+ ❯ test/ataque-gt.test.ts:53:44
+      Tests  1 failed | 302 passed (303)
+GT: antes {"p":0,"o":0}, depois {"p":0,"o":0}, erro: permission denied to create temporary tables in database "template1"
+   × GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta

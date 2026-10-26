@@ -1,0 +1,31 @@
+### GT (antes1b)
+--- migracao 999 temporaria:
+-- GT: o privilegio TEMP que o PostgreSQL da a PUBLIC por padrao num banco criado do template0 (o
+-- PGlite roda no template1, que nao o tem; esta migracao poe o banco do teste como o de producao).
+-- Com ele e o EXECUTE da 054 de hoje em conta_ganha_pessoa, o dc360_app cria pg_temp.usuarios, anexa
+-- o gatilho privilegiado e o faz gravar em pessoas e origens_de_conta como o dono.
+DO $$ BEGIN
+  EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO PUBLIC', current_database());
+END $$;
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db
+
+12:00:46 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab286dc131e32f61b/dc360/db/test/catalogo-nominal.test.ts
+stdout | test/ataque-gt.test.ts > GT: o dc360_app cria pg_temp.usuarios, anexa conta_ganha_pessoa e grava em pessoas e origens_de_conta
+GT: antes {"p":0,"o":0}, depois {"p":1,"o":1}, erro: nenhum
+
+ ✓ test/ataque-gt.test.ts (1 test) 2383ms
+ ✓ test/catalogo-nominal.test.ts (58 tests) 2836ms
+ ✓ test/isolamento.test.ts (162 tests) 27089ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  881ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  836ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  19513ms
+
+ Test Files  3 passed (3)
+      Tests  221 passed (221)
+   Start at  12:00:45
+   Duration  28.65s (transform 799ms, setup 0ms, collect 1.76s, tests 32.31s, environment 1ms, prepare 763ms)
+

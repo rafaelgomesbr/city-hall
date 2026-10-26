@@ -1,0 +1,8 @@
+#!/bin/bash
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g-c1
+mv "$S/antes/C5.txt" "$S/antes/C5-primeira-forma.txt"
+echo "(C5 rodada de novo: a primeira forma apagava tambem no DELETE do app do caso 'com GRANT DELETE'; ver C5-primeira-forma.txt)" >> "$S/antes/RESUMO.txt"
+bash "$S/rodar.sh" antes C5
+bash "$S/rodar.sh" depois C0 C1a C1b C1c C2a C2b C3a C3b C4 C5 C6a C6b C7a C7b C7c C8a C8b G1 G2 G2b G3 G3b G4 G5 G6 G7 G8 GT
+bash "$S/rodar.sh" depois0 S1 S2 S3 S3b S4 S5a S5c S6 S7 S8 S8b S8c S8d S11 S12 D1 D1b D2 D2b D3 D4 D4b D5 D6 D6b D7 D8 D8b D9 R1 R2 L1
+echo TUDO-FIM

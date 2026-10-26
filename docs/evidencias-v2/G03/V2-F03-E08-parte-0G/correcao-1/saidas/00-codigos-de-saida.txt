@@ -1,0 +1,13 @@
+typecheck 0
+lint 0
+lint:teto 0
+formato:conferir 0
+conferir:numeros 0
+baseline.test 0
+regras-de-conteudo 1 (EPERM em symlink, DV-46, aceito)
+auditar 0
+test:isolamento 1
+npm test 1
+gerar-estado --conferir (raiz) 0
+test:scripts (CI=true) 0: 831 casos, 808 passam, 23 pulados, 0 falhas
+(test:isolamento e npm test saem 1 pelas falhas de ambiente Windows aceitas: desfazer-migracao 5, guarda-da-semente 3, semear-homologacao 2, regras-de-conteudo 1; ver RESUMO)

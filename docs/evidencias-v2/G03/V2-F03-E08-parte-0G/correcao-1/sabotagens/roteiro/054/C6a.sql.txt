@@ -1,0 +1,799 @@
+-- =====================================================================
+-- 054: pessoa global e conta no municipio (V2-F03-E15, parte 1B da F03).
+--
+-- A NORMA e a ADR 0009 (`docs/adr/0009-pessoa-global-com-conta-por-municipio.md`,
+-- com as correcoes 1, 2 e 3). Esta migracao e o PASSO 1 da tabela P-04 da
+-- decisao 1: a credencial continua sendo GRAVADA em `usuarios`, e um gatilho a
+-- espelha em `pessoas`, de mao unica. A API nao muda nesta migracao: ninguem le
+-- de `pessoas` ainda (a E02 passa a ler por `credenciais_da_pessoa`, a E03 e a
+-- E02 por `vigencia_da_sessao`).
+--
+-- O QUE ENTRA
+--
+--   1. `pessoas`: global, SEM `organizacao_id`, com o minimo da decisao 1
+--      (nome, e-mail, a credencial, `email_verificado_em`, `ativo`). E a
+--      EXCECAO NOMEADA ao isolamento (decisao 3): RLS ativada E forcada, SEM
+--      NENHUMA policy, e nenhum privilegio ao `dc360_app` (nem SELECT). So as
+--      funcoes SECURITY DEFINER da lista nominal a alcancam. `pessoas_email_idx`
+--      e unico TOTAL em `lower(email)` (a E09 o troca pelo parcial entre ativas).
+--   2. `origens_de_conta` (correcao 3): de onde veio o `pessoa_id` de cada
+--      conta, uma linha por conta (`backfill`, `criador` ou, a partir da E10,
+--      `aceite`), com a transacao de quem gravou. RLS forcada, sem policy e sem
+--      privilegio NENHUM ao `dc360_app`. Registro permanente: nao se altera nem
+--      se apaga (gatilho `linha_permanente`).
+--   3. `usuarios.pessoa_id`: NOT NULL depois do backfill, IMUTAVEL (gatilhos
+--      `usuarios_pessoa_id_nao_muda`, BEFORE, e `..._no_estado_final`, AFTER,
+--      `IS DISTINCT FROM`, para todo papel, inclusive o dono), com
+--      `UNIQUE (pessoa_id)` TOTAL (uma conta por pessoa
+--      no sistema inteiro, conta desativada inclusive, ate a 064),
+--      `UNIQUE (organizacao_id, pessoa_id)` e `UNIQUE (organizacao_id, id,
+--      pessoa_id)` (o alvo das chaves compostas que carregam a pessoa).
+--   4. `sessoes.pessoa_id`: NOT NULL, preenchido pelo gatilho
+--      `sessao_carrega_a_pessoa` e preso pela chave composta
+--      (organizacao_id, usuario_id, pessoa_id) -> usuarios.
+--   5. O BACKFILL: uma pessoa por conta (o e-mail ja e unico no sistema pelo
+--      `usuarios_email_global_idx` da 002, entao a relacao de hoje e um para
+--      um), a credencial copiada, a marca `backfill` de cada conta, e as
+--      contagens conferidas NA MESMA TRANSACAO (pessoas = contas = marcas,
+--      nenhuma conta nem sessao sem pessoa): se nao bater, nada fica.
+--   6. O GATILHO CRIADOR (`conta_ganha_pessoa`, BEFORE INSERT em `usuarios`):
+--      conta que chega com `pessoa_id` nulo ganha uma pessoa NOVA, com a
+--      credencial e o e-mail da conta, e a marca `criador` da transacao.
+--      Nunca procura pessoa pelo e-mail: coincidencia de e-mail nao liga
+--      conta a pessoa. `pessoa_id` informado pelo chamador e recusado na hora
+--      (na E15 nao existe `aceitar_convite`; a 058 da E10 redefine a funcao).
+--      Cobre, sem mudar uma linha deles: o `POST /usuarios` de hoje, o modo
+--      local do painel, `provisionar_municipio`, as sementes e os ~50 testes
+--      que fazem `INSERT INTO usuarios`.
+--   7. O GATILHO ADIADO (`usuarios_origem_da_pessoa`, constraint trigger
+--      DEFERRABLE INITIALLY DEFERRED, a MESMA funcao): no fim da transacao,
+--      toda conta inserida tem a sua marca em `origens_de_conta`, da MESMA
+--      transacao, com o MESMO `pessoa_id` da linha final, origem `criador`, e
+--      a pessoa existe. Um gatilho BEFORE posterior que trocasse o valor e
+--      pego aqui. A funcao e uma so (o ramo sai de TG_WHEN) porque o catalogo
+--      da parte 0D so deixa UMA funcao, a do gatilho criador, citar
+--      `origens_de_conta` (`gravaOrigemDeConta: "criador"`).
+--   8. O ESPELHO (`pessoa_espelha_a_conta`, AFTER UPDATE em `usuarios`): cada
+--      escrita de `senha_hash`, `falhas_login`, `bloqueado_ate`,
+--      `senha_provisoria_ate` e `email` na conta e copiada para a pessoa da
+--      conta. Mao unica: nada escreve `pessoas` por comando proprio ate a E08
+--      (passo 3), que desliga o espelho. `ativo` e `nome` NAO sao espelhados:
+--      o `ativo` da pessoa e da E09 (`pessoa_acompanha_as_contas`, que exige a
+--      trava N2), e o nome da conta e o que o municipio digitou.
+--   9. `vigencia_da_sessao(pessoa, org, sid)` e `credenciais_da_pessoa(email)`,
+--      criadas e provadas em `db/test/pessoas.test.ts`, ainda sem quem as
+--      chame na API.
+--  10. `travar_pessoa(uuid)` e `travar_pessoa_da_conta(uuid)`: a trava N2,
+--      SECURITY INVOKER, com chave consultiva propria (`dc360.pessoa`),
+--      separada da `dc360.sessoes_do_usuario` da 049.
+--  11. Privilegio: `REVOKE UPDATE ON usuarios FROM dc360_app` (o de TABELA,
+--      que vinha da 001) e GRANT UPDATE por coluna, numa lista positiva das
+--      colunas que a aplicacao grava hoje, sem `pessoa_id`. A E08 so encolhe
+--      a lista (tira a credencial e o e-mail).
+--
+-- O QUE A ADR PEDE E ESTA MIGRACAO NAO CONSEGUE CUMPRIR AO PE DA LETRA, porque
+-- o portao de isolamento esta congelado (`db/test/isolamento.test.ts` e
+-- `db/test/catalogo/conferir*.ts`, que a 1B nao edita). Cada ponto esta no
+-- RESUMO da evidencia, para o orquestrador:
+--
+--   a. INSERT por coluna em `usuarios` (decisao 1: "o papel de aplicacao nao
+--      tem privilegio de INSERT nem de UPDATE nessa coluna"). O portao compara
+--      todo privilegio de COLUNA do `dc360_app` com `COLUNAS_COM_UPDATE_DO_APP`
+--      e so aceita UPDATE: um GRANT INSERT (colunas) reprova o CA-06. O INSERT
+--      continua de TABELA, e quem recusa o `pessoa_id` informado pelo
+--      `dc360_app` e o gatilho criador, com SQLSTATE 42501 e a mensagem
+--      "permissao negada", ANTES de qualquer escrita. O UPDATE ja e por coluna.
+--   b. Chave estrangeira `usuarios.pessoa_id -> pessoas(id)`. O portao reprova
+--      toda chave estrangeira sem `organizacao_id` (fora de duas isencoes do
+--      console, por nome), e `pessoas` nao tem a coluna por definicao. A
+--      integridade fica com tres travas no lugar da chave: a pessoa nasce no
+--      mesmo comando que a conta (gatilho criador); o adiado confere que ela
+--      existe; e `pessoas` nao se apaga (gatilho `linha_permanente`, alem de
+--      ninguem do produto ter privilegio de DELETE).
+--   c. `origens_de_conta.organizacao_id` (correcao 3). Com a coluna, a tabela
+--      entraria na ordem de eliminacao do municipio
+--      (`executar_eliminacoes_vencidas` recusa com DC366 tabela com
+--      `organizacao_id` fora de `ordem_de_apagamento_por_municipio()`), e
+--      escrever o nome dela nessa funcao reprova a regra da 0D de que so o
+--      gatilho criador cita `origens_de_conta`. Sem a coluna, a marca e um
+--      registro da PESSOA (global, como ela), sobrevive a eliminacao do
+--      municipio junto com a pessoa (H98), e nada nela depende do municipio.
+--
+-- O DONO PRECISA IGNORAR O RLS (e falha FECHADA quando nao ignora). `pessoas`
+-- e `origens_de_conta` tem RLS forcada e nenhuma policy: ate o dono le zero
+-- linhas, salvo papel com BYPASSRLS (o `postgres` do provedor, conferido na
+-- 037). E o mesmo atributo de que as funcoes SECURITY DEFINER de hoje ja
+-- dependem (`apps/api/PENDENCIAS.md`, nota 6 da E07). Aqui o defeito nao e
+-- silencioso: sem BYPASSRLS o INSERT do criador em `pessoas` e recusado pela
+-- RLS, o espelho que nao acha a pessoa levanta erro, e o adiado que nao ve a
+-- marca recusa a transacao. Nenhuma conta nasce sem pessoa, e nenhuma escrita
+-- de credencial deixa de chegar a pessoa calada.
+--
+-- A ORDEM DAS TRAVAS (decisao 7 da ADR 0009, correcao 2 e 3). A E15 escreve a
+-- tabela aqui; cada migracao que cria ou redefine um caminho (E09, E08, E10,
+-- E11, E16) cita o caminho e o nivel de cada comando no proprio cabecalho.
+--
+--   | Nivel | O que se trava                         | Como                                                          |
+--   | N1    | a linha do municipio em organizacoes   | FOR SHARE no login, na escolha, na troca e no aceite (050);    |
+--   |       |                                        | UPDATE na suspensao, reativacao e eliminacao (console)         |
+--   | N2    | a trava da pessoa                      | travar_pessoa ou travar_pessoa_da_conta (ESTA migracao),       |
+--   |       |                                        | pg_advisory_xact_lock com chave propria; varias pessoas em     |
+--   |       |                                        | ordem crescente de pessoa_id                                   |
+--   | N3    | linhas de usuarios                     | UPDATE ou INSERT da conta; varias em ordem crescente de id     |
+--   | N4    | a linha de pessoas                     | UPDATE (credencial, ativo, versao) ou INSERT da pessoa nova    |
+--   | N5    | linhas das tabelas da pessoa           | segundo fator e codigos (E11), cotas (E19)                     |
+--   | N6    | linhas de convites_de_vinculo          | UPDATE condicional do estado (E10)                             |
+--   | N7    | links de recuperacao                   | UPDATE dos links, direto ou pelo gatilho da 051                |
+--   | N8    | a trava das sessoes de cada conta      | travar_sessoes_do_usuario (049), id crescente                  |
+--   | N9    | linhas de sessoes                      | INSERT da sessao nova, UPDATE da revogacao                     |
+--
+--   Regras:
+--   1. Pode-se pular nivel, nunca tomar um nivel MENOR do que um que ja se
+--      segura. No mesmo nivel, sempre em ordem crescente de id.
+--   2. Gatilho herda o nivel do comando que o dispara e so toca niveis
+--      MAIORES. Desta migracao: o espelho vai de N3 (UPDATE da conta) para N4
+--      (UPDATE da pessoa); o criador vai de N3 (INSERT da conta) para o INSERT
+--      da pessoa nova e da marca (regra 7: INSERT de linha nova nao e trava de
+--      nivel); `sessao_carrega_a_pessoa` le a conta sem trava (regra 4).
+--   3. Tomam N2 antes de qualquer linha de N3 a N9 daquela pessoa: quem
+--      escreve `ativo` de uma conta, desde a E09; quem cria conta para pessoa
+--      existente (so `aceitar_convite`, E10); e, a partir da E08, quem escreve
+--      numa linha existente de `pessoas` por comando proprio. Excecao
+--      explicita: o ESPELHO dos passos 1 e 2 (esta migracao) chega a `pessoas`
+--      so pelo gatilho, de N3 para N4, sem N2, e pular N2 nao viola a regra 1.
+--   4. Leitura sem trava e livre; quem descobre as chaves antes le sem trava,
+--      toma as travas na ordem e RELE o que conferiu.
+--   5. O consumo atomico do codigo do segundo fator (N5) e transacao propria,
+--      ou acontece antes de N8 (E11).
+--   6. Os caminhos GLOBAIS que escrevem `pessoas` por comando proprio depois
+--      da E08 nao travam linha de `usuarios`; a desativacao e a reativacao
+--      locais seguem dentro da ordem (N2, N3, gatilho N4).
+--   7. INSERT de linha nova nao e trava de nivel; a unica espera que ele cria
+--      e a de indice unico (duas transacoes com o mesmo e-mail), e a primeira
+--      nao espera nada que a segunda segure.
+--
+--   Por caminho:
+--   | login, escolha e troca de municipio      | N1 (FOR SHARE), N8, releitura da pessoa e da conta, N9 (sem N2)      |
+--   | suspensao do municipio (console)         | N1 (UPDATE), N8 de cada conta com sessao (id crescente), N9           |
+--   | eliminacao do municipio                  | N1, N2 de cada pessoa, N8 de cada conta, e o apagamento (excecao     |
+--   |                                          | declarada a regra 1; a E09 escreve o argumento na migracao dela)      |
+--   | desativar e reativar a conta (local)     | N2 (travar_pessoa_da_conta), N3 (gatilhos: N4 pela E09, N7 pela 051), |
+--   |                                          | N8, N9                                                                |
+--   | mudar papel ou equipe                    | N3 so                                                                 |
+--   | trocar senha, recuperar, redefinicao     | passo 3 em diante: N2, N4 (gatilho N7), N8 de cada conta, N9          |
+--   |   no periodo um para um                  | passos 1 e 2 (HOJE): N3 (gatilhos: espelho N4, 051 N7), N8, N9;       |
+--   |                                          | as funcoes de hoje nao tomam N2 e nao precisam (excecao do espelho)   |
+--   | ligar, trocar, desligar, redefinir fator | N2, N4, N5, N8 de cada conta, N9                                      |
+--   | consumo do codigo do segundo fator       | N5, em transacao propria                                              |
+--   | registrar tentativa de login             | passo 3 em diante: N2, N4 em transacao propria; HOJE: N3 (espelho N4) |
+--   | emitir, reemitir e revogar convite       | N6 so                                                                 |
+--   | aceitar convite                          | leitura do convite, N1, N2 da pessoa existente, INSERT da pessoa nova,|
+--   |                                          | INSERT da conta, releitura da pessoa, N6, e N8 e N9 se abrir sessao   |
+--   | abrir link de recuperacao (trabalhador)  | N2, N7                                                                |
+--   | criar conta fora do convite (HOJE)       | N3 (INSERT da conta; o criador insere a pessoa e a marca, regra 7)    |
+--   | liberacao (064)                          | DDL fora da aplicacao, numa janela sem a API anterior                 |
+--
+-- O INVENTARIO de tudo o que le ou grava a credencial, o e-mail que recebe a
+-- recuperacao, a ligacao entre conta e pessoa e todo emissor de prova de
+-- autenticacao (inclusive o console) esta em
+-- `docs/evidencias-v2/G03/V2-F03-E15/inventario-da-credencial.md`, conferido
+-- contra o banco por `db/test/pessoas.test.ts` (funcao do banco que cita a
+-- credencial fora do inventario reprova).
+--
+-- ALCANCE DO GATILHO DE IMUTABILIDADE (decisao 1): DML com o gatilho
+-- habilitado. O `dc360_app` nao e dono, nao e superusuario, nao tem TRIGGER em
+-- tabela nenhuma (o catalogo confere) e nao muda `session_replication_role`.
+-- Nenhuma funcao desta migracao contem DDL. O teste confere `tgenabled` depois
+-- da cadeia inteira de migracoes.
+--
+-- ORDEM DE IMPLANTACAO: aditiva para a API de hoje. Nenhuma funcao que a API
+-- chama muda de assinatura nem de contrato; o INSERT de conta continua igual
+-- (o gatilho preenche a pessoa), e o UPDATE das colunas que a API grava
+-- continua concedido. Volta: `desfazer/054_pessoas_e_conta_no_municipio.sql`
+-- (sem perda: no passo 1 a pessoa e copia da conta).
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 1. pessoas
+-- ---------------------------------------------------------------------
+CREATE TABLE pessoas (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome                 text NOT NULL CHECK (length(trim(nome)) > 0),
+  email                text NOT NULL,
+  senha_hash           text,
+  falhas_login         integer NOT NULL DEFAULT 0,
+  bloqueado_ate        timestamptz,
+  senha_provisoria_ate timestamptz,
+  email_verificado_em  timestamptz,
+  ativo                boolean NOT NULL DEFAULT true,
+  criado_em            timestamptz NOT NULL DEFAULT now()
+);
+
+-- Total, ate a E09: com uma pessoa por conta e o e-mail espelhado, diz o mesmo
+-- que o `usuarios_email_global_idx` da 002, e deixa a garantia na tabela certa.
+CREATE UNIQUE INDEX pessoas_email_idx ON pessoas (lower(email));
+
+ALTER TABLE pessoas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pessoas FORCE ROW LEVEL SECURITY;
+-- Nenhuma policy, de proposito: mesmo com privilegio concedido por engano, o
+-- papel de aplicacao le zero linhas (trava 1 da decisao 3).
+REVOKE ALL ON pessoas FROM PUBLIC;
+
+-- ---------------------------------------------------------------------
+-- 2. origens_de_conta
+-- ---------------------------------------------------------------------
+CREATE TABLE origens_de_conta (
+  usuario_id  uuid PRIMARY KEY,
+  pessoa_id   uuid NOT NULL,
+  origem      text NOT NULL CHECK (origem IN ('backfill', 'criador', 'aceite')),
+  -- So na origem `aceite` (E10): o convite consumido na mesma transacao.
+  convite_id  uuid,
+  -- `pg_current_xact_id()` de quem gravou. A marca de outra transacao nao serve.
+  transacao   xid8 NOT NULL,
+  gravada_em  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT origem_aceite_traz_o_convite CHECK ((origem = 'aceite') = (convite_id IS NOT NULL))
+);
+
+ALTER TABLE origens_de_conta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE origens_de_conta FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON origens_de_conta FROM PUBLIC;
+
+-- ---------------------------------------------------------------------
+-- 3. O backfill: uma pessoa por conta, na mesma transacao que cria a coluna.
+--
+-- A coluna nasce nula, recebe um uuid novo por conta, e so entao a pessoa e
+-- criada com esse id e a credencial da conta. Nenhum gatilho de `usuarios`
+-- dispara neste UPDATE (os de hoje sao de `senha_hash`, `ativo`, `papel` e
+-- `foto_bytes`), e os desta migracao ainda nao existem.
+-- ---------------------------------------------------------------------
+ALTER TABLE usuarios ADD COLUMN pessoa_id uuid;
+
+UPDATE usuarios SET pessoa_id = gen_random_uuid();
+
+INSERT INTO pessoas
+  (id, nome, email, senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate, ativo, criado_em)
+SELECT u.pessoa_id, u.nome, u.email, u.senha_hash, u.falhas_login, u.bloqueado_ate,
+       u.senha_provisoria_ate, u.ativo, u.criado_em
+  FROM usuarios u;
+
+INSERT INTO origens_de_conta (usuario_id, pessoa_id, origem, transacao)
+SELECT u.id, u.pessoa_id, 'backfill', pg_current_xact_id()
+  FROM usuarios u;
+
+ALTER TABLE usuarios ALTER COLUMN pessoa_id SET NOT NULL;
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_uma_conta_por_pessoa UNIQUE (pessoa_id);
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_unica_no_municipio UNIQUE (organizacao_id, pessoa_id);
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_org_id_pessoa_unico UNIQUE (organizacao_id, id, pessoa_id);
+
+ALTER TABLE sessoes ADD COLUMN pessoa_id uuid;
+
+UPDATE sessoes s
+   SET pessoa_id = u.pessoa_id
+  FROM usuarios u
+ WHERE u.id = s.usuario_id AND u.organizacao_id = s.organizacao_id;
+
+ALTER TABLE sessoes ALTER COLUMN pessoa_id SET NOT NULL;
+ALTER TABLE sessoes ADD CONSTRAINT sessoes_conta_e_pessoa_do_mesmo_municipio
+  FOREIGN KEY (organizacao_id, usuario_id, pessoa_id)
+  REFERENCES usuarios (organizacao_id, id, pessoa_id) ON DELETE RESTRICT;
+
+-- As contagens, conferidas aqui dentro: se nao baterem, a migracao inteira
+-- volta. O NOTICE e o que o aplicador mostra e a evidencia arquiva.
+DO $$
+DECLARE
+  v_contas       bigint;
+  v_pessoas      bigint;
+  v_marcas       bigint;
+  v_distintas    bigint;
+  v_divergentes  bigint;
+  v_sessoes      bigint;
+  v_sessoes_sem  bigint;
+BEGIN
+  SELECT count(*) INTO v_contas FROM usuarios;
+  SELECT count(*) INTO v_pessoas FROM pessoas;
+  SELECT count(*) INTO v_marcas FROM origens_de_conta WHERE origem = 'backfill';
+  SELECT count(DISTINCT pessoa_id) INTO v_distintas FROM usuarios;
+  SELECT count(*) INTO v_divergentes
+    FROM usuarios u JOIN pessoas p ON p.id = u.pessoa_id
+   WHERE p.email IS DISTINCT FROM u.email
+      OR p.senha_hash IS DISTINCT FROM u.senha_hash
+      OR p.falhas_login IS DISTINCT FROM u.falhas_login
+      OR p.bloqueado_ate IS DISTINCT FROM u.bloqueado_ate
+      OR p.senha_provisoria_ate IS DISTINCT FROM u.senha_provisoria_ate;
+  SELECT count(*) INTO v_sessoes FROM sessoes;
+  SELECT count(*) INTO v_sessoes_sem FROM sessoes WHERE pessoa_id IS NULL;
+
+  IF v_pessoas <> v_contas OR v_marcas <> v_contas OR v_distintas <> v_contas
+     OR v_divergentes <> 0 OR v_sessoes_sem <> 0 THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'integrity_constraint_violation',
+      MESSAGE = format('backfill da 054 sem bater: %s contas, %s pessoas, %s marcas, %s pessoas distintas, '
+                       '%s credenciais divergentes, %s sessoes sem pessoa',
+                       v_contas, v_pessoas, v_marcas, v_distintas, v_divergentes, v_sessoes_sem);
+  END IF;
+
+  RAISE NOTICE 'backfill 054: contas=% pessoas=% marcas_backfill=% sessoes=% sessoes_sem_pessoa=%',
+    v_contas, v_pessoas, v_marcas, v_sessoes, v_sessoes_sem;
+END
+$$;
+
+-- ---------------------------------------------------------------------
+-- 4. O gatilho criador e o adiado: uma funcao so, o ramo sai de TG_WHEN.
+--
+-- SECURITY DEFINER porque o `dc360_app` faz `INSERT INTO usuarios` (o
+-- cadastro de hoje) e nao tem privilegio nenhum em `pessoas` nem em
+-- `origens_de_conta`. O que impede a funcao de virar porta: ela so age sobre a
+-- linha que esta sendo inserida (NEW), nunca recebe parametro, nunca procura
+-- pessoa existente, e confere o municipio do contexto quando ha contexto (o
+-- RLS de `usuarios` faria o mesmo logo depois; conferir antes evita que a
+-- pessoa seja criada, e o indice de e-mail consultado, numa escrita que o RLS
+-- vai recusar).
+-- ---------------------------------------------------------------------
+CREATE FUNCTION conta_ganha_pessoa() RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_pessoa    uuid;
+  v_restricao text;
+  v_origem    record;
+BEGIN
+  PERFORM TG_RELID = 'public.usuarios'::regclass;
+
+  IF TG_WHEN = 'BEFORE' THEN
+    -- A conta so nasce de dois jeitos (decisao 1). Na E15 so existe o
+    -- primeiro: sem pessoa informada. `pessoa_id` informado e recusado na hora,
+    -- venha de quem vier (a marca `aceite` so existe a partir da E10).
+    IF NEW.pessoa_id IS NOT NULL THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'insufficient_privilege',
+        MESSAGE = 'permissao negada para informar usuarios.pessoa_id: a conta nova ganha a pessoa '
+                  'pelo gatilho criador, e a ligacao a pessoa existente so nasce em aceitar_convite',
+        TABLE = 'usuarios',
+        COLUMN = 'pessoa_id';
+    END IF;
+
+    IF app_organizacao_atual() IS NOT NULL
+       AND NEW.organizacao_id IS DISTINCT FROM app_organizacao_atual() THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'insufficient_privilege',
+        MESSAGE = 'a conta nova e de outro municipio que nao o do contexto',
+        TABLE = 'usuarios';
+    END IF;
+
+    BEGIN
+      INSERT INTO pessoas
+        (nome, email, senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate, ativo)
+      VALUES
+        (NEW.nome, NEW.email, NEW.senha_hash, NEW.falhas_login, NEW.bloqueado_ate,
+         NEW.senha_provisoria_ate, NEW.ativo)
+      RETURNING id INTO v_pessoa;
+    EXCEPTION WHEN unique_violation THEN
+      GET STACKED DIAGNOSTICS v_restricao = CONSTRAINT_NAME;
+      IF v_restricao <> 'pessoas_email_idx' THEN
+        RAISE;
+      END IF;
+      /*
+        O e-mail ja e de outra pessoa. Ate a E09, com uma pessoa por conta e o
+        e-mail espelhado, isso e EXATAMENTE "ja existe conta com este e-mail",
+        que e o que o `usuarios_email_global_idx` da 002 diria um instante
+        depois. A resposta sai com o nome dele, no formato do Postgres, para
+        quem ja trata essa restricao (`provisionar_municipio`, DC363; o
+        `POST /usuarios`, 409) continuar igual: o oraculo de cadastro da F00
+        nao aumenta nem muda de forma (decisao 6). A E09 troca os indices.
+      */
+      RAISE EXCEPTION USING
+        ERRCODE = 'unique_violation',
+        MESSAGE = 'duplicate key value violates unique constraint "usuarios_email_global_idx"',
+        DETAIL = format('Key (lower(email))=(%s) already exists.', lower(NEW.email)),
+        CONSTRAINT = 'usuarios_email_global_idx',
+        TABLE = 'usuarios';
+    END;
+
+    INSERT INTO origens_de_conta (usuario_id, pessoa_id, origem, transacao)
+    VALUES (NEW.id, v_pessoa, 'criador', pg_current_xact_id());
+
+    NEW.pessoa_id := v_pessoa;
+    RETURN NEW;
+  END IF;
+
+  -- AFTER, adiado para o fim da transacao. NEW e a linha como foi gravada,
+  -- depois de TODOS os gatilhos BEFORE; e `pessoa_id` nao muda depois disso
+  -- (gatilho de imutabilidade), entao NEW e o estado final da ligacao.
+  SELECT o.pessoa_id, o.origem, o.transacao INTO v_origem
+    FROM origens_de_conta o
+   WHERE o.usuario_id = NEW.id;
+
+  IF NOT FOUND
+     OR v_origem.transacao IS DISTINCT FROM pg_current_xact_id()
+     OR v_origem.pessoa_id IS DISTINCT FROM NEW.pessoa_id
+     OR v_origem.origem <> 'criador'
+     OR NOT EXISTS (SELECT 1 FROM pessoas p WHERE p.id = NEW.pessoa_id) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'check_violation',
+      MESSAGE = 'a conta nao tem a origem do pessoa_id gravada nesta transacao por quem o produziu',
+      DETAIL  = 'Toda conta nova ganha a pessoa pelo gatilho criador (marca criador da mesma '
+                'transacao e da mesma pessoa da linha final). A transacao inteira volta.',
+      CONSTRAINT = 'usuarios_origem_da_pessoa',
+      TABLE = 'usuarios';
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION conta_ganha_pessoa() IS
+  'Gatilho criador (BEFORE INSERT) e gatilho adiado (constraint trigger, fim da transacao) de usuarios. Cria a pessoa NOVA da conta que chega sem pessoa e grava a marca criador em origens_de_conta; recusa pessoa_id informado; no fim da transacao confere marca, transacao e pessoa da linha final (ADR 0009, decisao 1, correcao 3). E a unica funcao que cita origens_de_conta ate a E10.';
+
+REVOKE ALL ON FUNCTION conta_ganha_pessoa() FROM PUBLIC;
+-- Funcao de gatilho nao se chama fora de gatilho ("trigger functions can only
+-- be called as triggers"): o EXECUTE nao abre caminho nenhum. Ele fica com o
+-- papel cuja escrita a dispara (o cadastro de conta da API), porque o catalogo
+-- nominal recusa funcao privilegiada que nenhum papel executa.
+
+
+CREATE TRIGGER usuarios_ganha_pessoa
+  BEFORE INSERT ON usuarios
+  FOR EACH ROW
+  EXECUTE FUNCTION conta_ganha_pessoa();
+
+CREATE CONSTRAINT TRIGGER usuarios_origem_da_pessoa
+  AFTER INSERT ON usuarios
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW
+  EXECUTE FUNCTION conta_ganha_pessoa();
+
+-- ---------------------------------------------------------------------
+-- 5. pessoa_id nao muda, para todo papel (gatilho comum dispara tambem para o
+-- dono e para funcao SECURITY DEFINER). Dois gatilhos, a mesma funcao: o
+-- BEFORE recusa logo, antes do indice unico e da chave das sessoes darem
+-- outra resposta; o AFTER ve o valor depois de TODO gatilho BEFORE, e pega um
+-- BEFORE posterior que trocasse a pessoa de uma conta existente.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION pessoa_da_conta_nao_muda() RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  RAISE EXCEPTION USING
+    ERRCODE = 'check_violation',
+    MESSAGE = 'usuarios.pessoa_id e atribuido uma vez, na criacao da conta, e nunca muda',
+    CONSTRAINT = 'usuarios_pessoa_id_nao_muda',
+    TABLE = 'usuarios',
+    COLUMN = 'pessoa_id';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pessoa_da_conta_nao_muda() FROM PUBLIC;
+
+CREATE TRIGGER usuarios_pessoa_id_nao_muda
+  BEFORE UPDATE ON usuarios
+  FOR EACH ROW
+  WHEN (OLD.pessoa_id IS DISTINCT FROM NEW.pessoa_id)
+  EXECUTE FUNCTION pessoa_da_conta_nao_muda();
+
+CREATE TRIGGER usuarios_pessoa_id_nao_muda_no_estado_final
+  AFTER UPDATE ON usuarios
+  FOR EACH ROW
+  WHEN (OLD.pessoa_id IS DISTINCT FROM NEW.pessoa_id)
+  EXECUTE FUNCTION pessoa_da_conta_nao_muda();
+
+-- ---------------------------------------------------------------------
+-- 6. pessoas e origens_de_conta sao permanentes: no lugar da chave
+-- estrangeira que o portao nao deixa declarar (ver o cabecalho, item b), a
+-- pessoa nao se apaga; e a marca nao se altera nem se apaga. Vale para o dono
+-- tambem; so uma migracao revisada muda isto (H98 decide o destino da pessoa).
+-- ---------------------------------------------------------------------
+CREATE FUNCTION linha_permanente() RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  RAISE EXCEPTION USING
+    ERRCODE = 'insufficient_privilege',
+    MESSAGE = format('%s nao se %s: e registro permanente (ADR 0009, decisao 1)',
+                     TG_TABLE_NAME, CASE TG_OP WHEN 'UPDATE' THEN 'altera' ELSE 'apaga' END),
+    TABLE = TG_TABLE_NAME;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION linha_permanente() FROM PUBLIC;
+
+CREATE TRIGGER pessoas_nao_se_apagam
+  BEFORE DELETE ON pessoas
+  FOR EACH ROW EXECUTE FUNCTION linha_permanente();
+CREATE TRIGGER pessoas_nao_se_truncam
+  BEFORE TRUNCATE ON pessoas
+  FOR EACH STATEMENT EXECUTE FUNCTION linha_permanente();
+CREATE TRIGGER origens_de_conta_nao_se_reescrevem
+  BEFORE UPDATE OR DELETE ON origens_de_conta
+  FOR EACH ROW EXECUTE FUNCTION linha_permanente();
+CREATE TRIGGER origens_de_conta_nao_se_truncam
+  BEFORE TRUNCATE ON origens_de_conta
+  FOR EACH STATEMENT EXECUTE FUNCTION linha_permanente();
+
+-- ---------------------------------------------------------------------
+-- 7. O espelho da credencial (P-04, passo 1). Mao unica, de usuarios para
+-- pessoas. SECURITY DEFINER porque quem atualiza a conta pode ser o
+-- `dc360_app` (a redefinicao de senha por quem administra, F00-E09), que nao
+-- alcanca `pessoas`. A pessoa atingida e sempre a da propria conta
+-- (NEW.pessoa_id), e a linha da conta ja passou pelo RLS de quem a atualizou.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION pessoa_espelha_a_conta() RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF TG_RELID <> 'public.usuarios'::regclass OR TG_OP <> 'UPDATE' OR TG_WHEN <> 'AFTER' THEN
+    RAISE EXCEPTION 'pessoa_espelha_a_conta so serve ao gatilho AFTER UPDATE de usuarios' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  IF app_organizacao_atual() IS NOT NULL
+     AND NEW.organizacao_id IS DISTINCT FROM app_organizacao_atual() THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'insufficient_privilege',
+      MESSAGE = 'a conta atualizada e de outro municipio que nao o do contexto',
+      TABLE = 'usuarios';
+  END IF;
+
+  UPDATE pessoas
+     SET email = NEW.email,
+         senha_hash = NEW.senha_hash,
+         falhas_login = NEW.falhas_login,
+         bloqueado_ate = NEW.bloqueado_ate,
+         senha_provisoria_ate = NEW.senha_provisoria_ate
+   WHERE id = NEW.pessoa_id;
+
+  -- Nunca calado: a escrita de credencial que nao chega a pessoa desfaz a
+  -- escrita na conta (inclusive com dono sem BYPASSRLS, que veria zero linhas).
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'integrity_constraint_violation',
+      MESSAGE = 'a credencial da conta nao chegou a pessoa: pessoa da conta nao encontrada',
+      TABLE = 'usuarios';
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION pessoa_espelha_a_conta() IS
+  'Espelho de mao unica da credencial e do e-mail de usuarios para pessoas (ADR 0009, P-04 passo 1). A E08 (passo 3) o desliga, quando a credencial passa a ser gravada so em pessoas.';
+
+REVOKE ALL ON FUNCTION pessoa_espelha_a_conta() FROM PUBLIC;
+
+
+CREATE TRIGGER usuarios_espelha_credencial_na_pessoa
+  AFTER UPDATE OF senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate, email ON usuarios
+  FOR EACH ROW
+  WHEN (OLD.senha_hash IS DISTINCT FROM NEW.senha_hash
+        OR OLD.falhas_login IS DISTINCT FROM NEW.falhas_login
+        OR OLD.bloqueado_ate IS DISTINCT FROM NEW.bloqueado_ate
+        OR OLD.senha_provisoria_ate IS DISTINCT FROM NEW.senha_provisoria_ate
+        OR OLD.email IS DISTINCT FROM NEW.email)
+  EXECUTE FUNCTION pessoa_espelha_a_conta();
+
+-- ---------------------------------------------------------------------
+-- 8. A sessao carrega a pessoa da conta. Comum (SECURITY INVOKER): quem abre
+-- sessao e `abrir_sessao` (dono) ou o `dc360_app` no municipio da conta, e os
+-- dois enxergam a conta. A chave composta garante a coerencia.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION sessao_carrega_a_pessoa() RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NEW.pessoa_id IS NULL THEN
+    SELECT u.pessoa_id INTO NEW.pessoa_id
+      FROM usuarios u
+     WHERE u.id = NEW.usuario_id AND u.organizacao_id = NEW.organizacao_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION sessao_carrega_a_pessoa() FROM PUBLIC;
+
+CREATE TRIGGER sessao_carrega_a_pessoa
+  BEFORE INSERT ON sessoes
+  FOR EACH ROW
+  EXECUTE FUNCTION sessao_carrega_a_pessoa();
+
+-- ---------------------------------------------------------------------
+-- 9. vigencia_da_sessao: a sessao (sid) vale para a pessoa (sub) no
+-- municipio (org)? Uma consulta. Exige org = app_organizacao_atual(): fora do
+-- contexto, nada volta (nem a linha do municipio). A lista de municipios da
+-- pessoa nunca vira contexto (decisao 2, precisao 1).
+-- ---------------------------------------------------------------------
+CREATE FUNCTION vigencia_da_sessao(p_pessoa_id uuid, p_organizacao_id uuid, p_sessao_id uuid)
+RETURNS TABLE (
+  usuario_id           uuid,
+  suspenso             boolean,
+  conta_ativa          boolean,
+  papel                text,
+  nome                 text,
+  pessoa_ativa         boolean,
+  senha_provisoria_ate timestamptz,
+  sessao_viva          boolean
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT u.id,
+         (o.acesso_suspenso_em IS NOT NULL OR o.eliminada_em IS NOT NULL),
+         u.ativo,
+         u.papel::text,
+         u.nome,
+         p.ativo,
+         p.senha_provisoria_ate,
+         (u.id IS NOT NULL AND EXISTS (
+           SELECT 1 FROM sessoes s
+            WHERE s.id = p_sessao_id
+              AND s.organizacao_id = o.id
+              AND s.usuario_id = u.id
+              AND s.pessoa_id = p_pessoa_id
+              AND (s.revogada_em IS NULL
+                   OR (s.motivo_revogacao = 'rotacionada na renovacao'
+                       AND EXISTS (
+                         SELECT 1 FROM sessoes v
+                          WHERE v.organizacao_id = o.id
+                            AND v.familia_id = s.familia_id
+                            AND v.revogada_em IS NULL)))
+         ))
+    FROM organizacoes o
+    LEFT JOIN usuarios u ON u.organizacao_id = o.id AND u.pessoa_id = p_pessoa_id
+    LEFT JOIN pessoas p ON p.id = u.pessoa_id
+   WHERE o.id = p_organizacao_id
+     AND o.id = app_organizacao_atual();
+$$;
+
+COMMENT ON FUNCTION vigencia_da_sessao(uuid, uuid, uuid) IS
+  'Vigencia de (sub, org, sid) numa consulta: municipio suspenso, conta da pessoa no municipio e se esta ativa, papel e nome da conta, pessoa ativa, senha provisoria da pessoa, sessao viva da conta e da pessoa. So responde para org = app_organizacao_atual(); fora disso, vazio (ADR 0009, decisao 2).';
+
+REVOKE ALL ON FUNCTION vigencia_da_sessao(uuid, uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION vigencia_da_sessao(uuid, uuid, uuid) TO dc360_app;
+
+-- ---------------------------------------------------------------------
+-- 10. credenciais_da_pessoa: o substituto de `credenciais_para_login` para a
+-- E02 (passo 2: a API passa a LER da pessoa). Mesmos cuidados da 002: busca
+-- por igualdade de e-mail, sem filtro, sem ordem livre, sem limite; nao
+-- compara senha. A credencial sai da PESSOA; a conta, o papel e o municipio,
+-- da conta. Uma linha por conta da pessoa (hoje, uma).
+-- ---------------------------------------------------------------------
+CREATE FUNCTION credenciais_da_pessoa(p_email text)
+RETURNS TABLE (
+  pessoa_id            uuid,
+  usuario_id           uuid,
+  organizacao_id       uuid,
+  nome                 text,
+  matricula            text,
+  papel                text,
+  senha_hash           text,
+  ativo                boolean,
+  pessoa_ativa         boolean,
+  bloqueado_ate        timestamptz,
+  senha_provisoria_ate timestamptz,
+  organizacao_nome     text,
+  municipio            text,
+  uf                   char(2)
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT p.id, u.id, u.organizacao_id, u.nome, u.matricula, u.papel::text,
+         p.senha_hash, u.ativo, p.ativo, p.bloqueado_ate, p.senha_provisoria_ate,
+         o.nome, o.municipio, o.uf
+    FROM pessoas p
+    JOIN usuarios u ON u.pessoa_id = p.id
+    JOIN organizacoes o ON o.id = u.organizacao_id
+   WHERE lower(p.email) = lower(p_email)
+   ORDER BY u.id;
+$$;
+
+COMMENT ON FUNCTION credenciais_da_pessoa(text) IS
+  'Credencial lida da PESSOA pelo e-mail, com cada conta dela (municipio, papel, ativo). Antes do tenant, como credenciais_para_login. Nao compara senha. Sem quem a chame ate a E02.';
+
+REVOKE ALL ON FUNCTION credenciais_da_pessoa(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION credenciais_da_pessoa(text) TO dc360_app;
+
+-- ---------------------------------------------------------------------
+-- 11. A trava da pessoa (N2). Comuns (SECURITY INVOKER), como a da 049. Duas
+-- chaves inteiras: a primeira diz de que e a trava ('dc360.pessoa', diferente
+-- de 'dc360.sessoes_do_usuario'), a segunda, de quem.
+-- ---------------------------------------------------------------------
+CREATE FUNCTION travar_pessoa(p_pessoa_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  PERFORM pg_advisory_xact_lock(hashtext('dc360.pessoa'), hashtext(p_pessoa_id::text));
+END;
+$$;
+
+COMMENT ON FUNCTION travar_pessoa(uuid) IS
+  'Nivel N2 da ordem de travas (ADR 0009, decisao 7): trava de transacao da pessoa, com chave propria, separada da trava das sessoes da conta (049).';
+
+-- Resolve a pessoa pela CONTA, sob o RLS e o municipio de quem chama, e nao
+-- devolve o pessoa_id. Conta de outro municipio, ou que nao existe: nao trava
+-- nada (quem chama recebe o 404 de sempre no comando seguinte).
+CREATE FUNCTION travar_pessoa_da_conta(p_usuario_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_pessoa uuid;
+BEGIN
+  SELECT u.pessoa_id INTO v_pessoa
+    FROM usuarios u
+   WHERE u.id = p_usuario_id AND u.organizacao_id = app_organizacao_atual();
+  IF v_pessoa IS NOT NULL THEN
+    PERFORM travar_pessoa(v_pessoa);
+  END IF;
+END;
+$$;
+
+COMMENT ON FUNCTION travar_pessoa_da_conta(uuid) IS
+  'Nivel N2 pela conta: acha a pessoa da conta no municipio do contexto e toma travar_pessoa. Nao devolve pessoa_id a quem chama.';
+
+REVOKE ALL ON FUNCTION travar_pessoa(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION travar_pessoa_da_conta(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION travar_pessoa(uuid) TO dc360_app;
+GRANT EXECUTE ON FUNCTION travar_pessoa_da_conta(uuid) TO dc360_app;
+
+-- ---------------------------------------------------------------------
+-- 12. UPDATE de usuarios por coluna, numa lista positiva, sem pessoa_id.
+--
+-- No Postgres, REVOKE UPDATE (coluna) nao retira um UPDATE concedido na
+-- tabela: os dois sao independentes. Por isso sai o de TABELA (001) e voltam,
+-- por coluna, so as que a aplicacao grava hoje: o cadastro e a edicao
+-- (nome, matricula, email, papel, equipe_id), a desativacao (ativo), a
+-- redefinicao de senha por quem administra (senha_hash, falhas_login,
+-- bloqueado_ate, senha_provisoria_ate) e a foto da propria conta (foto_chave,
+-- foto_bytes). `id`, `organizacao_id`, `criado_em`, `ultimo_acesso` (gravado
+-- so por registrar_tentativa_login, que e do dono) e `pessoa_id` ficam fora.
+-- O INSERT continua de tabela (cabecalho, item a).
+-- ---------------------------------------------------------------------
+REVOKE UPDATE ON usuarios FROM dc360_app;
+GRANT UPDATE (nome, matricula, email, papel, equipe_id, ativo,
+              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
+              foto_chave, foto_bytes)
+  ON usuarios TO dc360_app;
+
+REVOKE INSERT ON usuarios FROM dc360_app;
+GRANT INSERT (id, organizacao_id, nome, matricula, email, papel, equipe_id, ativo,
+              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
+              foto_chave, foto_bytes)
+  ON usuarios TO dc360_app;
+
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_id_fkey
+  FOREIGN KEY (pessoa_id) REFERENCES pessoas (id);
+
+DO $$ BEGIN
+  EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 13. Documentacao no catalogo.
+-- ---------------------------------------------------------------------
+COMMENT ON TABLE pessoas IS
+  'Pessoa GLOBAL (ADR 0009): o minimo que vale em todo municipio (nome, e-mail, credencial, verificacao do e-mail, ativo). Excecao nomeada ao isolamento: sem organizacao_id, RLS forcada sem policy, nenhum privilegio do papel de aplicacao; alcancada so pelas funcoes SECURITY DEFINER da lista nominal. Ate a E08 a credencial e copia da conta (espelho, passo 1).';
+COMMENT ON COLUMN pessoas.ativo IS
+  'Se a pessoa pode entrar. Ate a E09 e a foto do backfill e da criacao; a E09 (pessoa_acompanha_as_contas) passa a mante-lo pelas contas ativas. Ate la, a autoridade e usuarios.ativo, que as funcoes devolvem junto.';
+COMMENT ON COLUMN pessoas.email_verificado_em IS
+  'Quando a pessoa provou que recebe no e-mail. Nulo para toda pessoa do backfill: nao havia verificacao antes da F03.';
+COMMENT ON TABLE origens_de_conta IS
+  'De onde veio o pessoa_id de cada conta (ADR 0009, correcao 3): backfill (054), criador (gatilho criador) ou aceite (aceitar_convite, E10), com a transacao de quem gravou. Registro permanente, sem privilegio nenhum do papel de aplicacao.';
+COMMENT ON COLUMN usuarios.pessoa_id IS
+  'A pessoa dona desta conta (ADR 0009). Atribuido uma vez, na criacao, e nunca muda. Uma conta por pessoa no sistema ate a liberacao da segunda conta (064).';
+COMMENT ON COLUMN sessoes.pessoa_id IS
+  'A pessoa da conta da sessao, preenchida por sessao_carrega_a_pessoa e presa pela chave composta com a conta. A vigencia confere municipio, conta e pessoa juntos.';

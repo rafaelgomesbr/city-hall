@@ -1184,6 +1184,36 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     (a 053 de mentira virou 900; a prova da 052 para na 052), sem caso novo.
   */
   "V2-F03-E04": { total: 36, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, parte 0G (extensao do portao: as formas que a ADR 0009 pedia e
+    o portao nao sabia dizer). `isolamento.test.ts` ganha 4 casos: todo
+    privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e o do
+    catalogo; o destino de cada tabela sem municipio na eliminacao de verdade;
+    nenhum papel do produto nem PUBLIC com TEMP ou CREATE; e a funcao de
+    gatilho privilegiada sem EXECUTE, nas tabelas declaradas e conferindo a
+    tabela por TG_RELID. O caso das chaves estrangeiras continua um so (a
+    regra foi para `conferirChavesEstrangeiras`). `catalogo-nominal.test.ts`
+    ganha 36 (as sondas 12 a 16, a fixacao do privilegio de coluna da base e,
+    na sonda 10, a redefinicao de funcao da base declarada com redefine).
+    Total 40, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0G": { total: 40, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, correcao 1 da parte 0G (a auditoria de cobertura independente
+    achou oito aberturas). `isolamento.test.ts` ganha 4 casos: o disparo de
+    cada gatilho privilegiado (momento, nivel, eventos, UPDATE OF, WHEN,
+    adiamento e tgenabled); a recusa comportamental com 42501, antes de
+    qualquer efeito, da funcao de gatilho disparada de uma tabela temporaria
+    de mesmo nome; as colunas proibidas (a credencial, o e-mail e o pessoa_id
+    de usuarios desde a 061); e a declaracao completa (o outro municipio da
+    prova da eliminacao e as colunas referenciadas da chave para a global). A
+    prova da eliminacao (copia descartavel com COMMIT, ancora, outro
+    municipio), a FK (confkey e convalidated) e a juncao (redefinicao so
+    encolhe, regime preservado) mudam dentro dos casos que ja existiam.
+    `catalogo-nominal.test.ts` ganha 38 (as sondas 17 a 22). Total 42, nenhuma
+    falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0G-correcao-1": { total: 42, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

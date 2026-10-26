@@ -1,0 +1,650 @@
+### R2 (depois0)
+--- migracao 998 temporaria:
+-- R2: a mesma migracao, SEM a etapa declarar a redefinicao. Deve REPROVAR.
+CREATE OR REPLACE FUNCTION consumir_recuperacao(p_token_hash text, p_senha_hash text)
+RETURNS TABLE (usuario_id uuid, organizacao_id uuid)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_usuario uuid;
+  v_ativo   boolean;
+  v_rec     recuperacoes_senha%ROWTYPE;
+BEGIN
+  -- Redefinida por uma etapa (sabotagem R): o corpo muda, a forma nao.
+  -- De quem e o link, sem travar nada ainda.
+  SELECT r.usuario_id INTO v_usuario FROM recuperacoes_senha r
+   WHERE r.token_hash = p_token_hash
+     AND r.usada_em IS NULL
+     AND r.expira_em > now();
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  -- A linha da pessoa ANTES da linha do link (a ordem do cabecalho). Se uma
+  -- redefinicao, troca ou desativacao esta no meio, espera ela confirmar e le
+  -- a versao nova.
+  SELECT u.ativo INTO v_ativo FROM usuarios u WHERE u.id = v_usuario FOR NO KEY UPDATE;
+
+  -- O link de novo, agora travado: a mudanca que confirmou enquanto
+  -- esperavamos ja o marcou pelo gatilho, e ele nao serve mais.
+  SELECT * INTO v_rec FROM recuperacoes_senha r
+   WHERE r.token_hash = p_token_hash
+     AND r.usada_em IS NULL
+     AND r.expira_em > now()
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  UPDATE recuperacoes_senha SET usada_em = now() WHERE id = v_rec.id;
+
+  -- Conta desativada: o link e gasto e nada mais muda. Quem chama recebe a
+  -- mesma resposta do link que nao vale mais.
+  IF NOT coalesce(v_ativo, false) THEN
+    RETURN;
+  END IF;
+
+  UPDATE usuarios
+     SET senha_hash = p_senha_hash,
+         falhas_login = 0,
+         bloqueado_ate = NULL
+   WHERE id = v_rec.usuario_id;
+
+  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
+
+  UPDATE sessoes
+     SET revogada_em = now(), motivo_revogacao = 'senha redefinida'
+   WHERE sessoes.usuario_id = v_rec.usuario_id AND revogada_em IS NULL;
+
+  RETURN QUERY SELECT v_rec.usuario_id, v_rec.organizacao_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION consumir_recuperacao(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION consumir_recuperacao(text, text) TO dc360_app;
+--- vitest (test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts):
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db
+
+15:00:58 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts
+ ✓ test/funcoes-antes-do-tenant.test.ts (13 tests) 2324ms
+ ❯ test/portao-comportamental.test.ts (40 tests | 3 failed) 18179ms
+   ✓ linha de base: o banco de hoje passa por tudo > a semeadura cobre toda tabela, sem problema 2ms
+   ✓ linha de base: o banco de hoje passa por tudo > a prova comportamental inteira não acha nada no banco de hoje  2548ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de leitura com OR true (permissiva somada à de contexto): A lê B, e sem contexto lê tudo 79ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de UPDATE com OR true no USING e no WITH CHECK: altera B às cegas e move a própria linha para B 88ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto 95ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > policy de INSERT com OR true: a cópia da linha de B passa pelo RLS e só para na unicidade 86ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > GRANT DELETE e policy de DELETE com OR true: apaga a linha de B 81ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > a raiz também: OR true na leitura de `organizacoes` 72ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > tabela sem município (exceção nominal) que o papel de aplicação passa a ler 58ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa  833ms
+   ✓ item 1: a prova comportamental morde, tabela por tabela > PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos  686ms
+   ✓ item 2: o modo de cada policy, e a composição > policy RESTRICTIVE fora da lista reprova; declarada e que virou PERMISSIVE reprova 17ms
+   ✓ item 2: o modo de cada policy, e a composição > composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede  892ms
+   ✓ item 3: visões > visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada  2370ms
+   ✓ item 3: visões > visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some  2411ms
+   ✓ item 3: visões > com security_invoker, a mesma visão passa nas duas  2229ms
+   ✓ item 3: visões > visão materializada lida pelo console, e entrada de VISOES_SEM_INVOKER que sobra, reprovam 11ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > OR true na guarda do dono reprova (o toContain antigo aceitava) 6ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado 5ms
+   ✓ item 4: as policies do fornecedor, cláusula a cláusula > policy nova numa tabela do fornecedor reprova 4ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa 28ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > enum próprio fora de TIPOS_PROPRIOS reprova, e entrada sem tipo também 11ms
+   ✓ item 6: sequências, tipos, dono e privilégio padrão > objeto de papel do produto e privilégio padrão que concede a ele reprovam 13ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > tipo próprio noutro esquema reprova, e esquema com tipo próprio deixa de ser 'só de extensão' 15ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > esquema só de extensão (funções, tipos, tipo composto e a relação da extensão) aceita o USAGE do papel de aplicação 15ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > um tipo que NÃO é da extensão no esquema dela tira o 'só de extensão' (antes da 0D, tipo não contava) 15ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > SELECT declarado passa; SELECT declarado que o banco não tem reprova; INSERT nunca 13ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > EXECUTE com opção de concessão numa função da extensão reprova 7ms
+   ✓ item 7: tipos fora de public e o ACL de extensão > com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) > extensão declarada que não está instalada é DITA, e não conferida em silêncio 5ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (a) o modelo aceita o DELETE e o SELECT montados da 038, e recusa o resto 2ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (a) função privilegiada com DDL no corpo reprova; declarada com corpoForaDoModelo passa; a declaração que sobra reprova 14ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (b) TRIGGER ao papel de aplicação, e SET de session_replication_role a ele, reprovam 6ms
+   ✓ correção 2 da ADR 0009: corpo, gatilho e a marca da liberação > (c) a forma da marca: antes da liberação a marcada é do papel de aplicação; depois, não; e a redefinição não a tira 2ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > hoje ninguém cita, e passa 7ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > função privilegiada que cita a tabela sem a marca reprova; com a marca criador, passa 14ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada 8ms
+   ✓ correção 3 da ADR 0009: quem cita origens_de_conta > aceite fora de aceitar_convite, marca em duas funções e marca que sobra reprovam; citar só em comentário não conta 9ms
+   × item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar) 93ms
+     → expected [ Array(1) ] to deeply equal []
+   × item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046 1373ms
+     → expected [ Array(1) ] to deeply equal []
+   × item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo 1ms
+     → expected [ Array(1) ] to deeply equal []
+ ❯ test/isolamento.test.ts (170 tests | 2 failed) 46798ms
+   ✓ CA-06: isolamento entre organizações > cada município enxerga apenas as próprias ocorrências 16ms
+   ✓ CA-06: isolamento entre organizações > não lê ocorrência de outro município nem pedindo pelo id exato 6ms
+   ✓ CA-06: isolamento entre organizações > não altera ocorrência de outro município 6ms
+   ✓ CA-06: isolamento entre organizações > não cria registro carimbado com o id de outro município 8ms
+   ✓ CA-06: isolamento entre organizações > sem contexto de organização, não enxerga nada 4ms
+   ✓ CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada 63ms
+   ✓ CA-06: isolamento entre organizações > o formulário público escreve e NÃO lê 8ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto 124ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO 41ms
+   ✓ CA-06: isolamento entre organizações > toda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale 1ms
+   ✓ CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4) 9ms
+   ✓ CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema 18ms
+   ✓ CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização 24ms
+   ✓ CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G) 2ms
+   ✓ CA-06: isolamento entre organizações > nenhum papel do produto, nem PUBLIC, tem TEMP ou CREATE no banco, nem CREATE em esquema nenhum (parte 0G) 4ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G) 6ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G) 2ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G) 3ms
+   ✓ CA-06: isolamento entre organizações > nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G) 12ms
+   ✓ CA-06: isolamento entre organizações > toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G) 0ms
+   ✓ Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando) 11ms
+   × Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita 110ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Funções privilegiadas > toda função privilegiada fixa o search_path 4ms
+   ✓ Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC 6ms
+   ✓ Funções privilegiadas > o papel de aplicação não é superusuário nem dono das tabelas 4ms
+   ✓ Trilha auditável é append-only > aceita inserção mas recusa alteração e exclusão 21ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > nenhuma tabela de prova tem policy que alcance DELETE 59ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá 252ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > a ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade 10ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada 4ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma 11ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo 10ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT 10ms
+   ✓ Regras de negócio garantidas pelo banco > recusa encerrar sem motivo 5ms
+   ✓ Regras de negócio garantidas pelo banco > protocolo pode repetir entre municípios, mas não dentro do mesmo 5ms
+   ✓ Regras de negócio garantidas pelo banco > gera protocolo sequencial por organização e ano, sem colidir entre municípios 13ms
+   ✓ Regras de negócio garantidas pelo banco > recusa evidência cuja chave de storage não tem o prefixo do tenant 15ms
+   ✓ Regras de negócio garantidas pelo banco > a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040) 28ms
+   ✓ Regras de negócio garantidas pelo banco > recusa a mesma coleta enviada duas vezes com a mesma chave de idempotência 11ms
+   ✓ Isolamento sob concorrência na mesma conexão > duas leituras concorrentes de municípios diferentes não trocam de contexto 93ms
+   ✓ Isolamento sob concorrência na mesma conexão > escrita concorrente de um município não escapa para o outro 14ms
+   ✓ Chave estrangeira nao atravessa municipio > nao vincula ocorrencia a chamado de outro municipio 6ms
+   ✓ Chave estrangeira nao atravessa municipio > nao despacha para equipe de outro municipio 5ms
+   ✓ Chave estrangeira nao atravessa municipio > nao coloca servidor em equipe de outro municipio 5ms
+   ✓ Chave estrangeira nao atravessa municipio > nao grava vistoria apontando para ocorrencia de outro municipio 5ms
+   ✓ Chave estrangeira nao atravessa municipio > nao assina evento da trilha com servidor de outro municipio 7ms
+   ✓ Chave estrangeira nao atravessa municipio > o vinculo dentro do proprio municipio continua funcionando 8ms
+   ✓ Aparelho de push e aviso de prazo > nao le a ficha de push do aparelho de outro municipio 5ms
+   ✓ Aparelho de push e aviso de prazo > nao revoga o aparelho de outro municipio 6ms
+   ✓ Aparelho de push e aviso de prazo > nao registra aparelho no nome de servidor de outro municipio 6ms
+   ✓ Aparelho de push e aviso de prazo > a mesma ficha registrada por dois municipios nao denuncia a existencia da outra 15ms
+   ✓ Aparelho de push e aviso de prazo > a mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica 9ms
+   ✓ Aparelho de push e aviso de prazo > aparelho nao se apaga, se revoga 5ms
+   ✓ Aparelho de push e aviso de prazo > revogar aparelho sem motivo e recusado pelo banco 4ms
+   ✓ Aparelho de push e aviso de prazo > nao registra aviso apontando para ocorrencia de outro municipio 8ms
+   ✓ Aparelho de push e aviso de prazo > o papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade 16ms
+   ✓ Aparelho de push e aviso de prazo > nao le o aviso enviado por outro municipio 4ms
+   ✓ Aparelho de push e aviso de prazo > a varredura nao aceita municipio de quem chama e nao devolve dado de pessoa 4ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso carimbado com o id de outro municipio 7ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id 4ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a aplicacao so enfileira: nao registra entrega nem cria aviso de prazo 7ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > enfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio 11ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa 2ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho 14ms
+   ✓ Sino de avisos > nao le o aviso de outro municipio 4ms
+   ✓ Sino de avisos > nao cria aviso carimbado com o id de outro municipio 3ms
+   ✓ Sino de avisos > nao cria aviso apontando para ocorrencia de outro municipio 4ms
+   ✓ Sino de avisos > nao registra leitura no nome de servidor de outro municipio 4ms
+   ✓ Sino de avisos > nao registra leitura de aviso de outro municipio 4ms
+   ✓ Sino de avisos > nao le quem leu o que no outro municipio 6ms
+   ✓ Sino de avisos > nao apaga aviso de outro municipio, nem o velho 7ms
+   ✓ Sino de avisos > a retencao e do banco: nem o proprio municipio apaga aviso que ainda vale 4ms
+   ✓ Sino de avisos > o expurgo por idade leva junto quem leu, em vez de travar 9ms
+   ✓ Sino de avisos > o mesmo fato nao vira dois avisos 11ms
+   ✓ Sino de avisos > aviso nao se edita, e leitura nao se desfaz 4ms
+   ✓ Sino de avisos > os gatilhos do sino nao sao privilegiados 2ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o orgao de outro municipio nem pedindo pelo id exato 4ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao encaminha providencia para orgao de outro municipio 9ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > providencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho 11ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o mesmo nome de orgao nao entra duas vezes so por causa da caixa 4ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > orgao nao se apaga, se desativa com motivo 13ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > numera oficio por municipio e por ano, sem colidir entre municipios 11ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a numeracao de oficio recusa rodar sem contexto de municipio 3ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao emite dois oficios para a mesma providencia 5ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > oficio emitido nao se corrige: sem UPDATE e sem DELETE 8ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o oficio nem o envio de outro municipio 7ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o email so sai para dominio de orgao ativo do proprio municipio 9ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o link abre uma vez, e a segunda abertura e recusada e registrada 10ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o uso unico e do banco, e nao da aplicacao 2ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link expirado nao entrega o oficio, e a recusa fica registrada 8ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link desconhecido nao registra nada e nao conta se o municipio existe 5ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve 12ms
+   ✓ O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token 15ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > aceita o chamado que entrou sem classificacao, com o relato junto 5ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa 'outro' sem dizer o que foi relatado 4ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa descricao pendurada em tipo da COBRADE 5ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa despachar equipe para chamado que continua 'outro' 9ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > encerrar sem nunca classificar continua permitido 8ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > reclassificar limpa a descricao e libera o despacho 12ms
+   ✓ Orgaos indicados pela vistoria > grava a indicacao do proprio municipio, do catalogo e por texto livre 5ms
+   ✓ Orgaos indicados pela vistoria > nao indica orgao do catalogo de outro municipio 4ms
+   ✓ Orgaos indicados pela vistoria > nao pendura indicacao em vistoria de outro municipio 4ms
+   ✓ Orgaos indicados pela vistoria > o vizinho nao le as indicacoes de quem esta ao lado 4ms
+   ✓ Orgaos indicados pela vistoria > o mesmo orgao do catalogo nao entra duas vezes na mesma vistoria 5ms
+   ✓ Orgaos indicados pela vistoria > a coleta de campo nao se reescreve nem se apaga 6ms
+   ✓ Minimizacao por prazo e registro de consulta > nao le o registro de acesso do municipio vizinho 4ms
+   ✓ Minimizacao por prazo e registro de consulta > nao registra consulta apontando para ocorrencia de outro municipio 4ms
+   ✓ Minimizacao por prazo e registro de consulta > nao registra consulta no nome de servidor de outro municipio 4ms
+   ✓ Minimizacao por prazo e registro de consulta > nao carimba o registro com o id de outro municipio 4ms
+   ✓ Minimizacao por prazo e registro de consulta > o registro de acesso nao se reescreve nem se apaga 6ms
+   ✓ Minimizacao por prazo e registro de consulta > nao le nem altera o prazo de retencao do municipio vizinho 7ms
+   ✓ Minimizacao por prazo e registro de consulta > a minimizacao nao aceita municipio nem prazo de quem chama 2ms
+   ✓ Minimizacao por prazo e registro de consulta > a minimizacao nao devolve dado de pessoa 2ms
+   ✓ Minimizacao por prazo e registro de consulta > nem PUBLIC nem uma conta qualquer executa a minimizacao 2ms
+   ✓ Segundo fator > um municipio nao alcanca o segundo fator do outro, nem pelo id exato 8ms
+   ✓ Segundo fator > recusa o segredo do TOTP gravado em texto 4ms
+   ✓ Segundo fator > recusa desligar o segundo fator deixando o segredo guardado 4ms
+   ✓ Segundo fator > recusa o codigo de recuperacao gravado em texto 4ms
+   ✓ Segundo fator > guarda o codigo como resumo e recusa apagar o que ja foi gasto 10ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1394ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  5704ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1394ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel do produto e superusuario ou ignora RLS 3ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  29563ms
+   ✓ Metricas escritas pelo proprio municipio > o municipio escreve o proprio resumo, e ele bate com o que o municipio ve 12ms
+   ✓ Metricas escritas pelo proprio municipio > chamar duas vezes no mesmo dia corrige a linha, nao empilha outra 21ms
+   ✓ Metricas escritas pelo proprio municipio > o resumo conta o proprio municipio, e nao enxerga o vizinho 17ms
+   ✓ Metricas escritas pelo proprio municipio > nao escreve resumo carimbado com o id de outro municipio 4ms
+   ✓ Metricas escritas pelo proprio municipio > sem contexto de municipio, a escrita nao acontece 5ms
+   ✓ Metricas escritas pelo proprio municipio > o municipio nao apaga o proprio historico de metricas 3ms
+   ✓ Metricas escritas pelo proprio municipio > a regra de coluna proibida reprova de verdade quando ha o que reprovar 7ms
+   ✓ Metricas escritas pelo proprio municipio > nada que identifique pessoa ou imovel entra no que o console le 25ms
+   ✓ Metricas escritas pelo proprio municipio > a marca de tempo da ultima escrita existe e e obrigatoria 5ms
+   ✓ Metricas escritas pelo proprio municipio > municipio que nao escreveu aparece como sinal, e nao como linha faltando 3ms
+   ✓ O console le metrica e nao alcanca dado de municipio > le o resumo de mais de um municipio, que e o motivo de ele existir 3ms
+   ✓ O console le metrica e nao alcanca dado de municipio > nao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum 20ms
+   ✓ O console le metrica e nao alcanca dado de municipio > nao escreve nada, nem na tabela que ele le 2ms
+   ✓ O console le metrica e nao alcanca dado de municipio > a visao que ele le roda com os privilegios DELE, e nao com os do dono 11ms
+   ✓ O relogio que descobre para quem chamar o resumo > descobre quem esta sem resumo fresco, sem contexto de municipio nenhum 3ms
+   ✓ O relogio que descobre para quem chamar o resumo > some da fila assim que o municipio escreve, e volta quando o resumo envelhece 11ms
+   ✓ O relogio que descobre para quem chamar o resumo > nao aceita municipio de parametro, e nao devolve nome de prefeitura 2ms
+   ✓ O relogio que descobre para quem chamar o resumo > o papel do console nao executa o relogio 4ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > o municipio, o administrador e a linha de nascimento nascem juntos 12ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > a saida sao dois identificadores, e nao ha como devolver linha de tabela 2ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > nenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio 5ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > depois de criar o municipio, o console continua sem enxergar o que criou 19ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > recusa municipio duplicado ANTES de escrever, e diz qual ja existe 8ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > recusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou 13ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > o papel de aplicacao de um municipio nao alcanca esta porta 2ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada 0ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos 5ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A 5ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role) 4ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos 4ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental 5ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER 8ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada 3ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele 12ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio 6ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role 3ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante) 5ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém) 7ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: a forma da marca "recusada depois da liberação" (antes da liberação, a marcada é do papel de aplicação) 0ms
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último 2ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > a âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio 7ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não agenda eliminação, nem sem sessão 12ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cancela eliminação (UPDATE às cegas), nem sem sessão 15ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cria outro operador nem outro dono, e sem sessão também não 32ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não altera o dono (UPDATE às cegas) 10ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum 21ms
+ ❯ test/catalogo-nominal.test.ts (132 tests | 5 failed) 56434ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco 13ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante 32ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema 17ms
+   × o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam 107ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ a BASE congelada (só ela é fixada aqui) > as 27 funções de hoje, pela assinatura completa, sem teto numérico 2ms
+   ✓ a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor 1ms
+   ✓ a BASE congelada (só ela é fixada aqui) > as 16 colunas com UPDATE do papel de aplicação 0ms
+   ✓ a BASE congelada (só ela é fixada aqui) > o único privilégio por coluna que não é UPDATE do app: o cancelamento do livro pelo console (parte 0G) 0ms
+   ✓ a BASE congelada (só ela é fixada aqui) > a dívida de tenant da base está declarada, com a etapa que a paga 1ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > a base vem primeiro, e é a BASE 0ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > todo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra 30ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > cada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio 2ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista 17ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece reprova 10ms
+   ✓ sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura 10ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco 6ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER 9ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova 6ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC 8ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa 9ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console) 17ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo 20ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > quemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão 1ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga 7ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > motivo de enchimento 11ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova 8ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna 55ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna 28ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa 21ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) 17ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que não existe 25ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`) 36ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: dispensa de policy desnecessária 20ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não dispensa nem a coluna nem a policy 19ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante 23ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova 24ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova 20ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete` 21ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > dispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção 2ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova 23ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção 1ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado 1ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco 21ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > tabela do fornecedor que o papel de aplicação alcança reprova 21ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app 35ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app 40ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam 14ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não existe reprova 62ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não recria a função reprova 62ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com a mesma migração da entrada substituída é recusado na junção 0ms
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5) 65ms
+     → expected [ Array(1) ] to deeply equal []
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G) 66ms
+     → expected [ Array(1) ] to deeply equal []
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova 84ms
+     → expected [ …(2) ] to deeply equal [ Array(1) ]
+   × sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas 74ms
+     → expected [ …(2) ] to deeply equal [ Array(1) ]
+   ✓ sonda 11: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro 1ms
+   ✓ sonda 11: a junção das contribuições das etapas > redefine: true com migração maior substitui a entrada anterior 1ms
+   ✓ sonda 11: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado) 0ms
+   ✓ sonda 11: a junção das contribuições das etapas > entrada que diz outra etapa que não a do arquivo é erro 0ms
+   ✓ sonda 11: a junção das contribuições das etapas > assinatura que não é da função nomeada é erro 0ms
+   ✓ sonda 11: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também 1ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  5552ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  5384ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  5125ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  5075ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  5114ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  5061ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  4973ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  5080ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > a junção: grupo repetido, redefinição com migração menor, o mesmo UPDATE nos dois lugares, coluna repetida e motivo curto 2ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome 30ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa 24ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova 23ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova 26ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando 28ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para tabela global com cascata, ou com a coluna gravável pelo app, reprova 26ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova 39ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam 43ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela protegida com um grant ao app reprova 22ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela sem organizacao_id fingindo ser protegida (RLS não forçada, policy aberta, grant declarado) reprova 21ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela sem município que não mantém o que precisa manter reprova 19ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a junção: sem município e do fornecedor ao mesmo tempo, e o porquê curto, são recusados 1ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa 0ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco  756ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova  699ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova  1361ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  1172ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe 5ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TEMP e EXECUTE o ataque grava no cofre; a entrada de antes da 0G passava, e agora as três conferências reprovam 26ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > sem TEMP o ataque não começa, e sem EXECUTE o gatilho não se anexa 19ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências 28ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam 23ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > conferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova 54ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > CREATE no banco ou num esquema, dado a PUBLIC, reprova 4ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > a função de gatilho na lista com EXECUTE vazio não reprova mais por 'ninguém a chama', e a comum continua reprovando 9ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > encolher passa; ampliar sem declarar reprova (o caso da auditoria: a coluna de volta à lista) 1ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > a ampliação declarada é exatamente o que a redefinição acrescenta, com justificativa, e só em redefinição 1ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > a coluna proibida não volta nem por ampliação declarada; proibição não se redefine nem se repete 2ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > antes da migração da proibição nada se confere; depois, a tabela sem o privilégio passa 21ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > o privilégio proibido no banco reprova, de coluna ou de tabela, do app, do console ou de PUBLIC 26ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > o catálogo que lista a coluna proibida reprova, mesmo com o banco igual a ele 13ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > proibição sobre tabela que não existe reprova 1ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > as proibições do portão, ligadas no banco de HOJE como se a 061 existisse, mordem: o app ainda alcança a credencial de usuarios 28ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > a mesma exceção, no mesmo regime, redefinida, passa 1ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > tirar semMunicipio de uma tabela protegida reprova (ela voltava à exceção comum e saía da prova da eliminação) 0ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > trocar protegida por global, ou o destino na eliminação, reprova 1ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > uma exceção comum também não ganha regime por redefinição (qualquer transição é ampliação) 0ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão  703ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)  723ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim  667ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)  702ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa  1447ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)  640ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  1419ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a declaração completa: sem semearOutroMunicipio, ou compartilhar sem :outra, reprova 1ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > o banco de hoje não tem função de gatilho privilegiada, e passa 2ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a recusa por TG_RELID antes de tudo passa 37ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve 33ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a conferência posta DEPOIS da escrita reprova: escreveu antes de recusar 30ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa 83ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a sequência que anda antes da recusa também é efeito 34ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > recusar com outro erro que não 42501 não é a recusa pela tabela que disparou 35ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > cada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam 105ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a função sem gatilho no banco é disparada de uma tabela de prova 53ms
+   ✓ sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS 13ms
+   ✓ sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também 12ms
+   ✓ sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo 16ms
+   ✓ sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam 37ms
+   ✓ sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova 7ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa 22ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova 23ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa 91ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a declaração completa: chave para global sem colunasReferenciadas reprova 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts > o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:166:78
+    164| 
+    165|   it("a origem de cada função bate com as migrações e com os testes qu…
+    166|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontesDoRepositor…
+       |                                                                              ^
+    167|   });
+    168| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:858:64
+    856|       "CREATE OR REPLACE FUNCTION trocar_senha(p_usuario_id uuid, p_se…
+    857|     );
+    858|     expect(conferirFontes(naJuncao(s5a(INEXISTENTE)), fontes)).toEqual…
+       |                                                                ^
+    859|   });
+    860| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:869:7
+    867|     expect(
+    868|       conferirFontes(naJuncao({ ...daBase, migracao: INEXISTENTE, rede…
+    869|     ).toEqual([]);
+       |       ^
+    870|     // Sem o redefine na etapa, a mesma migração reprova (o caso logo …
+    871|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontes)).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+    "public.sessao_por_token(text): o catálogo diz que a forma atual vem da migração 046, mas a última que cria a função é a 1898. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:883:63
+    881|       "-- comentário: CREATE FUNCTION dono_do_token( não conta\nCREATE…
+    882|     );
+    883|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontes)).toEqual([
+       |                                                               ^
+    884|       "public.sessao_por_token(text): o catálogo diz que a forma atual…
+    885|         `última que cria a função é a ${INEXISTENTE}. A etapa que a re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+    "public.trocar_senha(uuid,text,uuid) (base): a prova db/test/nao-existe.test.ts não existe",
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:911:90
+    909|         : reais.ler(c);
+    910|     const fontes: FontesDoCatalogo = { migracoes: reais.migracoes, ler…
+    911|     expect(conferirFontes(comProva({ provas: ["db/test/nao-existe.test…
+       |                                                                                          ^
+    912|       "public.trocar_senha(uuid,text,uuid) (base): a prova db/test/nao…
+    913|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  test/isolamento.test.ts > Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/isolamento.test.ts:715:78
+    713|       contra os arquivos (`catalogo/conferir.ts`, `conferirFontes`).
+    714|     */
+    715|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, fontesDoRepositor…
+       |                                                                              ^
+    716|   });
+    717| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  test/isolamento.test.ts > Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, e a definição instalada mudou por último na 998. Quem mudou a função declara a entrada nova no arquivo da etapa dela, com redefine: true.",
++ ]
+
+ ❯ test/isolamento.test.ts:5440:74
+    5438|       catálogo tem de dizer.
+    5439|     */
+    5440|     expect(conferirDefinicaoInstalada(historico, FUNCOES_PRIVILEGIADAS…
+       |                                                                          ^
+    5441|   });
+    5442| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  test/portao-comportamental.test.ts > item 5: a função recriada por SQL dinâmico > o texto da migração não mostra a recriação (é o que a 0B deixava passar)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, mas a última que cria a função é a 998. A etapa que a recriou declara a entrada nova no arquivo dela, com redefine: true.",
++ ]
+
+ ❯ test/portao-comportamental.test.ts:760:65
+    758|       ler: fontes.ler,
+    759|     };
+    760|     expect(conferirFontes(CONTRIBUICOES_DO_CATALOGO, comSonda)).toEqua…
+       |                                                                 ^
+    761|   });
+    762| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  test/portao-comportamental.test.ts > item 5: a função recriada por SQL dinâmico > a definição instalada mostra: a função mudou na 999 e o catálogo diz 046
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, e a definição instalada mudou por último na 998. Quem mudou a função declara a entrada nova no arquivo da etapa dela, com redefine: true.",
++ ]
+
+ ❯ test/portao-comportamental.test.ts:771:68
+    769|         await h.registrar(banco, arquivo.slice(0, 3));
+    770|       }
+    771|       expect(conferirDefinicaoInstalada(h, FUNCOES_PRIVILEGIADAS)).toE…
+       |                                                                    ^
+    772|       await banco.exec(RECRIAR);
+    773|       await h.registrar(banco, "999");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  test/portao-comportamental.test.ts > item 5: a função recriada por SQL dinâmico > e o histórico do banco de hoje bate com o catálogo
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.consumir_recuperacao(text,text): o catálogo diz que a forma atual vem da migração 051, e a definição instalada mudou por último na 998. Quem mudou a função declara a entrada nova no arquivo da etapa dela, com redefine: true.",
++ ]
+
+ ❯ test/portao-comportamental.test.ts:783:74
+    781| 
+    782|   it("e o histórico do banco de hoje bate com o catálogo", () => {
+    783|     expect(conferirDefinicaoInstalada(historico, FUNCOES_PRIVILEGIADAS…
+       |                                                                          ^
+    784|   });
+    785| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  3 failed | 1 passed (4)
+      Tests  10 failed | 345 passed (355)
+   Start at  15:00:58
+   Duration  57.63s (transform 501ms, setup 0ms, collect 1.92s, tests 123.73s, environment 1ms, prepare 769ms)
+

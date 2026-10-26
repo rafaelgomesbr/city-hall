@@ -1,0 +1,338 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db[39m
+
+[2m15:14:10[22m [33m[1m[vite][22m[39m [33m[2m(ssr)[22m[39m [33mwarning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).[39m
+  Plugin: [35mvite:dynamic-import-vars[39m
+  File: [36mC:/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460/dc360/db/test/catalogo-nominal.test.ts[39m
+ [32m✓[39m test/varredura-de-prazo-sem-bypassrls.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 9661[2mms[22m[39m
+ [32m✓[39m test/familia-da-sessao.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 9990[2mms[22m[39m
+ [32m✓[39m test/minimizacao-do-relato-e-da-trilha.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 10220[2mms[22m[39m
+ [32m✓[39m test/renovacao-e-encerramento-na-mesma-trava.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 10466[2mms[22m[39m
+   [33m[2m✓[22m[39m A trava e as permissões[2m > [22ma trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios [33m 321[2mms[22m[39m
+ [32m✓[39m test/recuperacao-do-console.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 10860[2mms[22m[39m
+ [31m❯[39m test/guarda-da-semente.test.ts [2m([22m[2m18 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 35[2mms[22m[39m
+   [32m✓[39m positivos: banco descartável semeia[2m > [22msem DATABASE_URL (o banco em WebAssembly que morre com o processo)[32m 3[2mms[22m[39m
+   [32m✓[39m positivos: banco descartável semeia[2m > [22mo Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto)[32m 1[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma URL de PRODUÇÃO sem NODE_ENV (o caso do defeito): pela identidade no usuário[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma URL de PRODUÇÃO pela identidade no host (conexão direta)[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma identidade de PROD em maiúsculas não escapa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mNODE_ENV=production recusa, com qualquer URL ou nenhuma[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mAMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mAMBIENTE_DC360=hml recusa e manda usar a semente própria[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mum banco de HML hospedado recusa: a semente de desenvolvimento tem senha pública[32m 1[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD)[32m 1[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mo túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mURL que não dá para analisar recusa (fail-closed), sem repetir o texto[32m 1[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mhost público que não é da máquina recusa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mnenhum motivo repete a senha da URL[32m 0[2mms[22m[39m
+   [32m✓[39m a identidade de PROD da guarda é a mesma da matriz de ambientes[2m > [22mscripts/ambientes.json declara a identidade que a guarda protege[32m 2[2mms[22m[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha[39m[32m 14[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a URL de um banco hospedado de HML: código 1[39m[32m 2[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22msem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)[39m[32m 4[2mms[22m[39m
+[31m     → .toMatch() expects to receive a string, but got undefined[39m
+ [32m✓[39m test/migracoes-regras.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 218[2mms[22m[39m
+ [32m✓[39m test/funcoes-antes-do-tenant.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 3084[2mms[22m[39m
+ [32m✓[39m test/carga.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 13883[2mms[22m[39m
+   [33m[2m✓[22m[39m Volume: 200 ocorrências atravessando a paginação[2m > [22mas 200 aparecem uma vez cada ao longo das páginas, nenhuma repete e nenhuma some [33m 310[2mms[22m[39m
+   [33m[2m✓[22m[39m Volume: 200 ocorrências atravessando a paginação[2m > [22mnenhuma ocorrência se perde quando alguém tria entre uma página e a outra [33m 376[2mms[22m[39m
+   [33m[2m✓[22m[39m Cinco aparelhos sincronizando ao mesmo tempo[2m > [22mo mesmo aparelho reenviando a mesma coleta não cria segunda vistoria [33m 523[2mms[22m[39m
+   [33m[2m✓[22m[39m Dois municípios sob concorrência, agora com volume[2m > [22msob disputa da mesma conexão, cada município conta só as próprias [33m 430[2mms[22m[39m
+   [33m[2m✓[22m[39m Dois municípios sob concorrência, agora com volume[2m > [22mpaginação concorrente dos dois municípios não mistura ocorrência [33m 403[2mms[22m[39m
+ [32m✓[39m test/login-e-suspensao-na-mesma-linha.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 3333[2mms[22m[39m
+ [32m✓[39m test/ancora-de-confianca.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/teto-de-coordenada.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 3674[2mms[22m[39m
+ [32m✓[39m test/postgis-decisao.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/endurecer-extensao.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 4886[2mms[22m[39m
+   [33m[2m✓[22m[39m sem a extensão instalada[2m > [22mo arquivo inteiro roda num Postgres comum, sem os papéis do provedor [33m 2971[2mms[22m[39m
+ [32m✓[39m test/eliminacao-de-municipio.test.ts [2m([22m[2m39 tests[22m[2m)[22m[33m 17263[2mms[22m[39m
+   [33m[2m✓[22m[39m Agendar a eliminacao, e cancelar dentro do prazo[2m > [22mexecutar antes do prazo nao faz nada [33m 786[2mms[22m[39m
+   [33m[2m✓[22m[39m Agendar a eliminacao, e cancelar dentro do prazo[2m > [22mcancelar dentro do prazo impede a execucao, e NAO reativa o acesso sozinho [33m 797[2mms[22m[39m
+   [33m[2m✓[22m[39m Agendar a eliminacao, e cancelar dentro do prazo[2m > [22mescrever no livro por fora da funcao nao aciona o relogio: ele exige o estado na organizacao [33m 742[2mms[22m[39m
+   [33m[2m✓[22m[39m Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica[2m > [22mvencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens [33m 535[2mms[22m[39m
+   [33m[2m✓[22m[39m Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica[2m > [22mtabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar [33m 682[2mms[22m[39m
+   [33m[2m✓[22m[39m Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade[2m > [22ma funcao de eliminar ESTOURA nomeando a tabela, e nenhuma linha sai [33m 330[2mms[22m[39m
+ [32m✓[39m test/busca.test.ts [2m([22m[2m40 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 19184[2mms[22m[39m
+ [32m✓[39m test/ambiente-do-aparelho.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 9511[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22mrecebem o APNS_AMBIENTE posto na sessão pelo aplicador [33m 4188[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22me producao quando ninguém pôs nada, que é o padrão da própria variável [33m 2985[2mms[22m[39m
+ [32m✓[39m test/chave-de-criacao-migracao.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 24768[2mms[22m[39m
+   [33m[2m✓[22m[39m os índices da 052, com a base inteira[2m > [22mevidência: o índice da 052 SOZINHO recusa repetir (município, ocorrência, chave) e aceita outra ocorrência [33m 3507[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 052[2m > [22maplicar, desfazer e reaplicar: colunas, índices, RLS e funções idênticos [33m 3427[2mms[22m[39m
+ [32m✓[39m test/trava-de-migracao.test.ts [2m([22m[2m15 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 31423[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22maplica, e a trava é largada no fim [33m 7777[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle [33m 5474[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22musa a chave fixa do produto [33m 3465[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mtrava ocupada: espera, tenta de novo e aplica quando a outra termina [33m 2567[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mtrava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado [33m 1955[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mcom esperaMs 0 é uma tentativa só [33m 1881[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mavisa uma vez, no registro, que está esperando [33m 1745[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é larga mesmo quando a migração falha [33m 1369[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é larga quando o histórico foi alterado [33m 1361[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mmigrar com o papel errado continua dando a mensagem do papel, e larga a trava [33m 1232[2mms[22m[39m
+   [33m[2m✓[22m[39m o pooler não serve[2m > [22ma porta 6543 (pooler em modo transação) é recusada com a explicação [33m 1314[2mms[22m[39m
+   [33m[2m✓[22m[39m o pooler não serve[2m > [22mconexão direta, sem URL e URL ilegível não recusam aqui [33m 1276[2mms[22m[39m
+ [32m✓[39m test/migrar.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 38650[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica na ordem, mesmo recebendo fora de ordem [33m 6944[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mrodar de novo não faz nada [33m 5608[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica só o que falta quando uma migração nova aparece [33m 3955[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mregistra quando cada uma foi aplicada [33m 2583[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mdesfaz a migração que falhou e mantém as anteriores [33m 1988[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mretoma da que falhou depois que ela é corrigida [33m 1878[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22ma mensagem diz qual migração falhou [33m 1835[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mpara quando uma migração já aplicada muda de conteúdo [33m 1411[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22ma mensagem explica o que fazer, não só que deu erro [33m 1390[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mreindentar não conta como alterar [33m 1252[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mdiz o que falta e não muda nada [33m 1348[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mesquema em dia devolve lista vazia [33m 1272[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicam do zero, na ordem, sem erro [33m 1938[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicar duas vezes é seguro, que é o caso de todo redeploy [33m 1933[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22mos nomes começam com número, senão a ordem alfabética não serve [33m 1084[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mexplica que o papel não pode criar tabela, em vez de repetir o erro do Postgres [33m 1087[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mo papel certo continua migrando sem nenhum aviso novo [33m 1139[2mms[22m[39m
+ [32m✓[39m test/portao-comportamental.test.ts [2m([22m[2m40 tests[22m[2m)[22m[33m 37492[2mms[22m[39m
+   [33m[2m✓[22m[39m linha de base: o banco de hoje passa por tudo[2m > [22ma prova comportamental inteira não acha nada no banco de hoje [33m 6289[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22muma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa [33m 1751[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22mPREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos [33m 864[2mms[22m[39m
+   [33m[2m✓[22m[39m item 2: o modo de cada policy, e a composição[2m > [22mcomposição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede [33m 1365[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada [33m 3648[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some [33m 3236[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mcom security_invoker, a mesma visão passa nas duas [33m 3156[2mms[22m[39m
+   [33m[2m✓[22m[39m item 5: a função recriada por SQL dinâmico[2m > [22ma definição instalada mostra: a função mudou na 999 e o catálogo diz 046 [33m 1535[2mms[22m[39m
+ [31m❯[39m test/desfazer-migracao.test.ts [2m([22m[2m29 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[33m 49747[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22maplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos [33m 8409[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22mdesfaz UMA só: a anterior continua aplicada [33m 5714[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22msem nada aplicado, diz que não há o que desfazer [33m 3294[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22mlarga a trava de migração no fim [33m 2406[2mms[22m[39m
+   [33m[2m✓[22m[39m o número da migração de prova é calculado (a última real mais um)[2m > [22mvai depois da última real, qualquer que seja ela, sem depender do CLI [33m 1876[2mms[22m[39m
+   [33m[2m✓[22m[39m com as migrações de verdade: o isolamento sobrevive ao ciclo[2m > [22muma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato [33m 3392[2mms[22m[39m
+   [33m[2m✓[22m[39m com as migrações de verdade: o isolamento sobrevive ao ciclo[2m > [22ma última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada [33m 2277[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mmigração declarada IRREVERSIVEL [33m 1285[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mmigração aplicada cujo arquivo não existe nesta versão do código [33m 1371[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mvolta que falha: desfaz inteira ou não desfaz nada, e o registro continua [33m 1294[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mAMBIENTE_DC360=prod [33m 1155[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mNODE_ENV=production, mesmo sem AMBIENTE_DC360 [33m 1147[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mURL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha [33m 1135[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22ma identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege [33m 1067[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mbanco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável [33m 1069[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mdescartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade) [33m 1145[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mPROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha [33m 992[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mdeclarar hml sem a identidade, ou com a de outro banco, ainda recusa [33m 979[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL [33m 865[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mHML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML) [33m 888[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO [33m 855[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mNODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML [33m 850[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mURL que não dá para analisar recusa sem repetir o texto [33m 848[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host) [33m 898[2mms[22m[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom AMBIENTE_DC360=prod: código 1, sem conectar[39m[33m 857[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar[39m[33m 833[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom a porta 6543 (pooler): código 2, sem conectar[39m[33m 955[2mms[22m[39m
+[31m     → expected null to be 2 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22m--desfazer com --semear: código 2[39m[33m 986[2mms[22m[39m
+[31m     → expected null to be 2 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco efêmero vazio: nada a desfazer, código 0[39m[33m 904[2mms[22m[39m
+[31m     → expected null to be +0 // Object.is equality[39m
+ [32m✓[39m test/isolamento.test.ts [2m([22m[2m170 tests[22m[2m)[22m[33m 65281[2mms[22m[39m
+   [33m[2m✓[22m[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela do esquema tem RLS ativada E forçada [33m 306[2mms[22m[39m
+   [33m[2m✓[22m[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela de negócio tem policy amarrada na organização do contexto [33m 327[2mms[22m[39m
+   [33m[2m✓[22m[39m Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT[2m > [22mcom um GRANT DELETE a mais, as linhas continuam lá [33m 890[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento sob concorrência na mesma conexão[2m > [22mduas leituras concorrentes de municípios diferentes não trocam de contexto [33m 316[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 2620[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mtodo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G) [33m 8161[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 1812[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 32466[2mms[22m[39m
+ [32m✓[39m test/catalogo-nominal.test.ts [2m([22m[2m132 tests[22m[2m)[22m[33m 76991[2mms[22m[39m
+   [33m[2m✓[22m[39m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22ma origem de cada função bate com as migrações e com os testes que a provam [33m 352[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22muma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G) [33m 332[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22ma prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas [33m 508[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console) [33m 9288[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT e SELECT por coluna, declarados por tabela e papel, passam [33m 7123[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mINSERT de TABELA dado ao app junto do INSERT de coluna reprova [33m 6208[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna a mais no grant reprova [33m 5426[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mcoluna declarada que o banco não concede reprova (nada a menos) [33m 5747[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mopção de concessão, PUBLIC e REFERENCES por coluna reprovam [33m 5558[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mo console com uma coluna a mais no livro de eliminações reprova [33m 5438[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos[2m > [22mtirar uma coluna de hoje do catálogo reprova [33m 5340[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco [33m 836[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que FICA, declarada some, reprova [33m 716[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22ma marca que SOME com a conta, declarada some, passa; declarada fica, reprova [33m 1436[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação[2m > [22mprova vazia, e semeadura que quebra, reprovam [33m 1303[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mcom o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão [33m 733[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava) [33m 767[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mum gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim [33m 792[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mâncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava) [33m 697[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa [33m 1479[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22mo outro município sem linha reprova (sem elas não há o que ficar intacto) [33m 667[2mms[22m[39m
+   [33m[2m✓[22m[39m sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município[2m > [22ma linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles [33m 1522[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 8 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom AMBIENTE_DC360=prod: código 1, sem conectar
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m473:22[22m[39m
+    [90m471| [39m      [33mDATABASE_URL[39m[33m:[39m [32m"postgres://u:senha-secreta@127.0.0.1:1/postgres"[39m[33m,[39m
+    [90m472| [39m    })[33m;[39m
+    [90m473| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m474| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/AMBIENTE_DC360=prod/[39m)[33m;[39m
+    [90m475| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Desfeita/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m484:22[22m[39m
+    [90m482| [39m      DATABASE_URL: "postgres://u:senha-secreta@db.refnovaprodxxxxxxxx…
+    [90m483| [39m    })[33m;[39m
+    [90m484| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m485| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/banco hospedado/[39m)[33m;[39m
+    [90m486| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Desfeita/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom a porta 6543 (pooler): código 2, sem conectar
+[31m[1mAssertionError[22m: expected null to be 2 // Object.is equality[39m
+
+[32m- Expected:[39m 
+2
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m493:22[22m[39m
+    [90m491| [39m  [34mit[39m([32m"com a porta 6543 (pooler): código 2, sem conectar"[39m[33m,[39m () [33m=>[39m {
+    [90m492| [39m    const r = rodar([], { DATABASE_URL: "postgres://u:senha-secreta@12…
+    [90m493| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m494| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/6543/[39m)[33m;[39m
+    [90m495| [39m    [34mexpect[39m([32m`[39m[36m${[39mr[33m.[39mstdout[36m}[39m[32m[39m[36m${[39mr[33m.[39mstderr[36m}[39m[32m`[39m)[33m.[39mnot[33m.[39m[34mtoContain[39m([32m"senha-secreta"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22m--desfazer com --semear: código 2
+[31m[1mAssertionError[22m: expected null to be 2 // Object.is equality[39m
+
+[32m- Expected:[39m 
+2
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m500:22[22m[39m
+    [90m498| [39m  [34mit[39m([32m"--desfazer com --semear: código 2"[39m[33m,[39m () [33m=>[39m {
+    [90m499| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m([[32m"--desfazer"[39m[33m,[39m [32m"--semear"[39m][33m,[39m {})[33m;[39m
+    [90m500| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m501| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/não combinam/[39m)[33m;[39m
+    [90m502| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco efêmero vazio: nada a desfazer, código 0
+[31m[1mAssertionError[22m: expected null to be +0 // Object.is equality[39m
+
+[32m- Expected:[39m 
+0
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m506:32[22m[39m
+    [90m504| [39m  [34mit[39m([32m"banco efêmero vazio: nada a desfazer, código 0"[39m[33m,[39m () [33m=>[39m {
+    [90m505| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m([[32m"--desfazer"[39m][33m,[39m {})[33m;[39m
+    [90m506| [39m    [34mexpect[39m(r[33m.[39mstatus[33m,[39m r[33m.[39mstderr)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                               [31m^[39m
+    [90m507| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39m[34mtoMatch[39m([36m/nada a desfazer/[39m)[33m;[39m
+    [90m508| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m166:22[22m[39m
+    [90m164| [39m      DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.…
+    [90m165| [39m    })[33m;[39m
+    [90m166| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m167| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/PRODUÇÃO/[39m)[33m;[39m
+    [90m168| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Nada a fazer|Semeado/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a URL de um banco hospedado de HML: código 1
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m176:22[22m[39m
+    [90m174| [39m      DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secr…
+    [90m175| [39m    })[33m;[39m
+    [90m176| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m177| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/descartável/[39m)[33m;[39m
+    [90m178| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22msem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+[31m[1mTypeError[22m: .toMatch() expects to receive a string, but got undefined[39m
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m183:22[22m[39m
+    [90m181| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m({})[33m;[39m
+    [90m182| [39m    [34mexpect[39m(r[33m.[39mstatus [33m??[39m [34m0[39m)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m183| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39m[34mtoMatch[39m([36m/Semeado/[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m184| [39m  })[33m;[39m
+    [90m185| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m22 passed[39m[22m[90m (24)[39m
+[2m      Tests [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m659 passed[39m[22m[2m | [22m[33m6 skipped[39m[90m (673)[39m
+[2m   Start at [22m 15:14:09
+[2m   Duration [22m 82.27s[2m (transform 6.77s, setup 0ms, collect 20.95s, tests 450.63s, environment 8ms, prepare 7.17s)[22m
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-ab465b2b063be3460\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-ab465b2b063be3460\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

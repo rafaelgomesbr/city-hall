@@ -1,0 +1,84 @@
+#!/bin/bash
+# Sabotagens da correcao 1 da parte 0G contra o portao de isolamento real.
+# uso: rodar.sh <fase> <S...>
+#   antes     : portao de 22167a50 (a 0G como foi auditada) + a 1B adaptada (forma c1) + a sabotagem
+#   depois    : portao desta correcao + a 1B adaptada (forma c1) + a sabotagem (C*, e as G* de antes)
+#   depois0   : portao desta correcao, sem a 1B (as S*, D*, R* e L1 das partes 0B, 0D e 0G)
+# Cada sabotagem e TEMPORARIA e nunca commitada: uma migracao 999 (sql/), uma migracao 061 que faz
+# as vezes da E08 (sql061/), a troca da 054 (054/), do f03-e15.ts (e15/) ou do f03-e08.ts (e08/).
+set -u
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g-c1
+S0G=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g
+S0D=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0d
+W=/c/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460
+FASE=$1; shift
+DB=$W/dc360/db
+CAT=$DB/test/catalogo
+MIG=$DB/migrations/999_sabotagem.sql
+M61=$DB/migrations/061_sabotagem.sql
+M54=$DB/migrations/054_pessoas_e_conta_no_municipio.sql
+D54=$DB/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql
+OUT=$S/$FASE
+mkdir -p "$OUT"
+case $FASE in
+  antes) GATE=$S/antes; COM1B=sim; TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts" ;;
+  depois) GATE=$S/novo; COM1B=sim; TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/ataque-gt.test.ts" ;;
+  depois0) GATE=$S/novo; COM1B=nao; TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts" ;;
+  *) echo "fase desconhecida"; exit 1 ;;
+esac
+restaurar() {
+  rm -f "$CAT"/*.ts
+  cp "$S"/novo/catalogo/*.ts "$CAT"/
+  cp "$S"/novo/isolamento.test.ts "$S"/novo/catalogo-nominal.test.ts "$DB"/test/
+  rm -f "$MIG" "$M61" "$DB/migrations/998_sabotagem.sql" "$M54" "$D54" "$DB/test/pessoas.test.ts" "$DB/test/ataque-gt.test.ts"
+}
+for s in "$@"; do
+  restaurar
+  rm -f "$CAT"/*.ts
+  cp "$GATE"/catalogo/*.ts "$CAT"/
+  cp "$GATE"/isolamento.test.ts "$GATE"/catalogo-nominal.test.ts "$DB"/test/
+  if [ "$COM1B" = sim ]; then
+    cp "$S/1b/054-adaptada-c1.sql" "$M54"; cp "$S/1b/desfazer-054.sql" "$D54"; cp "$S/1b/pessoas.test.ts" "$DB/test/pessoas.test.ts"
+    cp "$S/1b/f03-e15-adaptada-c1.ts" "$CAT/f03-e15.ts"; cp "$S/ataque-gt.test.ts" "$DB/test/ataque-gt.test.ts"
+  fi
+  # as sabotagens de antes (0B, 0D, 0G)
+  if [ -f "$S0D/sql/$s.sql" ]; then cp "$S0D/sql/$s.sql" "$MIG"; fi
+  if [ -f "$S0D/sql-c1/$s.sql" ]; then cp "$S0D/sql-c1/$s.sql" "$MIG"; fi
+  if [ -f "$S0G/sql/$s.sql" ]; then cp "$S0G/sql/$s.sql" "$MIG"; fi
+  case $s in
+    S5a|S5c|S8b|S8d|L1) cp "$S0D/e04/$s.ts.txt" "$CAT/f03-e04.ts" ;;
+    S8) cp "$S0D/e04/S8b.ts.txt" "$CAT/f03-e04.ts" ;;
+    R1) cp "$S0G/e04-R1.ts.txt" "$CAT/f03-e04.ts"; mv "$MIG" "$DB/migrations/998_sabotagem.sql" ;;
+    R2) mv "$MIG" "$DB/migrations/998_sabotagem.sql" ;;
+    S1) perl -0pi -e 's/(nome: "revogar_sessao",.*?executavelPor: )APP/$1CONSOLE/s' "$CAT/base.ts" ;;
+    S4) perl -0pi -e 's/  \{\n    tabela: "console_codigos_de_recuperacao",.*?\n  \},\n//s' "$CAT/base.ts" ;;
+  esac
+  # as desta correcao (e as variantes c1 do f03-e15 das G3b e G5)
+  if [ -f "$S/sql/$s.sql" ]; then cp "$S/sql/$s.sql" "$MIG"; fi
+  if [ -f "$S/sql061/$s.sql" ]; then cp "$S/sql061/$s.sql" "$M61"; fi
+  if [ -f "$S/054/$s.sql" ]; then cp "$S/054/$s.sql" "$M54"; fi
+  if [ -f "$S/e15/$s.ts" ]; then cp "$S/e15/$s.ts" "$CAT/f03-e15.ts"; fi
+  if [ -f "$S/e08/$s.ts" ]; then cp "$S/e08/$s.ts" "$CAT/f03-e08.ts"; fi
+  {
+    echo "### $s ($FASE)"
+    if [ -f "$MIG" ]; then echo "--- migracao 999 temporaria:"; cat "$MIG"; fi
+    if [ -f "$M61" ]; then echo "--- migracao 061 temporaria (faz as vezes da E08):"; cat "$M61"; fi
+    if [ -f "$DB/migrations/998_sabotagem.sql" ]; then echo "--- migracao 998 temporaria:"; cat "$DB/migrations/998_sabotagem.sql"; fi
+    if [ -f "$S/054/$s.sql" ]; then echo "--- 054 (diff contra a 1B adaptada c1):"; diff "$S/1b/054-adaptada-c1.sql" "$M54"; fi
+    if [ -f "$S/e15/$s.ts" ]; then echo "--- f03-e15.ts (diff contra a 1B adaptada c1):"; diff "$S/1b/f03-e15-adaptada-c1.ts" "$CAT/f03-e15.ts"; fi
+    if [ -f "$S/e08/$s.ts" ]; then echo "--- f03-e08.ts:"; cat "$CAT/f03-e08.ts"; fi
+    case $s in S5a|S5c|S8|S8b|S8d|L1|R1) echo "--- f03-e04.ts:"; cat "$CAT/f03-e04.ts" ;; esac
+    echo "--- vitest ($TESTES):"
+  } > "$OUT/$s.txt"
+  (cd "$DB" && npx vitest run $TESTES 2>&1) | sed 's/\x1b\[[0-9;]*m//g' >> "$OUT/$s.txt"
+  restaurar
+  {
+    echo "== $s"
+    grep -E "^ +(✓|❯|×) test/[a-z-]+\.test\.ts" "$OUT/$s.txt"
+    grep -E "^ +Tests " "$OUT/$s.txt"
+    grep -E "^GT: " "$OUT/$s.txt" | head -1
+    grep -E "^ +× " "$OUT/$s.txt" | sed 's/ [0-9]*ms$//' | head -40
+  } >> "$OUT/RESUMO.txt"
+done
+restaurar
+ls "$DB/migrations" | grep -c "999\|054\|061" || true

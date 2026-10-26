@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0g-c1
+W=/c/Projetos/city-hall/.claude/worktrees/agent-ab465b2b063be3460
+E="$W/docs/evidencias-v2/G03/V2-F03-E08-parte-0G/correcao-1/sabotagens"
+mkdir -p "$E/antes" "$E/depois" "$E/depois0" "$E/roteiro/sql" "$E/roteiro/sql061" "$E/roteiro/054" "$E/roteiro/e15" "$E/roteiro/e08"
+cp "$S"/antes/*.txt "$E/antes/"
+cp "$S"/depois/*.txt "$E/depois/"
+cp "$S"/depois0/*.txt "$E/depois0/"
+cp "$S"/sql/*.sql "$E/roteiro/sql/"
+cp "$S"/sql061/*.sql "$E/roteiro/sql061/"
+for f in "$S"/054/*.sql; do cp "$f" "$E/roteiro/054/$(basename "$f").txt"; done
+for f in "$S"/e15/*.ts; do cp "$f" "$E/roteiro/e15/$(basename "$f").txt"; done
+for f in "$S"/e08/*.ts; do cp "$f" "$E/roteiro/e08/$(basename "$f").txt"; done
+for f in rodar.sh tudo.sh refazer.sh arquivar.sh gerar.py c1izar.py c1izar054.py; do cp "$S/$f" "$E/roteiro/$f.txt"; done
+cp "$S/1b/054-adaptada-c1.sql" "$E/roteiro/054-adaptada-c1.sql.txt"
+cp "$S/1b/f03-e15-adaptada-c1.ts" "$E/roteiro/f03-e15-adaptada-c1.ts.txt"
+find "$E" -type f | wc -l
+du -sh "$E"
