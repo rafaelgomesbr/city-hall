@@ -549,6 +549,54 @@ export const CODIGOS_RESERVADOS = {
     categoria: "permanente",
     titulo: "Versão do aplicativo ausente ou malformada",
   },
+  /*
+    F04 (V2-F04, parte 0C): códigos que a fase do encaminhamento ao órgão vai
+    emitir. Este bloco fica NO FIM da lista, depois das linhas `versao_do_aplicativo_*`
+    e longe do bloco da F03, que fica no início. Status e categoria são a proposta
+    da etapa dona; ela confirma ao emitir e então move a linha para `CODIGOS_DE_ERRO`
+    no mesmo commit.
+    Não entram aqui os códigos que a fase só reaproveita: `transicao_invalida` (409),
+    `ja_respondida` (409), `sem_permissao` (403) e `excesso_de_requisicoes` (429) já
+    são emitidos. Falta de justificativa (campo sensível do dossiê, competência,
+    prioridade, prazo) é 422 `dados_invalidos` com o campo; não ganha código próprio.
+  */
+  /**
+   * V2-F04-E08: escalonar encaminhamento de órgão sem vínculo `gestor` vigente
+   * (a Defesa Civil precisa antes designar o gestor; a tela diz o que fazer).
+   */
+  orgao_sem_gestor: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Órgão sem gestor vigente para receber o escalonamento",
+  },
+  /**
+   * V2-F04-E13: aceite, devolução, resposta ou qualquer ação sobre encaminhamento
+   * `concluido` ou `cancelado` (estado terminal). O cliente recarrega o item.
+   */
+  encaminhamento_encerrado: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Encaminhamento já encerrado",
+  },
+  /**
+   * V2-F04-E17 (a E08 já emite, pela P-09): devolução depois do aceite, ou seja em
+   * `aceito`, `aguardando_dc` ou `respondido` (D-23). A orientação é pedir
+   * esclarecimento.
+   */
+  devolucao_so_antes_do_aceite: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Devolução só antes do aceite",
+  },
+  /**
+   * V2-F04-E16: escalonar quando todos os níveis da cadeia do município já foram
+   * usados. O painel (F10, doc 08) trata junto de `orgao_sem_gestor`.
+   */
+  cadeia_esgotada: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Todos os níveis de escalonamento já foram usados",
+  },
 } as const satisfies Record<string, EntradaDoCatalogoDeErros>;
 
 export type CodigoReservado = keyof typeof CODIGOS_RESERVADOS;

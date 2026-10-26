@@ -28,3 +28,12 @@ export * from "./identidade.js";
 export * from "./ator.js";
 export * from "./sigilo.js";
 export { mensagensDoZodEmPortugues } from "./mensagens-do-zod.js";
+/*
+  Andaime da F04 (V2-F04, parte 0C): quatro módulos vazios, preenchidos pelas partes
+  donas (encaminhamento 0D/3C/5B, dossiê 0E, competência 0F, prazo 4B). Daqui em
+  diante este arquivo fica CONGELADO durante a F04: nenhuma parte da fase o edita.
+*/
+export * from "./encaminhamento.js";
+export * from "./dossie.js";
+export * from "./competencia.js";
+export * from "./prazo-do-encaminhamento.js";
