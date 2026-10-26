@@ -1,5 +1,5 @@
 $ npm run typecheck
-SHA: a0cf354c3fcb57f53b2ac5f28e8391ed359ede6a
+SHA: 0e04c560c6fb3b51b4a4e4fd83d29e09e9291834
 
 
 > dc360@0.1.0 typecheck

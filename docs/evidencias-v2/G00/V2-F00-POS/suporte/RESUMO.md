@@ -4,7 +4,8 @@ Ramo `trab/f00pos-suporte`, saído de `v2/f00-pos` (`7acab80c`). Decisão do Raf
 2026-10-26 (H06, escolha B, `docs/roadmap-v2/pendencias-humanas.md`; contexto em
 `docs/evidencias-v2/G00/V2-F00-E10/validacao/4b96ea7/qa.md`). Implementado, não
 validado: quem valida é o gatekeeper, numa sessão nova. Commit da implementação:
-`a0cf354c`.
+`a0cf354c`; merge de `origin/v2/f00-pos` (`63041922`, ramo da API) em `e43349c3`; renumeração
+da migração para 054 em `0e04c560`.
 
 ## O problema
 
@@ -139,7 +140,7 @@ mutações deixam a suíte vermelha, no caso que nomeia a conferência:
 | R02 rota sem conferir a senha | senha errada (e os seguintes, em cascata) |
 | R03 senha temporária no log | caminho feliz |
 
-## Saídas (`saidas/`, no SHA da implementação `a0cf354c`)
+## Saídas (`saidas/`, no SHA `0e04c560`, depois do merge e da renumeração)
 
 Rodadas uma de cada vez, em sequência, sem cor ANSI e sem caminho pessoal.
 
@@ -149,17 +150,17 @@ Rodadas uma de cada vez, em sequência, sem cor ANSI e sem caminho pessoal.
 | `02-test-isolamento.txt` | `npm run test:isolamento` | 15 arquivos, 356 passaram, 3 pulados por ambiente (os de `busca.test.ts`), código 0. Antes: 345 |
 | `03-mutacoes.txt` | `python sondas/mutacoes.py` | 16 de 16 mutações vermelhas, linhas de base verdes |
 | `04-test-console.txt` | `npm run test:console` | 19 arquivos, 320 passaram, código 0. Antes: 307 |
-| `05-test-api.txt` | `npm run test:api` | 107 arquivos, 1719 passaram, 34 pulados (os mesmos de antes), código 0 |
+| `05-test-api.txt` | `npm run test:api` | 110 arquivos, 1735 passaram, 46 pulados, código 0 (os números do ramo da API, que esta etapa não muda) |
 | `06-test-scripts.txt` | `npm run test:scripts` | 362 casos, 355 passaram, 7 pulados, 0 falhas, código 0 (ver a nota abaixo) |
-| `07-conferir-numeros.txt` | `npm run conferir:numeros` | 25 afirmações conferidas, o roteiro da linha de base bate nas oito suítes, código 0 |
+| `07-conferir-numeros.txt` | `npm run conferir:numeros` | 25 afirmações conferidas (entre elas o marcador de 54 migrações de `RESTORE-DO-BANCO.md`), o roteiro da linha de base bate nas oito suítes, código 0 |
 
 Nota sobre `06-test-scripts.txt`: a primeira rodada, com esta pasta ainda fora do
 `INDEX.md`, reprovou exatamente um caso, "conferir-indices-de-evidencia: a evidência
 real" (arquivo de evidência que o índice não lista), que é o portão funcionando. A
 saída arquivada é a da rodada depois de o índice ser atualizado.
 
-Uma rodada anterior de `npm run test:api`, com o conferidor de números e o navegador
-rodando ao mesmo tempo, terminou com 1719 passando e um erro de infraestrutura do
+Antes do merge, uma rodada de `npm run test:api` com o conferidor de números e o navegador
+rodando ao mesmo tempo terminou com 1719 passando e um erro de infraestrutura do
 vitest (`Timeout calling "onTaskUpdate"`, máquina sobrecarregada), sem caso
 reprovado. A rodada arquivada, sozinha, saiu limpa.
 

@@ -1,5 +1,5 @@
 $ npm run conferir:numeros
-SHA: a0cf354c3fcb57f53b2ac5f28e8391ed359ede6a
+SHA: 0e04c560c6fb3b51b4a4e4fd83d29e09e9291834
 
 
 > dc360@0.1.0 conferir:numeros
@@ -8,10 +8,10 @@ SHA: a0cf354c3fcb57f53b2ac5f28e8391ed359ede6a
 Lendo a lista de testes de cada pacote (sem executar)...
 
 Contagens reais:
-  3684  total de testes automatizados
+  3700  total de testes automatizados
    236  testes do pacote compartilhado
    238  testes do motor de campo
-  1719  testes da API
+  1735  testes da API
    320  testes do console do fornecedor
    815  testes de fonte do painel
    356  testes do banco
@@ -24,12 +24,14 @@ Contagens reais:
    258  verificações no navegador, contra a API
    328  verificações no navegador, somadas
   1997  testes do aplicativo de campo
-  5681  total de testes automatizados, somando o aplicativo
+  5697  total de testes automatizados, somando o aplicativo
 
 Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
   0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
-  4 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+  6 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/escrita-contra-desativacao.test.ts
     1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    1 em apps/api/test/reserva-de-envio-por-pessoa.test.ts
     3 em db/test/busca.test.ts
 
 Afirmações conferidas: 25
