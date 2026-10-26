@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { Linking, Platform } from "react-native";
 
 import { enderecoDaApi } from "./api";
+import { cabecalhoDaVersao } from "./versao-do-aplicativo";
 
 /**
  * Entregar a coordenada da ocorrência ao aplicativo de mapas do aparelho.
@@ -697,7 +698,7 @@ export async function buscarAutorizacaoDoMapa(token: string): Promise<boolean> {
     try {
       const resposta = await fetch(`${base}/configuracao`, {
         signal: cancelador.signal,
-        headers: { accept: "application/json", authorization: `Bearer ${token}` },
+        headers: { accept: "application/json", authorization: `Bearer ${token}`, ...cabecalhoDaVersao() },
       });
       if (!resposta.ok) {
         throw new Error(`GET /configuracao respondeu ${resposta.status}`);

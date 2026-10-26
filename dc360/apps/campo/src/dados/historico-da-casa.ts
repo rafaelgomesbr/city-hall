@@ -1,4 +1,5 @@
 import { enderecoDaApi } from "./api";
+import { cabecalhoDaVersao } from "./versao-do-aplicativo";
 
 /**
  * O QUE JÁ ACONTECEU NESTA CASA, e por que isto existe num arquivo próprio.
@@ -145,7 +146,7 @@ async function pedir<T>(caminho: string, token: string): Promise<T | null> {
   try {
     const resposta = await fetch(`${base}${caminho}`, {
       signal: cancelador.signal,
-      headers: { accept: "application/json", authorization: `Bearer ${token}` },
+      headers: { accept: "application/json", authorization: `Bearer ${token}`, ...cabecalhoDaVersao() },
     });
     if (!resposta.ok) return null;
     return (await resposta.json()) as T;

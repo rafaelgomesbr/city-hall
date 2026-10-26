@@ -1,0 +1,62 @@
+# Mordida do painel: apps/web/test/versao-do-aplicativo.test.ts contra o http.ts da base (41af9f79)
+# Os 2 casos do cabeçalho falham na base; os 2 do 426 passam nas duas versões (o painel já tratava o 426 como erro comum: são casos de não regressão).
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a5e78c0e986d0b149/dc360/apps/web
+
+ ❯ test/versao-do-aplicativo.test.ts (4 tests | 2 failed) 1165ms
+   × o cabeçalho de versão do painel > vai em todas as formas de pedido: chamada comum, renovação, downloads, sem sessão e saída 1033ms
+     → expected undefined to be 'painel/desconhecido' // Object.is equality
+   × o cabeçalho de versão do painel > vai também nos downloads de quem está sem token guardado 53ms
+     → expected {} to deeply equal { Object (x-app-version) }
+   ✓ o 426 no painel > mostra a frase do corpo como qualquer erro, sem renovar e sem derrubar a sessão 41ms
+   ✓ o 426 no painel > num download também: a frase do corpo, sem renovar 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > o cabeçalho de versão do painel > vai em todas as formas de pedido: chamada comum, renovação, downloads, sem sessão e saída
+AssertionError: expected undefined to be 'painel/desconhecido' // Object.is equality
+
+- Expected: 
+"painel/desconhecido"
+
++ Received: 
+undefined
+
+ ❯ test/versao-do-aplicativo.test.ts:95:50
+     93|     for (const pedido of pedidos) {
+     94|       expect(pedido.url.startsWith(`${ORIGEM}/v1/`)).toBe(true);
+     95|       expect(pedido.cabecalhos["x-app-version"]).toBe(CABECALHO);
+       |                                                  ^
+     96|     }
+     97|     // Só aditivo: o token continua indo onde ia.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > o cabeçalho de versão do painel > vai também nos downloads de quem está sem token guardado
+AssertionError: expected {} to deeply equal { Object (x-app-version) }
+
+- Expected
++ Received
+
+- {
+-   "x-app-version": "painel/desconhecido",
+- }
++ {}
+
+ ❯ test/versao-do-aplicativo.test.ts:115:24
+    113| 
+    114|     const cabecalhos = (buscar.mock.calls[0] as unknown as [string, Re…
+    115|     expect(cabecalhos).toEqual({ "x-app-version": CABECALHO });
+       |                        ^
+    116|   });
+    117| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  01:52:14
+   Duration  2.69s (transform 425ms, setup 0ms, collect 111ms, tests 1.17s, environment 0ms, prepare 512ms)
+

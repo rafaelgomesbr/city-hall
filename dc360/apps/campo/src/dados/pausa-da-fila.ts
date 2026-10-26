@@ -11,6 +11,7 @@ import type { MotivoDeSessao } from "@dc360/campo";
  * | `sessao_encerrada` | entrar de novo | esperar |
  * | `conta_desativada` | a coordenação reativar a conta | entrar de novo |
  * | `troca_de_senha_obrigatoria` | a própria pessoa definir a senha no painel | entrar de novo com a provisória |
+ * | `versao_do_aplicativo_antiga` (426, V2-F02-E06) | atualizar o aplicativo | entrar de novo |
  *
  * A terceira entrou na correção 1 da E06. O aplicativo não tem tela de troca de
  * senha (quem entrou com a senha provisória define a sua no painel, no
@@ -90,6 +91,26 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     daLista:
       "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
       + "O que falta é definir a sua senha no painel e entrar de novo.",
+  },
+  /*
+    O 426 da V2-F02-E06: o servidor não aceita mais esta versão do aplicativo.
+    Mesma promessa das outras três (nada foi apagado) e o único ato que
+    resolve: atualizar. Não há botão nem tela própria: a tela "atualize o
+    aplicativo" é da V2-F14-E08, e até lá a pausa fala pelas mesmas faixa,
+    aviso e cartão das outras pausas.
+  */
+  versao_do_aplicativo_antiga: {
+    faixaTitulo: "Atualize o aplicativo",
+    faixaDetalhe: "Suas coletas continuam guardadas neste aparelho",
+    titulo: "O aplicativo precisa ser atualizado e o envio está parado",
+    detalhe:
+      "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
+      + "Entrar de novo não resolve: atualize o aplicativo neste aparelho e "
+      + "abra-o de novo. Com o aplicativo aberto, elas sobem depois da atualização.",
+    doCartao: "Guardada neste aparelho. Sobe depois que você atualizar o aplicativo.",
+    daLista:
+      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
+      + "O que falta é atualizar o aplicativo.",
   },
 };
 
