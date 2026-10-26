@@ -17,9 +17,9 @@ import { derivarSenha } from "../src/auth/senha.js";
  * chamava isso de pendência. Em quinze minutos se encerra uma ocorrência com
  * motivo inventado, e a trilha não se corrige.
  *
- * A REGRA: toda escrita (qualquer método que não seja GET ou HEAD, e também
- * os GET marcados com `ROTA_GET_COM_EFEITO`, que `get-com-efeito.test.ts`
- * trava) lê UMA
+ * A REGRA: toda requisição (desde a E03; antes, só a escrita, isto é, qualquer
+ * método que não seja GET ou HEAD e os GET marcados com `ROTA_GET_COM_EFEITO`,
+ * que `get-com-efeito.test.ts` trava) lê UMA
  * linha do banco, na mesma consulta que já conferia a suspensão do município:
  * a conta está ativa, o papel é o do token, e a sessão do token
  * (`sid`) está de pé. Sessão encerrada responde 401 `sessao_encerrada`
@@ -28,11 +28,11 @@ import { derivarSenha } from "../src/auth/senha.js";
  * `conta_desativada` ("pare e avise": entrar de novo não resolve). Os códigos
  * são do catálogo de `@dc360/shared` (V2-F00-E05); até lá os dois eram `sessao`.
  *
- * LEITURA continua confiando no token pelos quinze minutos, como
- * `auth/suspensao.ts` explica e este arquivo NÃO contesta: o custo seria uma
- * ida ao banco em cada leitura de uma noite de chuva, e ler por quinze
- * minutos não produz registro. A exceção (leituras do agente de campo) já
- * consulta `usuarios` pela equipe, mas não a sessão; fica declarado.
+ * LEITURA confiava no token pelos quinze minutos até a V2-F03-E03, que a
+ * estendeu: toda requisição autenticada, GET e HEAD inclusive, confere a mesma
+ * linha do banco (ver `vigencia-em-toda-requisicao.test.ts`, que percorre todas
+ * as rotas). Os casos abaixo seguem provando a regra em rotas escolhidas, e o
+ * caso "continua LENDO até vencer" virou "deixa de LER no pedido seguinte".
  *
  * HISTÓRICO: a conferência esteve desligada em `servidor.ts` de 17/09/2026
  * (commit b4439ac) até V2-F00-E04, com o primeiro bloco abaixo em `describe.skip`.
@@ -173,16 +173,23 @@ describe("Token vivo de quem já não pode", () => {
     expect(recusa.json().erro).toBe("sessao_encerrada");
   });
 
-  it("o token de acesso continua LENDO até vencer: é a troca declarada", async () => {
+  it("o token de acesso de sessão encerrada deixa de LER no pedido seguinte (V2-F03-E03, DV-35)", async () => {
     const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+    // Antes de encerrar, a leitura funciona: o caso não passa por acaso.
+    expect((await ler(helena.acesso)).statusCode).toBe(200);
     await app.inject({
       method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(tokenRita),
     });
-    // Documentado em `auth/suspensao.ts`: leitura com token vivo não vai ao
-    // banco. Se este caso um dia reprovar, a decisão mudou e este comentário
-    // e aquele precisam mudar juntos.
-    expect((await ler(helena.acesso)).statusCode).toBe(200);
-    expect((await escrever(helena.acesso)).statusCode).toBe(401);
+    // Até a E03 a leitura confiava no token até ele vencer (200 aqui). Agora a
+    // leitura relê a sessão no banco, como a escrita: "perdi o celular" corta
+    // o dossiê na hora.
+    const leitura = await ler(helena.acesso);
+    expect(leitura.statusCode, leitura.body).toBe(401);
+    expect(leitura.json().erro).toBe("sessao_encerrada");
+    const escrita = await escrever(helena.acesso);
+    expect(escrita.statusCode, escrita.body).toBe(401);
+    // Leitura e escrita recusam igual.
+    expect(leitura.json()).toEqual(escrita.json());
   });
 
   it("depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão", async () => {

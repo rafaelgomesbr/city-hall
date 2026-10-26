@@ -1,0 +1,21 @@
+Portoes finais da V2-F03-E03 (a partir de dc360/, Windows, ramo trab/f03-1d-e03-vigencia sobre 237bc670)
+
+npm run typecheck ............................ saida 0 (02-typecheck.txt)
+npm run lint ................................. saida 0, monorepo e aplicativo de campo (03-lint.txt)
+npm run lint:teto ............................ saida 0, 431 supressoes (03b-lint-teto.txt)
+npm run formato:conferir ..................... saida 0 (03c-formato.txt; o arquivo novo passou pelo prettier)
+npm run conferir:numeros ..................... saida 0, 25 afirmacoes (05-conferir-numeros.txt)
+node --test scripts/baseline.test.mjs ........ 29 de 29
+node scripts/auditar.mjs ..................... saida 0 (09-auditar.txt)
+node scripts/roadmap/gerar-estado.mjs --conferir (da raiz) ... ESTADO-ATUAL.md confere
+npm test (todos os pacotes) .................. 06-npm-test-completo.txt:
+  campo   283 de 283
+  shared  434 de 435 (1 falha de ambiente aceita: regras-de-conteudo, EPERM em symlink, DV-46)
+  api     2326 passam, 2 falham (semear-homologacao, ambiente aceito), 34 puladas, 135 arquivos
+  console 379 de 379
+  web     824 de 824
+  db      613 passam, 8 falham (desfazer-migracao 5 e guarda-da-semente 3, ambiente aceito), 6 puladas;
+          inclui isolamento.test.ts (CA-06) e catalogo-nominal.test.ts, sem falha
+CI=true npm run test:scripts ................. 07-test-scripts.txt: 831 casos, 807 passam, 23 pulados, 1 falha:
+  conferir-indices-de-evidencia (a pasta desta etapa ainda estava sem INDEX.md quando a suite rodou).
+  Depois do INDEX.md, `node dc360/scripts/conferir-indices-de-evidencia.mjs` (da raiz) sai verde (rodado ao fim, saida 0; a saida nao e arquivada porque listar no INDEX seria circular)

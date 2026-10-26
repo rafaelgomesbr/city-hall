@@ -24,11 +24,14 @@ import type { Banco } from "../banco/tipos.js";
  * ====================================================================
  * SESSÃO VIVA: ONDE A SUSPENSÃO É CONFERIDA, E ONDE NÃO É.
  *
- * O token de acesso vive quinze minutos (`ACESSO_MINUTOS`, 15 por padrão) e,
- * na leitura, é conferido só por assinatura; o de renovação vive dias e é
- * conferido no banco. Conferir a suspensão em toda
- * requisição custaria uma transação a mais em cada uma, inclusive nas leituras
- * de uma noite de chuva, que são a maior parte do tráfego. A decisão é esta:
+ * O token de acesso vive quinze minutos (`ACESSO_MINUTOS`, 15 por padrão). A
+ * versão original desta decisão conferia a suspensão só onde nasce credencial
+ * nova e na escrita, e deixava a LEITURA com token vivo confiar na assinatura
+ * até ele vencer, porque conferir em toda requisição custaria uma transação a
+ * mais em cada leitura de uma noite de chuva. Desde a V2-F03-E03 a decisão é a
+ * oposta: TODA requisição autenticada confere (ver "LEITURA", abaixo), porque o
+ * que a leitura devolve é dado de município sob um contrato que o fornecedor
+ * suspendeu. Onde cada conferência acontece:
  *
  *   - ENTRAR e RENOVAR conferem sempre. É ali que nasce credencial nova, e
  *     credencial nova sob contrato suspenso não pode nascer. Renovar confere
@@ -55,17 +58,18 @@ import type { Banco } from "../banco/tipos.js";
  *     `auth/vigencia.ts`. Ela nasceu em 15/09/2026, ficou DESLIGADA de
  *     17/09/2026 até a V2-F00-E04 (2026-10-06), e as rotas GET marcadas
  *     entraram na correção 1 da E04 (2026-10-13).
- *   - LEITURA com token vivo NÃO confere: o GET sem a marca. O token expira
- *     em quinze minutos, e essa é a janela que o produto aceita, para
- *     LEITURA, quando um usuário é desativado ou expulso pelo administrador: a
- *     sessão cai, a escrita para no pedido seguinte, e o token vivo termina o
- *     prazo lendo. Suspensão contratual não é incidente de segurança, e
- *     quinze minutos de leitura não praticam ato nem mudam dado do município.
- *     O que a leitura grava é só o registro de que foi lida: o dossiê
- *     (`GET /ocorrencias/:id`) e a busca gravam `ocorrencia_consultas`
- *     (`registrarConsulta`), e por isso ficam sem a marca; a vigência deles é
- *     da F03-E03. O que se compra é nenhuma ida ao banco a mais em nenhuma
- *     leitura.
+ *   - LEITURA com token vivo CONFERE, GET e HEAD (V2-F03-E03). Era a única
+ *     exceção desta lista (antes, a janela de quinze minutos que o produto
+ *     aceitava para leitura quando um usuário era desativado ou expulso), e
+ *     deixou de ser: o município suspenso responde 403 `acesso_suspenso` de
+ *     imediato também na leitura, no pedido seguinte à suspensão. O custo é uma
+ *     consulta por requisição, a MESMA que já conferia a vigência
+ *     (`auth/vigencia.ts` lê a organização e a conta numa ida só), sem cache e
+ *     sem lista de revogação. A marca `ROTA_GET_COM_EFEITO` não decide mais se a
+ *     rota confere; só lista os GET que gravam (`test/get-com-efeito.test.ts`).
+ *     A política final da suspensão (o que o fornecedor pode fazer, por quanto
+ *     tempo e com que aviso) é da F20-E04 (CP-29), e esta conferência só faz a
+ *     API obedecer ao estado que o banco tem.
  *   - TOKEN VENCIDO mas AUTÊNTICO confere. Este é o caso do aplicativo de
  *     campo: depois que a renovação falha, o aparelho segue apresentando o
  *     token vencido, e sem esta conferência ele receberia 401 para sempre, que

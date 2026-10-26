@@ -47,7 +47,9 @@ const PISO: {
   porPerfil: {
     semToken: 18, lixo: 18, vencido: 18, outraAssinatura: 18,
     coordA: 180, agenteA: 122, operadorA: 120, adminA: 198,
-    desativadoA: 92, provisoriaA: 96, coordB: 190, suspensoC: 106,
+    // V2-F03-E03: a vigência vale também na leitura, então a conta desativada, a de senha provisória e a de
+    // município suspenso só chegam ao handler das rotas públicas e das que a senha provisória abre (antes: 92, 96 e 106).
+    desativadoA: 19, provisoriaA: 23, coordB: 190, suspensoC: 27,
   },
   /*
     As duas rotas do armazenamento local autenticam pela ASSINATURA da URL, que o pedido do teste não tem,

@@ -10,10 +10,11 @@ import { conferirManifesto } from "./manifesto.js";
 
 /**
  * A autenticação de CADA requisição, tirada de `servidor.ts` na abertura da API
- * da F03 (parte 1C). O comportamento é o mesmo de antes, linha por linha: o que
- * mudou é o endereço, para que a vigência em toda requisição (E03), o token
+ * da F03 (parte 1C), para que a vigência em toda requisição (E03), o token
  * enxuto (E02) e o contexto do ator (E07) trabalhem num arquivo que não é o
- * mais disputado do repositório.
+ * mais disputado do repositório. Na abertura o comportamento era o mesmo de
+ * antes, linha por linha; a E03 mudou uma coisa só: a vigência e a suspensão
+ * passaram a ser conferidas também na LEITURA (GET e HEAD), numa consulta só.
  *
  * `servidor.ts` reexporta `Identidade`, `NaoAutenticado`, `TrocaDeSenhaObrigatoria`
  * e `ROTAS_ABERTAS_COM_SENHA_PROVISORIA`, para nenhum importador mudar de caminho.
@@ -113,42 +114,40 @@ export function criarAutenticacaoDaRequisicao(
     }
 
     /*
-      ESCRITA confere, numa ida só ao banco, a suspensão do município E a
-      vigência de quem escreve: conta ativa, papel igual ao do token, sessão
-      não encerrada, senha provisória dentro do prazo. LEITURA PURA com token
-      vivo não vai ao banco (a vigência em leitura é da F03-E03, centralizada
-      em `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o
-      da vigência, em `auth/vigencia.ts`.
+      TODA requisição autenticada confere, numa ida só ao banco, a suspensão do
+      município E a vigência de quem pede: conta ativa, papel igual ao do
+      token, sessão não encerrada, senha provisória dentro do prazo. GET e HEAD
+      incluídos, com o marcador `comEfeito` da rota ou sem ele (V2-F03-E03,
+      ADR 0009 decisão 2, dívida DV-35). O argumento da suspensão está em
+      `auth/suspensao.ts`; o da vigência, em `auth/vigencia.ts`.
 
-      Escrita é "método diferente de GET e HEAD" OU "rota marcada com efeito"
-      (`ROTA_GET_COM_EFEITO`). A segunda metade existe porque há GET que
-      escreve: o termo de interdição, o laudo, o termo de desinterdição e os
-      PDFs, o CSV e o sino de avisos. O HEAD dessas rotas
-      é servido pelo mesmo handler e carrega a mesma marca, então também
-      confere. HEAD de rota sem marca continua sendo leitura.
+      UMA consulta por requisição, na conexão e no contexto RLS da própria
+      organização do token, e SEM cache entre requisições, sem lista de
+      revogação e sem chave que a desligue: quem pede um dado de município sob
+      um token vivo, sendo conta desativada, sessão encerrada ou município
+      suspenso, é recusado no pedido seguinte ao ato, e não quinze minutos
+      depois. Rota nova nasce conferida, porque a conferência não depende de a
+      rota declarar nada. O varredor `test/vigencia-em-toda-requisicao.test.ts`
+      percorre todas as rotas autenticadas do servidor montado.
 
-      Esta conferência esteve desligada de 17/09/2026 até V2-F00-E04 (o commit
-      b4439ac tirou o import e as duas chamadas, e o teste ficou em skip). Sem
-      ela, conta desativada, papel rebaixado e sessão encerrada por quem
-      administra escreviam por até quinze minutos com o token ainda vivo.
+      Esta conferência esteve ligada só na escrita (V2-F00-E04, 2026-10-06) e
+      antes disso desligada desde 17/09/2026 (o commit b4439ac tirou o import e
+      as duas chamadas, e o teste ficou em skip). A leitura confiava no token por
+      até `ACESSO_MINUTOS` e devolvia dossiê de família (nome, contato,
+      vulnerabilidade) a conta já desativada.
     */
-    const escrita =
-      (req.method !== "GET" && req.method !== "HEAD") || req.routeOptions.config.comEfeito === true;
-    let senhaProvisoria = conteudo.sp === true;
-    if (escrita) {
-      const vigencia = await lerVigencia(banco, conteudo);
-      exigirVigencia(vigencia, conteudo, statusDaSuspensao);
-      // O banco manda: uma marca no token que o banco já não confirma não
-      // tranca ninguém, e um prazo que o banco tem e o token não também vale.
-      senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
-    }
+    const vigencia = await lerVigencia(banco, conteudo);
+    exigirVigencia(vigencia, conteudo, statusDaSuspensao);
+    // O banco manda: uma marca no token que o banco já não confirma não
+    // tranca ninguém, e um prazo que o banco tem e o token não também vale.
+    const senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
 
     /*
       SENHA PROVISÓRIA (migração 046): enquanto a senha for a sorteada por
       quem administra ou pelo console, a sessão só serve para trocá-la. Toda
       outra rota responde 403 `troca_de_senha_obrigatoria`, e o painel leva à
-      troca. Sair não passa por aqui (não exige token de acesso). Na leitura
-      vale a marca do token, como vale o papel; na escrita vale o banco.
+      troca. Sair não passa por aqui (não exige token de acesso). Em toda
+      requisição vale o prazo do banco, e não a marca `sp` do token.
     */
     if (senhaProvisoria && !ROTAS_ABERTAS_COM_SENHA_PROVISORIA.has(req.routeOptions.url ?? "")) {
       throw new TrocaDeSenhaObrigatoria();

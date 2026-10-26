@@ -6,7 +6,8 @@ import { ContaDesativada } from "./conta-desativada.js";
 import { FalhaAutenticacao } from "./servico.js";
 
 /**
- * Se quem apresenta um token de acesso vivo AINDA PODE escrever.
+ * Se quem apresenta um token de acesso vivo AINDA PODE usar o sistema: escrever
+ * e, desde a V2-F03-E03, também ler.
  *
  * O DEFEITO QUE ISTO FECHA foi provado pelo revisor contra a API real:
  * `exigirAutenticacao` verificava só a assinatura, então conta desativada,
@@ -49,24 +50,31 @@ import { FalhaAutenticacao } from "./servico.js";
  * entrega sem ela notar. A segurança não depende disso: a escrita confere o
  * papel do banco, então o token velho não escreve com o papel antigo.
  *
- * LEITURA PURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
- * quinze minutos de leitura com token vivo não praticam ato nem mudam dado do
- * município (o dossiê e a busca gravam só o registro de que foram lidos, ver
- * abaixo), e o custo de uma ida ao banco em cada leitura de uma noite de chuva
- * é o que se compra. As leituras do agente de campo já consultam `usuarios` pela equipe
- * (`rotas/recorte-do-agente.ts`), mas não a sessão. Fica declarado.
+ * TODA REQUISIÇÃO PASSA POR AQUI, LEITURA INCLUSIVE (V2-F03-E03, ADR 0009
+ * decisão 2, dívida DV-35). Até a E03 a leitura pura confiava no token pelos
+ * quinze minutos dele, com o argumento de que ler por quinze minutos não
+ * pratica ato nem muda dado do município. O argumento estava errado onde mais
+ * importa: a leitura devolve o dossiê da família (nome, contato,
+ * vulnerabilidade), e conta desativada, sessão encerrada em "perdi o celular"
+ * e município suspenso seguiam lendo-o até o token vencer. A conferência agora
+ * vale em GET e HEAD, com ou sem o marcador `ROTA_GET_COM_EFEITO` (que deixou de
+ * decidir se a vigência se aplica e ficou como a lista, revisada à mão, dos GET
+ * que gravam; ver `test/get-com-efeito.test.ts`).
  *
- * MAS GET QUE ESCREVE PASSA, e quem decide é a rota, não o método. As rotas
- * GET marcadas com `ROTA_GET_COM_EFEITO` (`servidor.ts`) são tratadas como
- * escrita, junto com o HEAD delas: o laudo, o termo de interdição, o termo de
- * desinterdição e os PDFs (emitir É gravar a trilha, e o termo É interditar),
- * o CSV de ocorrências (grava `exportacoes`) e o sino `GET /avisos`
- * (materializa e expurga avisos). Fica de fora o GET cuja única escrita é o
- * registro de que ele foi lido (`registrarConsulta`: o dossiê e a busca): é
- * leitura, e a vigência dela é da F03-E03. A lista é conferida por
- * `test/get-com-efeito.test.ts`. Foi o que a validação de 7005a60 provou: com
- * a decisão só pelo método, conta desativada, papel rebaixado e cadeia
- * encerrada interditavam imóvel e exportavam dado pessoal por GET.
+ * É UMA consulta por requisição, a mesma de sempre, em `autenticacao-da-
+ * requisicao.ts`. Sem cache entre requisições, sem lista de revogação, sem
+ * Redis e sem chave para desligar: um interruptor deixaria o padrão inseguro na
+ * mão de quem esquecesse de religá-lo. Fundir esta consulta com a do negócio
+ * numa transação só é otimização posterior (F24-E02, se o p95 reprovar).
+ *
+ * O custo, declarado: uma ida ao banco a mais em cada leitura de uma noite de
+ * chuva, com pool de 10 conexões e sem `statement_timeout` (medir em F07-E08 e
+ * F24-E02). Os códigos novos chegam à fila do aparelho pela classe de falha da
+ * V2-F00-E06, que não perde item.
+ *
+ * O GET `registrarConsulta` (o dossiê e a busca gravam o registro de que foram
+ * lidos) deixou de ser um caso à parte: ele passa pela mesma vigência que os
+ * outros.
  */
 
 export type Vigencia = {

@@ -894,6 +894,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
   // V2-F03, abertura da API (parte 1C): `apps/api/test/chaves-da-f03.test.ts` (18 casos: o padrao fechado das seis chaves novas, `PORTAL_ATIVO=sim` sem segundo fator recusa a partida, `COTAS_SEGREDO` exigido em producao com as cotas ligadas, os formatos e o que nao tem efeito) e `manifesto-em-toda-requisicao.test.ts` (9 casos: `conferirManifesto` e chamada em toda requisicao autenticada, em `/v1` e no espelho, na leitura e na escrita, e so nelas; quem a chama respeita a recusa). Nenhum caso existente muda de resultado.
   "V2-F03-abertura-1C": { total: 27, falhas: 0, puladas: 0 },
+  // V2-F03-E03 (vigencia em toda requisicao, DV-35): `apps/api/test/vigencia-em-toda-requisicao.test.ts` e novo, com 16 casos (a varredura de TODAS as rotas autenticadas do servidor montado, GET e HEAD inclusive, com sessao encerrada, conta desativada, municipio suspenso e eliminado, senha provisoria vencida e em vigor, papel rebaixado e sid de outra pessoa; o controle de que com a vigencia em dia nenhuma rota responde codigo de vigencia; a recusa igual entre leitura e escrita e entre recurso existente e inexistente; e uma so consulta por requisicao, sem cache). Seis casos existentes mudaram de afirmacao sem mudar de numero: `vigencia-na-escrita` ("continua LENDO" virou "deixa de LER"), `acesso-suspenso`, `codigos-de-erro`, `familia-da-sessao`, `get-com-efeito` e o piso de `prova-dinamica-dos-codigos-de-erro`.
+  "V2-F03-E03": { total: 16, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

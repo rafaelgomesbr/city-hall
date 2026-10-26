@@ -376,14 +376,21 @@ describe("Papel alterado: 401 nao_autenticado e a renovação resolve", () => {
       const contraB = await despachar(h.acesso, ocorrenciaDeB);
       expect(contraB.statusCode).toBe(401);
 
-      // Renovado, o recurso de B continua 404 (nunca 403), antes e depois.
+      // A leitura também confere o papel do banco (V2-F03-E03): o token antigo
+      // recebe 401 "renove e repita", igual para o recurso de B e para qualquer
+      // outro, e não revela nada sobre ele.
+      const antigaContraB = await app.inject({
+        method: "GET", url: `/ocorrencias/${ocorrenciaDeB}`, headers: com(h.acesso),
+      });
+      expect(antigaContraB.statusCode, antigaContraB.body).toBe(401);
+      expect(antigaContraB.json().erro).toBe("nao_autenticado");
+
+      // Renovado, o recurso de B continua 404 (nunca 403).
       const novo = await renovar(h.renovacao);
-      for (const t of [h.acesso, novo.acesso]) {
-        const leitura = await app.inject({
-          method: "GET", url: `/ocorrencias/${ocorrenciaDeB}`, headers: com(t),
-        });
-        expect(leitura.statusCode, leitura.body).toBe(404);
-      }
+      const leitura = await app.inject({
+        method: "GET", url: `/ocorrencias/${ocorrenciaDeB}`, headers: com(novo.acesso),
+      });
+      expect(leitura.statusCode, leitura.body).toBe(404);
       const escritaB = await despachar(novo.acesso, ocorrenciaDeB);
       expect([403, 404]).toContain(escritaB.statusCode);
       // Operador não despacha: o 403 é do PAPEL e vem antes de qualquer busca,

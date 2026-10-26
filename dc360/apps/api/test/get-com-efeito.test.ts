@@ -24,12 +24,14 @@ import { ehSemToken, rotasRegistradas } from "./superficie-registrada.js";
  * O CONSERTO é uma marca na configuração da rota (`ROTA_GET_COM_EFEITO`), do
  * mesmo jeito que `filaDoCampo`. Este arquivo trava três coisas:
  *
- * 1. A LISTA EXPLÍCITA das rotas GET marcadas (`COM_EFEITO`), conferida pelo
- *    comportamento: com a conta desativada, uma rota GET responde
- *    `conta_desativada` SE E SÓ SE está na lista. Rota nova que escreve e não
- *    foi marcada não aparece na lista nem responde assim, e a varredura de
- *    fonte abaixo a denuncia; marca esquecida numa rota que só lê também
- *    reprova (a lista é a decisão, e ela é revisada).
+ * 1. A LISTA EXPLÍCITA das rotas GET marcadas (`COM_EFEITO`). Até a
+ *    V2-F03-E03 ela era conferida pelo comportamento (com a conta desativada,
+ *    uma rota GET respondia `conta_desativada` SE E SÓ SE estava na lista).
+ *    Desde a E03 TODO GET confere a vigência, então a marca deixou de decidir
+ *    isso e o caso do comportamento passou a exigir a recusa em todos. A lista
+ *    continua sendo a decisão, revisada à mão, de quais GET gravam: rota nova
+ *    que escreve e não foi marcada, ou marca esquecida numa rota que só lê,
+ *    reprova na varredura de fonte abaixo.
  * 2. As quatro sondas (conta desativada, papel rebaixado, sessão encerrada e
  *    cadeia encerrada) contra o termo de interdição, o laudo, o termo de
  *    desinterdição, os PDFs e o CSV, em GET e em HEAD: a MESMA resposta que
@@ -65,9 +67,8 @@ const MOTIVO =
  * O que NÃO está na lista, de propósito: `GET /ocorrencias/:id` e `GET /busca`.
  * Eles também escrevem, mas só o registro de que foram lidos
  * (`registrarConsulta`, `privacidade/consulta.ts`): é a auditoria da própria
- * leitura, e a vigência da leitura é da F03-E03. Marcá-los antecipa essa
- * etapa e contradiz `acesso-suspenso.test.ts`. O critério é "o GET pratica um
- * ato ou muda dado do município".
+ * leitura. A vigência deles, como a de todo GET, é da F03-E03 e já vale. O
+ * critério é "o GET pratica um ato ou muda dado do município".
  */
 const COM_EFEITO = [
   "GET /documentos/:id/laudo",
@@ -345,32 +346,36 @@ describe("A lista de GET com efeito é a decisão, e o comportamento a obedece",
     }
   });
 
-  it("com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista", async () => {
+  it("com a conta desativada, TODO GET responde conta_desativada, na lista ou fora dela (V2-F03-E03)", async () => {
     const token = await entrar(EMAIL_HELENA);
     await mem.bruto.query("UPDATE usuarios SET ativo = false WHERE id = $1", [HELENA]);
     try {
-      const marcadas: string[] = [];
+      const gets: string[] = [];
+      const recusados: string[] = [];
       for (const rota of rotasRegistradas(app)) {
         const chave = `${rota.metodo} ${rota.caminho}`;
         if (rota.metodo !== "GET" || ehSemToken(chave)) continue;
+        gets.push(chave);
         const r = await app.inject({
           method: "GET", url: rota.caminho.replace(/:[A-Za-z]+/g, ID_FALSO), headers: com(token),
         });
         let erro: unknown;
         try { erro = r.json().erro; } catch { erro = undefined; }
-        if (r.statusCode === 403 && erro === "conta_desativada") marcadas.push(chave);
+        if (r.statusCode === 403 && erro === "conta_desativada") recusados.push(chave);
       }
       /*
-        A lista é declarada uma vez, na forma sem prefixo, e vale nos DOIS
-        prefixos (V2-F02-E01): a marca é da configuração da rota, e a função
-        única de registro a dá igual ao `/v1` e ao espelho. Conferir os dois
-        lados separados é o que pega um GET com efeito sem a marca só num
-        deles.
+        Até a E03 só os GET da lista (`COM_EFEITO`) respondiam assim, e o
+        resto lia até o token vencer. Agora a marca não decide mais se a rota
+        confere: todas conferem, nos DOIS prefixos (V2-F02-E01). A marca ficou
+        como a lista dos GET que gravam, e quem a trava é a varredura da fonte
+        abaixo. A varredura de todas as rotas e de todas as situações de
+        vigência está em `vigencia-em-toda-requisicao.test.ts`.
       */
-      const doV1 = marcadas.filter((k) => k.includes(" /v1/")).map((k) => k.replace(" /v1/", " /"));
-      const doEspelho = marcadas.filter((k) => !k.includes(" /v1/"));
-      expect(doEspelho.sort()).toEqual([...COM_EFEITO].sort());
-      expect(doV1.sort()).toEqual([...COM_EFEITO].sort());
+      expect(gets.length).toBeGreaterThan(40);
+      expect(recusados.sort()).toEqual(gets.sort());
+      for (const chave of COM_EFEITO) {
+        expect(recusados.includes(chave), `rota da lista sem a recusa: ${chave}`).toBe(true);
+      }
     } finally {
       await restaurarHelena();
     }

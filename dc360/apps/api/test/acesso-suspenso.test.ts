@@ -360,20 +360,17 @@ describe("Sessao viva de municipio suspenso", () => {
     expect(n.rows[0]!.n, "a escrita passou apesar da suspensao").toBe("1");
   });
 
-  it("token de acesso vivo: leitura continua ate o token vencer", async () => {
+  it("token de acesso vivo: a leitura tambem recusa na hora, com 403 (V2-F03-E03)", async () => {
     /*
-      DECISÃO, e não descuido: a leitura com token vivo NÃO consulta a
-      suspensão. O token de acesso vive quinze minutos e é conferido só por
-      assinatura, e essa é a mesma janela que o produto já aceita quando um
-      usuário é desativado ou expulso: a sessão cai, o token vivo termina o
-      prazo. Suspensão contratual não é incidente de segurança, e quinze
-      minutos de leitura não praticam ato nem mudam dado do município (a
-      leitura do dossiê e a busca gravam só o registro de que foram lidas, em
-      `ocorrencia_consultas`, e por isso o dossiê não tem a marca de vigência:
-      ver `auth/suspensao.ts`). O que se compra com isso é nenhuma consulta a
-      mais em nenhuma leitura, que é a maior parte do tráfego de uma noite de
-      chuva. O argumento inteiro
-      está em `auth/suspensao.ts`.
+      A decisao mudou na V2-F03-E03 (ADR 0009 decisao 2, divida DV-35). Antes
+      daqui a leitura com token vivo NAO consultava a suspensao: o token de
+      acesso vive quinze minutos e era conferido so por assinatura, e a janela
+      era a mesma que o produto aceitava quando um usuario era desativado ou
+      expulso. A janela deixou de ser aceita: a leitura devolve o dossie da
+      familia, e a suspensao (como a desativacao) vale no pedido seguinte ao
+      ato, em toda requisicao autenticada. O custo, uma consulta por
+      requisicao, e o argumento inteiro estao em `auth/suspensao.ts`; a
+      varredura de todas as rotas esta em `vigencia-em-toda-requisicao.test.ts`.
     */
     const tokens = await entrar(EMAIL_A);
     await suspender(orgA);
@@ -381,7 +378,8 @@ describe("Sessao viva de municipio suspenso", () => {
     const r = await app.inject({
       method: "GET", url: `/ocorrencias/${ocorrenciaA}`, headers: comToken(tokens.acesso),
     });
-    expect(r.statusCode, r.body).toBe(200);
+    expect(r.statusCode, r.body).toBe(403);
+    expect(r.json().erro).toBe("acesso_suspenso");
   });
 
   it("token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)", async () => {

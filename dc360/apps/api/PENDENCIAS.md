@@ -12,7 +12,7 @@ estava fora daqui".
 
 **Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A validação
 de 7005a60 reprovou a conferência acima por restos falsos. Reconferido contra o
-código de hoje: a vigência (escrita por método OU por `ROTA_GET_COM_EFEITO`), a
+código de hoje: a vigência (na época, escrita por método OU por `ROTA_GET_COM_EFEITO`; desde a V2-F03-E03, em toda requisição), a
 fila do campo diante de `troca_de_senha_obrigatoria` (agora pausa) e a lista de
 diferenças entre o laudo da rota e o do pacote. Saiu o item da dependência de
 execução com aviso (`fastify`, `fast-uri`): `npm audit --omit=dev` na raiz dá 0
@@ -22,7 +22,6 @@ que resta, numa linha cada:
 | O que resta | Seção | Quem fecha |
 | --- | --- | --- |
 | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
-| A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
 | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
 | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
@@ -79,32 +78,48 @@ verdade. Sem essa medida, qualquer teto escolhido é chute. O caminho mais barat
 para medir é gerar carga sintética com o que já existe em `db/test/carga.test.ts`
 e observar o processo.
 
-## A vigência de conta, papel e sessão vale só na ESCRITA
+## A vigência de conta, papel e sessão vale em TODA requisição (V2-F03-E03)
 
-**Onde:** `src/servidor.ts` (`exigirAutenticacao`) e `src/auth/vigencia.ts`.
+**Onde:** `src/auth/autenticacao-da-requisicao.ts` (a autenticação de cada
+requisição), `src/auth/vigencia.ts` e `src/auth/suspensao.ts`.
 
-**O que acontece:** desde V2-F00-E04 toda escrita confere no banco se a conta
-está ativa, se o papel é o do token, se a sessão do token não foi encerrada por
-alguém e se a senha provisória não venceu. Escrita é todo método que não é GET
-nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` (`servidor.ts`),
-com o HEAD delas: o laudo, o termo de interdição, o termo de desinterdição e os
-PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`. Foi a correção 1 da E04: até ela a decisão era só pelo método, e
-conta desativada, papel rebaixado e cadeia encerrada interditavam imóvel e
-exportavam dado pessoal por GET. A lista é fixada por
-`test/get-com-efeito.test.ts`, que reprova GET novo que escreve sem a marca. A
-LEITURA PURA continua confiando só na assinatura do token, por até
-`ACESSO_MINUTOS` (15 por padrão, 60 no máximo): conta desativada ainda lê, nas
-rotas que só leem, até o token vencer.
+**O que acontece:** toda requisição autenticada, GET e HEAD inclusive, confere
+no banco, numa consulta só, se o município não está suspenso, se a conta está
+ativa, se o papel é o do token, se a sessão do token não foi encerrada por
+alguém e se a senha provisória não venceu. Sem cache entre requisições, sem
+lista de revogação, sem Redis e sem chave para desligar. A ligação foi feita em
+etapas: V2-F00-E04 religou na escrita (método diferente de GET e HEAD, mais os
+GET marcados com `ROTA_GET_COM_EFEITO`) e a V2-F03-E03 estendeu à leitura. Paga a
+DV-35 (a leitura de uma sessão encerrada, ou de uma conta desativada, durava até
+15 minutos). A frase "{nome} sai de todos os navegadores e aparelhos agora" da
+janela de Usuários passou a ser verdadeira também para a leitura.
 
-**Decisão da correção 1, para não ser reaberta por engano:** o critério da marca
-é "o GET pratica um ato (emite documento, interdita, exporta) ou muda dado do
-município". `GET /ocorrencias/:id` (o dossiê) e `GET /busca` também escrevem,
-mas só o registro de que foram lidos (`registrarConsulta`, a auditoria da
-própria leitura); ficam como LEITURA e NÃO levam a marca. Marcá-los antecipa a
-F03-E03: o dossiê passaria a conferir a vigência no banco, o que contradiz as
-decisões fixadas em `acesso-suspenso.test.ts` ("leitura continua até o token
-vencer") e em `familia-da-sessao.test.ts`. Quando a F03-E03 centralizar a
-vigência em `comTenant`, eles entram junto com o resto da leitura.
+**O que a marca `ROTA_GET_COM_EFEITO` é hoje:** não decide mais se a rota
+confere (todas conferem). Ficou como a lista, escrita à mão e fixada por
+`test/get-com-efeito.test.ts`, dos GET que praticam um ato ou mudam dado do
+município (laudo, termos, PDFs, CSV e `GET /avisos`), e o dossiê e a busca, que
+só gravam o registro de que foram lidos (`registrarConsulta`), continuam fora da
+lista. A prova da vigência é outra: `test/vigencia-em-toda-requisicao.test.ts`
+enumera as rotas do servidor montado e exige a recusa de cada uma, em cada
+situação (sessão encerrada, conta desativada, município suspenso ou eliminado,
+senha provisória vencida ou em vigor, papel rebaixado, `sid` de outra pessoa),
+em GET, em HEAD e na escrita.
+
+**O que continua aberto, numa linha cada:**
+
+- **Custo:** uma ida ao banco a mais em cada leitura, com pool de 10 conexões e
+  sem `statement_timeout` (REL:10). Medir em F07-E08 e F24-E02. Fundir esta
+  consulta com a do negócio numa transação só (um `comAtor`) é otimização
+  posterior, só se a F24-E02 reprovar o p95 (H29, fora da E03).
+- **Política final de suspensão:** o que o fornecedor pode fazer, por quanto
+  tempo e com que aviso é da F20-E04 (CP-29). A API só obedece ao estado do
+  banco.
+- **Papel rebaixado lê como o papel novo depois de renovar:** o token antigo
+  recebe 401 `nao_autenticado` (renove e repita) também na leitura; a renovação
+  traz o papel novo. O painel já renova e repete; o aplicativo de campo só a fila
+  de envio faz isso (uma vez), e as leituras diretas dele seguem sem renovar nem
+  repetir. Validar em aparelho é humano.
+- **`GET /avisos` escreve dentro de um GET:** ver a seção própria, mais abaixo.
 
 **Decisões da V2-F00-E07, para não serem reabertas por engano:**
 
@@ -112,7 +127,7 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   `nao_autenticado` (renove e repita), depois de conta desativada e de sessão
   encerrada (quem foi rebaixado E derrubado entra de novo). A troca de papel
   NÃO revoga as sessões da pessoa: a segurança não depende disso, porque a
-  escrita confere o papel do banco, e revogar obrigaria a entrar de novo com
+  requisição confere o papel do banco (a escrita desde a E04, a leitura desde a E03), e revogar obrigaria a entrar de novo com
   coleta na fila.
 - **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
   escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
@@ -235,13 +250,13 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   em `apps/campo/PENDENCIAS.md`, item 14. A API não mudou aqui: continua
   respondendo 403 `troca_de_senha_obrigatoria` a toda rota fora da lista aberta.
 
-**Como atacar:** F03-E03 (vigência em toda requisição autenticada, centralizada em
-`comTenant`). Os códigos de erro já estão separados desde a V2-F00-E05
-(`nao_autenticado`, `sessao_encerrada` e `conta_desativada`, catálogo em
-`packages/shared/src/codigos-de-erro.ts`), e desde a V2-F00-E06 a fila do campo
-os trata sem perder item (a fila para e mantém o item pendente; ver
-`apps/campo/PENDENCIAS.md`, item 14). Resta a validação em aparelho, que é
-humana: até ela, a E04, a E05 e a E06 devem ir juntas para produção.
+**Como atacar:** feito na V2-F03-E03 (vigência em toda requisição autenticada). Os códigos de erro
+estão separados desde a V2-F00-E05 (`nao_autenticado`, `sessao_encerrada` e
+`conta_desativada`, catálogo em `packages/shared/src/codigos-de-erro.ts`), e
+desde a V2-F00-E06 a fila do campo os trata sem perder item (a fila para e
+mantém o item pendente; ver `apps/campo/PENDENCIAS.md`, item 14). Resta a
+validação em aparelho, que é humana: até ela, a E04, a E05, a E06 e a E03 devem
+ir juntas para produção, porque os códigos novos agora chegam também na leitura.
 
 
 ## `GET /avisos` ESCREVE dentro de um GET, e escreve com o token de qualquer papel

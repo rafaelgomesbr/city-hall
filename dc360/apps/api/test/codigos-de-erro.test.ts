@@ -272,10 +272,12 @@ describe("Cada código do catálogo sai do servidor real", () => {
     expectDoCatalogo(await escrever(helena.acesso, ocorrenciaA), "conta_desativada");
   });
 
-  it("leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou", async () => {
+  it("leitura com token vivo de conta desativada também responde conta_desativada (V2-F03-E03: a troca declarada acabou)", async () => {
     const helena = await entrar(EMAIL_COORD_A);
     await desativar(EMAIL_COORD_A);
-    expect((await ler(helena.acesso)).statusCode).toBe(200);
+    const r = await ler(helena.acesso);
+    expectDoCatalogo(r, "conta_desativada");
+    expect(r.statusCode).toBe(403);
   });
 
   it("acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto", async () => {
