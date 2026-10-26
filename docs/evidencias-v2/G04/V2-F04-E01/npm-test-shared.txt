@@ -1,0 +1,70 @@
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a9ac73bed425a06d1/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 18ms
+ ✓ test/ressalva-saida-a-campo.test.ts (38 tests) 156ms
+ ✓ src/pessoas.test.ts (11 tests) 21ms
+ ✓ test/fuso.test.ts (115 tests) 188ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 14ms
+ ✓ test/permissoes.test.ts (16 tests) 15ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 17ms
+ ✓ test/evidencia.test.ts (10 tests) 25ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 24ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 28ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 30ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 30ms
+ ✓ test/mensagens-em-portugues.test.ts (30 tests) 110ms
+ ✓ test/catalogo-de-erros.test.ts (28 tests) 95ms
+ ✓ test/varredura-de-esquemas.test.ts (17 tests) 154ms
+ ✓ test/dominio.test.ts (14 tests) 435ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  422ms
+ ✓ test/campos.test.ts (7 tests) 9ms
+ ✓ test/telefone.test.ts (10 tests) 8ms
+ ✓ test/csv.test.ts (8 tests) 7ms
+ ✓ test/observabilidade.test.ts (9 tests) 6ms
+ ✓ test/chave-de-criacao.test.ts (4 tests) 15ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 12ms
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 9331ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  2368ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  2439ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  2298ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  1920ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 98ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 73ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 68ms
+     → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Thattf\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Thattf\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 61ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Thattf\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Thattf\docs\sumiu-depois-da-listagem.md'
+ ❯ test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 22 passed (23)
+      Tests  1 failed | 417 passed (418)
+   Start at  06:52:46
+   Duration  11.09s (transform 6.02s, setup 0ms, collect 27.48s, tests 10.75s, environment 7ms, prepare 10.76s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a9ac73bed425a06d1\dc360\packages\shared
+npm error workspace @dc360/shared@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a9ac73bed425a06d1\dc360\packages\shared
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
