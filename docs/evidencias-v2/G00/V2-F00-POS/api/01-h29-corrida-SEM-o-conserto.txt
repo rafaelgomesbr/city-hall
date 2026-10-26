@@ -1,0 +1,277 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/apps/api
+
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 1. a Rita desativa a conta da Bruna entre a conferência e a gravação: a escrita é recusada (403 conta_desativada) e nada é gravado 881ms
+   → a escrita em voo confirmou depois de "a Rita desativa a conta da Bruna": {"id":"fa8fbfe8-5a25-417e-adbb-6fe220d94592"}: expected 201 to be 403 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 2. a Rita encerra as sessões da Bruna entre a conferência e a gravação: a escrita é recusada (401 sessao_encerrada) e nada é gravado 987ms
+   → a escrita em voo confirmou depois de "a Rita encerra as sessões da Bruna": {"id":"a3e0fa3b-786c-4ffb-acae-5070a4708843"}: expected 201 to be 401 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 3. a Rita rebaixa a Bruna a coordenadora entre a conferência e a gravação: a escrita é recusada (401 nao_autenticado) e nada é gravado 948ms
+   → a escrita em voo confirmou depois de "a Rita rebaixa a Bruna a coordenadora": {"id":"c6652f51-e615-4ce5-9d9a-829ce5062b6b"}: expected 201 to be 401 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 4. o município é suspenso entre a conferência e a gravação: a escrita é recusada (403 acesso_suspenso) e nada é gravado 864ms
+   → a escrita em voo confirmou depois de "o município é suspenso": {"id":"bcdff3e4-7ad7-4dcb-aae0-94c8fb395448"}: expected 201 to be 403 // Object.is equality
+ ✓ test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 5. sem reação nenhuma, a mesma escrita grava (o caso não reprova por outro motivo) 970ms
+ ✓ test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 6. leitura pura não reconfere: nenhuma transação de GET chama a função 654ms
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 1. a Rita desativa a conta da Bruna entre a conferência e a gravação: a escrita é recusada (403 conta_desativada) e nada é gravado 1075ms
+   → a escrita em voo confirmou depois de "a Rita desativa a conta da Bruna": {"id":"d011ad1a-9354-4c18-9f17-3cd82b49a0d1"}: expected 201 to be 403 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 2. a Rita encerra as sessões da Bruna entre a conferência e a gravação: a escrita é recusada (401 sessao_encerrada) e nada é gravado 1125ms
+   → a escrita em voo confirmou depois de "a Rita encerra as sessões da Bruna": {"id":"1c59b1ee-c7b0-4c0c-b3c2-194db0e4d911"}: expected 201 to be 401 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 3. a Rita rebaixa a Bruna a coordenadora entre a conferência e a gravação: a escrita é recusada (401 nao_autenticado) e nada é gravado 996ms
+   → a escrita em voo confirmou depois de "a Rita rebaixa a Bruna a coordenadora": {"id":"0ea39782-c2ed-4cdc-852f-de646c00fc02"}: expected 201 to be 401 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 4. o município é suspenso entre a conferência e a gravação: a escrita é recusada (403 acesso_suspenso) e nada é gravado 1010ms
+   → a escrita em voo confirmou depois de "o município é suspenso": {"id":"da9c80f8-3c00-4f2c-baae-44d8a8b88f16"}: expected 201 to be 403 // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 5. a Rita desativa a conta da Bruna com a escrita já dentro da transação: a reação espera a escrita confirmar 1097ms
+   → a disputa não aconteceu: "a Rita desativa a conta da Bruna" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 6. a Rita encerra as sessões da Bruna com a escrita já dentro da transação: a reação espera a escrita confirmar 1435ms
+   → a disputa não aconteceu: "a Rita encerra as sessões da Bruna" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 7. a Rita rebaixa a Bruna a coordenadora com a escrita já dentro da transação: a reação espera a escrita confirmar 1374ms
+   → a disputa não aconteceu: "a Rita rebaixa a Bruna a coordenadora" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+stdout | test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 8. rajada de oito rodadas: nenhuma conta é criada por transação que começou depois da desativação respondida
+rajada da H29: 8 de 8 escritas gravaram, 8 depois da desativação
+
+ × test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 8. rajada de oito rodadas: nenhuma conta é criada por transação que começou depois da desativação respondida 10074ms
+   → rodada 0: a transação que criou a conta começou 525 ms depois de a desativação ter sido respondida; rodada 1: a transação que criou a conta começou 686 ms depois de a desativação ter sido respondida; rodada 2: a transação que criou a conta começou 479 ms depois de a desativação ter sido respondida; rodada 3: a transação que criou a conta começou 626 ms depois de a desativação ter sido respondida; rodada 4: a transação que criou a conta começou 473 ms depois de a desativação ter sido respondida; rodada 5: a transação que criou a conta começou 564 ms depois de a desativação ter sido respondida; rodada 6: a transação que criou a conta começou 442 ms depois de a desativação ter sido respondida; rodada 7: a transação que criou a conta começou 568 ms depois de a desativação ter sido respondida: expected [ …(8) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 1. a Rita desativa a conta da Bruna entre a conferência e a gravação: a escrita é recusada (403 conta_desativada) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita desativa a conta da Bruna": {"id":"fa8fbfe8-5a25-417e-adbb-6fe220d94592"}: expected 201 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:316:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 2. a Rita encerra as sessões da Bruna entre a conferência e a gravação: a escrita é recusada (401 sessao_encerrada) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita encerra as sessões da Bruna": {"id":"a3e0fa3b-786c-4ffb-acae-5070a4708843"}: expected 201 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:316:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 3. a Rita rebaixa a Bruna a coordenadora entre a conferência e a gravação: a escrita é recusada (401 nao_autenticado) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita rebaixa a Bruna a coordenadora": {"id":"c6652f51-e615-4ce5-9d9a-829ce5062b6b"}: expected 201 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:316:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (PGlite) > 4. o município é suspenso entre a conferência e a gravação: a escrita é recusada (403 acesso_suspenso) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "o município é suspenso": {"id":"bcdff3e4-7ad7-4dcb-aae0-94c8fb395448"}: expected 201 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:316:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 1. a Rita desativa a conta da Bruna entre a conferência e a gravação: a escrita é recusada (403 conta_desativada) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita desativa a conta da Bruna": {"id":"d011ad1a-9354-4c18-9f17-3cd82b49a0d1"}: expected 201 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:439:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 2. a Rita encerra as sessões da Bruna entre a conferência e a gravação: a escrita é recusada (401 sessao_encerrada) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita encerra as sessões da Bruna": {"id":"1c59b1ee-c7b0-4c0c-b3c2-194db0e4d911"}: expected 201 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:439:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 3. a Rita rebaixa a Bruna a coordenadora entre a conferência e a gravação: a escrita é recusada (401 nao_autenticado) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "a Rita rebaixa a Bruna a coordenadora": {"id":"0ea39782-c2ed-4cdc-852f-de646c00fc02"}: expected 201 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:439:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 4. o município é suspenso entre a conferência e a gravação: a escrita é recusada (403 acesso_suspenso) e nada é gravado
+AssertionError: a escrita em voo confirmou depois de "o município é suspenso": {"id":"da9c80f8-3c00-4f2c-baae-44d8a8b88f16"}: expected 201 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 201
+
+ ❯ reacaoAntesDaTransacao test/escrita-contra-desativacao.test.ts:271:8
+    269|     cen.grampo.atual = null;
+    270|     expect(escrita.statusCode, `a escrita em voo confirmou depois de "…
+    271|       .toBe(reacao.status);
+       |        ^
+    272|     expect(escrita.json().erro).toBe(reacao.erro);
+    273|     expect(await a.contasCriadas(email), "a conta foi criada mesmo ass…
+ ❯ test/escrita-contra-desativacao.test.ts:439:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 5. a Rita desativa a conta da Bruna com a escrita já dentro da transação: a reação espera a escrita confirmar
+AssertionError: a disputa não aconteceu: "a Rita desativa a conta da Bruna" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ test/escrita-contra-desativacao.test.ts:471:12
+    469|         const desfecho = await travouOuTerminou(disparo, reacao.trava);
+    470|         expect(desfecho, `a disputa não aconteceu: "${reacao.nome}" nã…
+    471|           .toBe("travou");
+       |            ^
+    472|         solta.disparar();
+    473|         const [r, escrita] = await Promise.all([disparo, pedido]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 6. a Rita encerra as sessões da Bruna com a escrita já dentro da transação: a reação espera a escrita confirmar
+AssertionError: a disputa não aconteceu: "a Rita encerra as sessões da Bruna" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ test/escrita-contra-desativacao.test.ts:471:12
+    469|         const desfecho = await travouOuTerminou(disparo, reacao.trava);
+    470|         expect(desfecho, `a disputa não aconteceu: "${reacao.nome}" nã…
+    471|           .toBe("travou");
+       |            ^
+    472|         solta.disparar();
+    473|         const [r, escrita] = await Promise.all([disparo, pedido]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 7. a Rita rebaixa a Bruna a coordenadora com a escrita já dentro da transação: a reação espera a escrita confirmar
+AssertionError: a disputa não aconteceu: "a Rita rebaixa a Bruna a coordenadora" não esperou a escrita que já estava na transação: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ test/escrita-contra-desativacao.test.ts:471:12
+    469|         const desfecho = await travouOuTerminou(disparo, reacao.trava);
+    470|         expect(desfecho, `a disputa não aconteceu: "${reacao.nome}" nã…
+    471|           .toBe("travou");
+       |            ^
+    472|         solta.disparar();
+    473|         const [r, escrita] = await Promise.all([disparo, pedido]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  test/escrita-contra-desativacao.test.ts > Escrita em voo contra a perda do direito de escrever (Postgres real) > 8. rajada de oito rodadas: nenhuma conta é criada por transação que começou depois da desativação respondida
+AssertionError: rodada 0: a transação que criou a conta começou 525 ms depois de a desativação ter sido respondida; rodada 1: a transação que criou a conta começou 686 ms depois de a desativação ter sido respondida; rodada 2: a transação que criou a conta começou 479 ms depois de a desativação ter sido respondida; rodada 3: a transação que criou a conta começou 626 ms depois de a desativação ter sido respondida; rodada 4: a transação que criou a conta começou 473 ms depois de a desativação ter sido respondida; rodada 5: a transação que criou a conta começou 564 ms depois de a desativação ter sido respondida; rodada 6: a transação que criou a conta começou 442 ms depois de a desativação ter sido respondida; rodada 7: a transação que criou a conta começou 568 ms depois de a desativação ter sido respondida: expected [ …(8) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "rodada 0: a transação que criou a conta começou 525 ms depois de a desativação ter sido respondida",
++   "rodada 1: a transação que criou a conta começou 686 ms depois de a desativação ter sido respondida",
++   "rodada 2: a transação que criou a conta começou 479 ms depois de a desativação ter sido respondida",
++   "rodada 3: a transação que criou a conta começou 626 ms depois de a desativação ter sido respondida",
++   "rodada 4: a transação que criou a conta começou 473 ms depois de a desativação ter sido respondida",
++   "rodada 5: a transação que criou a conta começou 564 ms depois de a desativação ter sido respondida",
++   "rodada 6: a transação que criou a conta começou 442 ms depois de a desativação ter sido respondida",
++   "rodada 7: a transação que criou a conta começou 568 ms depois de a desativação ter sido respondida",
++ ]
+
+ ❯ test/escrita-contra-desativacao.test.ts:539:45
+    537|     }
+    538|     console.info(`rajada da H29: ${gravadas} de 8 escritas gravaram, $…
+    539|     expect(violacoes, violacoes.join("; ")).toEqual([]);
+       |                                             ^
+    540|   }, 120_000);
+    541| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 2 passed (14)
+   Start at  13:20:05
+   Duration  32.08s (transform 677ms, setup 666ms, collect 2.24s, tests 28.61s, environment 0ms, prepare 210ms)
+

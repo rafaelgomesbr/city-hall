@@ -90,6 +90,21 @@ permitiria autorizar mil envios e passar do teto antes de qualquer confirmação
 preço é que autorização perdida segura teto, e é a varredura da parte 2 que a
 solta.
 
+**E ninguém segura sozinho mais que a sua parte** (pendência H04, decidida em
+26/10/2026). Sem teto por pessoa, um token de agente fazia cerca de 104
+autorizações de 15 MB em segundos, sem subir nada, ocupava a margem inteira de
+um município de 1 GiB, e os colegas passavam a receber 507 por até 30 dias. Hoje
+`POST /evidencias/autorizar-envio` soma, na mesma transação, as autorizações
+AINDA ABERTAS da pessoa (sem arquivo confirmado e não abandonadas) e recusa com
+429 `reservas_de_envio_da_pessoa` o que passar do menor entre
+`RESERVA_DE_ENVIO_POR_PESSOA_MB` (padrão 90: uma vistoria de seis fotos com toda
+foto no teto de 15 MB, 8,8% do menor teto aceito, 1 GiB) e um décimo da margem do
+município (que só decide se aquele número for configurado alto demais), nunca
+abaixo de uma foto de 15 MB. A fila do aparelho trata 429 como temporário e tenta de novo
+sozinha. Foto confirmada não conta nesse teto (é uso de verdade, e quem o
+segura é o teto do município), e repetir a autorização da mesma foto
+reaproveita a reserva. O índice parcial da migração 053 mantém a soma barata.
+
 **Mais a foto de perfil de cada servidor** (`usuarios.foto_bytes`, migração
 045). Ela ocupa o mesmo balde e, até 15/09/2026, não entrava na conta nem a rota
 de foto perguntava ao teto: uma equipe inteira trocando de foto num município no

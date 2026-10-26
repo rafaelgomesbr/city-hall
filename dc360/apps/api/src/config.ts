@@ -369,6 +369,41 @@ const esquema = z.object({
   S3_REGIAO: z.string().min(1).default("auto"),
   S3_CHAVE_ID: vazioEhAusente(z.string().min(1).optional()),
   S3_CHAVE_SECRETA: vazioEhAusente(z.string().min(1).optional()),
+
+  /**
+   * Quantos megabytes (MiB, a mesma unidade do teto por arquivo) de envio de
+   * evidência uma PESSOA pode ter reservados e ainda não concluídos.
+   *
+   * O DEFEITO QUE ISTO FECHA (pendência H04, achado da V2-F00-E06, decidido
+   * pelo Rafael em 26/10/2026): `POST /evidencias/autorizar-envio` reserva os
+   * bytes declarados no teto do município antes de o arquivo subir, e um token
+   * de agente fazia cerca de 104 reservas de 15 MB em segundos, sem subir nada,
+   * e ocupava a margem inteira de um município de 1 GiB. Os colegas passavam a
+   * receber 507, e a fila do aparelho deles parava por até 30 dias (até a
+   * varredura de órfão abandonar as reservas). Sem perda de dado, mas com a
+   * operação parada.
+   *
+   * A CONTA DO PADRÃO, 90: uma vistoria tem cerca de seis fotos
+   * (`armazenamento/uso.ts`), e o teto por arquivo é 15 MB
+   * (`TAMANHO_MAXIMO_BYTES`); 6 x 15 = 90, uma vistoria inteira com toda foto no
+   * máximo. Na foto típica (cerca de 2 MB) são 45 fotos. O aparelho sobe uma
+   * foto por vez (autoriza, envia, confirma) e a reautorização da mesma foto
+   * reaproveita a reserva, então quem trabalha tem, na prática, uma reserva
+   * aberta por aparelho; o resto da folga é para foto que perdeu o envio no
+   * meio. Contra o teto: num município de 1 GiB (margem de 1,5 GiB), 90 MB são
+   * 8,8% do teto e 5,9% da margem, e uma pessoa sozinha não para os colegas
+   * (1 GiB é o menor teto que o banco aceita, migração 035: em contrato maior
+   * a fatia é ainda menor). E a rota nunca deixa uma pessoa passar de um
+   * décimo da margem do município, nem ficar abaixo de uma foto no máximo
+   * (`tetoDeReservasDaPessoa`, `armazenamento/uso.ts`): com o padrão o décimo
+   * (153,6 MB no menor teto) não decide; ele segura quem configurar este
+   * número alto demais.
+   *
+   * O piso é 15 (uma foto no teto por arquivo): abaixo disso, a foto grande
+   * nunca mais sairia do aparelho de ninguém.
+   */
+  RESERVA_DE_ENVIO_POR_PESSOA_MB: z.coerce.number().int().min(15).max(10_240).default(90),
+
   /** Endereço público desta API, para montar a URL do armazenamento local. */
   URL_PUBLICA: z.string().url().default("http://127.0.0.1:3333"),
   /** Endereço público do painel, para montar o link de redefinição de senha. */

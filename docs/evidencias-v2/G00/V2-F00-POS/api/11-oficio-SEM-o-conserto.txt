@@ -1,0 +1,54 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/apps/api
+
+ × test/oficio-enviado-contra-desativacao.test.ts > Ofício enviado enquanto quem enviou perde o direito de escrever > 1. a Rita desativa a conta da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados 2785ms
+   → o envio aconteceu e a resposta diz outra coisa: {"erro":"conta_desativada","mensagem":"Sua conta foi desativada. Procure a coordenação do seu município: o que você já registrou continua guardado."}: expected 403 to be 202 // Object.is equality
+ × test/oficio-enviado-contra-desativacao.test.ts > Ofício enviado enquanto quem enviou perde o direito de escrever > 2. a Rita encerra as sessões da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados 2942ms
+   → o envio aconteceu e a resposta diz outra coisa: {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 202 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/oficio-enviado-contra-desativacao.test.ts > Ofício enviado enquanto quem enviou perde o direito de escrever > 1. a Rita desativa a conta da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados
+AssertionError: o envio aconteceu e a resposta diz outra coisa: {"erro":"conta_desativada","mensagem":"Sua conta foi desativada. Procure a coordenação do seu município: o que você já registrou continua guardado."}: expected 403 to be 202 // Object.is equality
+
+- Expected
++ Received
+
+- 202
++ 403
+
+ ❯ test/oficio-enviado-contra-desativacao.test.ts:158:105
+    156|         soltar();
+    157|         const resposta = await envio;
+    158|         expect(resposta.statusCode, `o envio aconteceu e a resposta di…
+       |                                                                                                         ^
+    159| 
+    160|         const tentativa = await mem.bruto.query<{ desfecho: string; pr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/oficio-enviado-contra-desativacao.test.ts > Ofício enviado enquanto quem enviou perde o direito de escrever > 2. a Rita encerra as sessões da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados
+AssertionError: o envio aconteceu e a resposta diz outra coisa: {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 202 // Object.is equality
+
+- Expected
++ Received
+
+- 202
++ 401
+
+ ❯ test/oficio-enviado-contra-desativacao.test.ts:158:105
+    156|         soltar();
+    157|         const resposta = await envio;
+    158|         expect(resposta.statusCode, `o envio aconteceu e a resposta di…
+       |                                                                                                         ^
+    159| 
+    160|         const tentativa = await mem.bruto.query<{ desfecho: string; pr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  17:58:11
+   Duration  34.76s (transform 5.51s, setup 632ms, collect 11.05s, tests 22.07s, environment 0ms, prepare 258ms)
+

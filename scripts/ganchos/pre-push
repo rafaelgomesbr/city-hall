@@ -1,0 +1,6 @@
+#!/bin/sh
+# Regra da master sem ruleset (D-33). Ligar uma vez por clone:
+#   git config core.hooksPath scripts/ganchos
+# O git passa no stdin as atualizações que vai empurrar; o conferidor recusa push em master que não seja
+# commit de merge com CI local verde do próprio SHA (mais o commit que arquiva essa evidência).
+exec node "$(git rev-parse --show-toplevel)/scripts/ganchos/conferir-push.mjs"

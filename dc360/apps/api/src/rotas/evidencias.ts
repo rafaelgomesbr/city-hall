@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { chaveDeStorage, pedidoDeEvidenciaSchema } from "@dc360/shared";
+import { TAMANHO_MAXIMO_BYTES, chaveDeStorage, pedidoDeEvidenciaSchema } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
 import {
   ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar, type Identidade,
@@ -9,7 +9,8 @@ import {
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import { registrarEvento } from "../trilha.js";
 import {
-  frasePorTetoEstourado, lerUso, resumirUso, type UsoDeArmazenamento,
+  frasePorReservasDaPessoa, frasePorTetoEstourado, lerUso, resumirUso, tetoDeReservasDaPessoa,
+  type UsoDeArmazenamento,
 } from "../armazenamento/uso.js";
 import { eRecorteDoAgente } from "./recorte-do-agente.js";
 
@@ -86,9 +87,19 @@ function autorDivergente(): RegraDeNegocio {
   );
 }
 
+/** O padrão de `RESERVA_DE_ENVIO_POR_PESSOA_MB` (`config.ts`), em bytes: seis fotos no teto por arquivo. */
+export const RESERVA_POR_PESSOA_PADRAO_BYTES = 90 * 1024 * 1024;
+
 export async function rotasEvidencias(
   app: FastifyInstance,
-  { banco, armazenamento }: { banco: Banco; armazenamento: Armazenamento },
+  {
+    banco, armazenamento, reservaPorPessoaBytes = RESERVA_POR_PESSOA_PADRAO_BYTES,
+  }: {
+    banco: Banco;
+    armazenamento: Armazenamento;
+    /** `RESERVA_DE_ENVIO_POR_PESSOA_MB` em bytes. Ver `tetoDeReservasDaPessoa`. */
+    reservaPorPessoaBytes?: number;
+  },
 ): Promise<void> {
   /**
    * A confirmação de verdade: lê os bytes, mede, marca e registra.
@@ -422,6 +433,54 @@ export async function rotasEvidencias(
           frasePorTetoEstourado(),
           507,
         );
+      }
+
+      /*
+        O TETO POR PESSOA (pendência H04, decidida pelo Rafael em 26/10/2026),
+        na MESMA transação, depois do teto do município.
+
+        Sem ele, um token de agente fazia cerca de 104 reservas de 15 MB em
+        segundos, sem subir byte nenhum, e ocupava a margem inteira de um
+        município de 1 GiB: os colegas passavam a levar 507 e a fila deles
+        parava por até 30 dias, até a varredura de órfão abandonar as reservas.
+        Desativar a conta não liberava nada.
+
+        Conta o que a pessoa tem AINDA ABERTO: autorizado, sem arquivo
+        confirmado (`enviada_em`) e não abandonado pela varredura
+        (`abandonada_em`). Foto confirmada não conta aqui: ela é uso de verdade,
+        com bytes medidos no armazenamento e linha na trilha, e o que segura o
+        uso de verdade é o teto do município. A reautorização da mesma foto
+        (mesma `idempotencyKey`) saiu lá em cima sem chegar aqui, então
+        repetir o pedido nunca é recusado por este teto.
+
+        A soma é feita com a linha da pessoa em `usuarios` presa (FOR NO KEY
+        UPDATE, o mesmo modo da reconferência da migração 052, que esta
+        transação já fez): dois pedidos da mesma pessoa ao mesmo tempo se
+        enfileiram aqui, e o segundo soma a reserva que o primeiro acabou de
+        criar. Sem isso, uma rajada em paralelo passaria inteira por uma folga
+        que só cabia um.
+
+        429, e não 4xx permanente nem 507: a fila do aparelho trata 429 como
+        temporário (`packages/campo/src/transporte.ts`) e tenta de novo
+        sozinha, e a foto sai quando as reservas anteriores da pessoa forem
+        concluídas. 507 diria que o MUNICÍPIO está cheio, e não está.
+      */
+      await c.query("SELECT 1 FROM usuarios WHERE id = $1 FOR NO KEY UPDATE", [quem.usuarioId]);
+      const abertas = await c.query<{ bytes: string }>(
+        `SELECT coalesce(sum(tamanho_bytes), 0)::text AS bytes
+           FROM evidencias
+          WHERE anexada_por = $1 AND enviada_em IS NULL AND abandonada_em IS NULL`,
+        [quem.usuarioId],
+      );
+      const tetoDaPessoa = tetoDeReservasDaPessoa(
+        reservaPorPessoaBytes, uso.margemBytes, TAMANHO_MAXIMO_BYTES,
+      );
+      if (Number(abertas.rows[0]!.bytes) + dados.tamanhoBytes > tetoDaPessoa) {
+        req.log.warn(
+          { usuarioId: quem.usuarioId, reservadoBytes: Number(abertas.rows[0]!.bytes), tetoDaPessoa },
+          "autorizacao de envio recusada pelo teto de reservas por pessoa",
+        );
+        throw new RegraDeNegocio("reservas_de_envio_da_pessoa", frasePorReservasDaPessoa(), 429);
       }
 
       // Sufixo único: duas fotos com o mesmo nome no mesmo aparelho não podem
