@@ -870,6 +870,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 2C, correção 1: `catalogo-de-erros.test.ts` ganhou 10 casos (a conferência que lança só existe em `NODE_ENV=test` mesmo com a opção ligada; a varredura de `.code(N).send(...)`: árvore real, erro por variável, corpo em texto, `message` no lugar de `mensagem`, código fora do catálogo, corpo por constante, status calculado, controles e a exceção nomeada). Content-Disposition e Accept-Ranges entraram nos casos que já existiam das guardas.
   "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 3C3 (contrato de documentos, ofícios e órgãos, prestação de contas e público): `apps/api/test/contrato-respostas-3c3.test.ts` é novo, com 14 casos (cada rota dos quatro grupos chamada de verdade por `/v1` e a resposta conferida contra a `resposta` que o registro do contrato declara: status, esquema sem chave de sobra ou o tipo de mídia dos arquivos HTML, PDF, CSV e ZIP; mais o guarda de que nenhuma entrada dos quatro grupos fica sem resposta).
+  "V2-F02-E04-parte-3C3": { total: 14, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

@@ -37,12 +37,17 @@ import { registrarEvento } from "../trilha.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-const emissaoSchema = z.object({
+/** A query de `GET /oficios`. Exportada para o contrato OpenAPI (V2-F02-E04). */
+export const consultaDosOficiosSchema = z.object({
+  ocorrenciaId: z.string().uuid().optional(),
+});
+
+export const emissaoSchema = z.object({
   providenciaId: z.string().uuid("Identificador de providência inválido"),
   observacoes: z.string().trim().max(2000).optional(),
 });
 
-const envioSchema = z.object({
+export const envioSchema = z.object({
   /*
     Endereço alternativo, e ele é OPCIONAL de propósito.
 
@@ -187,9 +192,7 @@ export async function rotasOficios(
    */
   app.get("/", async (req) => {
     const quem = await autorizar(app, req, "consultar_oficio");
-    const { ocorrenciaId } = z.object({
-      ocorrenciaId: z.string().uuid().optional(),
-    }).parse(req.query);
+    const { ocorrenciaId } = consultaDosOficiosSchema.parse(req.query);
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
       const r = await c.query(
