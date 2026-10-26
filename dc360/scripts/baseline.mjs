@@ -983,6 +983,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F02-E07": { total: 6, falhas: 0 },
   // V2-F02-E02, parte 2A (painel em `/v1` e renovação pela categoria do erro): `apps/web/test/http-v1-e-categorias.test.ts` é novo, com 23 casos (a base `/v1` com e sem barra final e com origem vazia, todas as formas de chamada, URLs assinadas sem prefixo, o 401 de cada categoria que não renova, a categoria aditiva do servidor, o 401 sem código que segue renovando, o 403 `assinatura` que não gasta a renovação, uma renovação só e o padrão por status). Os demais arquivos tocados mudaram por dentro, sem caso novo.
   "V2-F02-E02-parte-2A": { total: 23, falhas: 0 },
+  // V2-F02-E06, parte 3B: `apps/web/test/versao-do-aplicativo.test.ts` é novo, com 4 casos (`x-app-version: painel/desconhecido` nas dez formas de pedido e no download sem token; o 426 com a frase do corpo, sem renovar e sem derrubar a sessão, numa chamada comum e num download).
+  "V2-F02-E06-parte-3B": { total: 4, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -1128,6 +1130,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
   // V2-F02-E02 e E03, parte 2B: `categorias-do-transporte.test.ts` é novo, com 23 casos (4 da base com /v1 e da URL assinada intacta, 19 da categoria do catálogo lida dentro do status, sem item perdido, sem laço de renovação e com a mesma chave na repetição).
   "V2-F02-E02-parte-2B": { total: 23, falhas: 0 },
+  // V2-F02-E06, parte 3B: `versao-do-aplicativo.test.ts` é novo, com 19 casos (o cabeçalho `campo/<versão>` em todo pedido à API e nunca na URL assinada; o 426 pausa a fila com o item pendente, sem renovar, em qualquer rota e com qualquer corpo; a mesma coleta sobe depois; 401, 409, 5xx e 429 como na tabela da 2B).
+  "V2-F02-E06-parte-3B": { total: 19, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -1181,6 +1185,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
   // V2-F02-E02 e E03, parte 2B: `dados/api-v1-e-categorias.test.ts` é novo, com 12 casos (origem exibida e base com /v1, barra final sem //v1, URL assinada intacta, `ErroDaApi.categoria` pelo catálogo e a atualização ainda pelo 401), e 1 em `obter-fila-uma-so.test.ts` (a base do aplicativo chega à fila com /v1). Quatro testes existentes só trocaram o caminho esperado para /v1.
   "V2-F02-E02-parte-2B": { total: 13, falhas: 0 },
+  // V2-F02-E06, parte 3B: `dados/versao-do-aplicativo.test.ts` é novo, com 8 casos (a versão do `expoConfig`, o cabeçalho em `api.ts`, `rota.ts`, `mapa.ts` e `historico-da-casa.ts`, a varredura de todo `fetch(` do aplicativo, o 426 fora da fila com a frase do servidor e as frases da pausa pelo 426). `faixa-de-sincronizacao.test.tsx` ganhou o estado novo no mapa de estados, sem caso novo.
+  "V2-F02-E06-parte-3B": { total: 8, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

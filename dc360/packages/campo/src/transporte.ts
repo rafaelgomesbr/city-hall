@@ -37,6 +37,9 @@ import {
  *       toda a fila (correção 1).
  *     - 403 `acesso_suspenso`: o contrato do município; temporário, a coleta
  *       espera.
+ *     - 426 (`versao_do_aplicativo_antiga`, V2-F02-E06), com qualquer código:
+ *       a versão do aplicativo ficou abaixo da mínima; a fila espera a
+ *       atualização, sem renovar o token.
  *   Nos casos de sessão e de conta a fila para e MANTÉM o item pendente. Até a E06 isso era
  *   `FalhaPermanente`: o item virava `bloqueado` com "Descartar" ao lado, e a
  *   vistoria feita no morro por quem foi desativado (ou cuja sessão caiu) ficava
@@ -60,6 +63,15 @@ import {
 export type OpcoesTransporte = {
   baseUrl: string;
   /**
+   * A versão do aplicativo (V2-F02-E06), a do `expoConfig.version` no
+   * aparelho. Vem por PARÂMETRO para o pacote continuar sem depender do Expo.
+   * Vai em todo pedido à API como `x-app-version: campo/<versão>`, e nunca no
+   * PUT da URL assinada, que não fala com a API e cujos cabeçalhos entram na
+   * assinatura. Ausente ou vazia: o pedido sai sem o cabeçalho, como antes, e
+   * a API aceita (cabeçalho ausente nunca é recusado).
+   */
+  versaoDoAplicativo?: string | null;
+  /**
    * Buscado a cada envio: entre uma tentativa e outra o token pode ter mudado.
    * Com `{ renovarJa: true }` é o pedido de um token novo depois de um 401
    * `nao_autenticado` (ver `ObterToken`).
@@ -68,6 +80,29 @@ export type OpcoesTransporte = {
   buscar?: typeof fetch;
   tempoLimiteMs?: number;
 };
+
+/**
+ * O cabeçalho de versão do aplicativo de campo, num lugar só: o transporte da
+ * fila e as chamadas do aplicativo (`apps/campo/src/dados/versao-do-aplicativo.ts`)
+ * montam o mesmo `campo/<versão>`. Versão desconhecida não vira texto
+ * inventado: o cabeçalho simplesmente não vai, e a API aceita o pedido.
+ *
+ * É informação de compatibilidade, declarada pelo cliente: serve para a API
+ * saber quem a chama e recusar com 426 o binário abaixo do mínimo, e nunca
+ * decide acesso.
+ */
+export function cabecalhosDaVersao(versao: string | null | undefined): Record<string, string> {
+  const limpa = typeof versao === "string" ? versao.trim() : "";
+  return limpa ? { "x-app-version": `campo/${limpa}` } : {};
+}
+
+/**
+ * A frase quando o 426 chega sem `mensagem`. Fica aqui, e não no catálogo de
+ * acesso, porque o 426 não é da sessão nem da conta; a tela não a mostra (ela
+ * usa as frases da pausa, pelo motivo), e ela só existe para a falha nunca
+ * sair sem texto.
+ */
+const MENSAGEM_DA_VERSAO_ANTIGA = "Esta versão do aplicativo não é mais aceita pelo servidor.";
 
 /** Corpo que não é JSON não deve derrubar o envio: vira objeto vazio. */
 async function lerCorpo(resposta: Response): Promise<Record<string, unknown>> {
@@ -98,6 +133,17 @@ function falhaDaResposta(
   corpo: Record<string, unknown>,
 ): FalhaPermanente | FalhaDeSessao | FalhaTemporaria {
   if (status === 401) return falhaDeSessao("sessao_encerrada", corpo);
+  /*
+    O 426 (V2-F02-E06): a versão deste aplicativo está abaixo da mínima. É o
+    STATUS que decide, com qualquer código ou sem corpo: 426 nunca diz nada
+    sobre o dado, só sobre o binário, e na dúvida entre perder coleta e pausar,
+    pausa. Entra na classe de `conta_desativada` (`FalhaDeSessao`): a fila para,
+    o item fica `pendente` com a mesma contagem, nada vira `bloqueado`, e a
+    renovação do token não é gasta (só o 401 renova). Atualizado o aplicativo,
+    a mesma coleta sobe com a mesma chave. Antes desta etapa o 426 caía no
+    "outro 4xx" abaixo e a coleta virava `bloqueado`, com "Descartar" ao lado.
+  */
+  if (status === 426) return falhaDeSessao("versao_do_aplicativo_antiga", corpo);
   if (status === 403) {
     /*
       O 403 é lido pela CATEGORIA que o catálogo dá ao código, e não por uma
@@ -161,14 +207,18 @@ function falhaDeSessao(
   return new FalhaDeSessao(
     typeof doServidor === "string" && doServidor !== ""
       ? doServidor
-      : CODIGOS_DE_ERRO_DE_ACESSO[motivo].mensagem,
+      : motivo === "versao_do_aplicativo_antiga"
+        ? MENSAGEM_DA_VERSAO_ANTIGA
+        : CODIGOS_DE_ERRO_DE_ACESSO[motivo].mensagem,
     motivo,
   );
 }
 
 export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
-  const { baseUrl, obterToken, buscar = fetch, tempoLimiteMs = 30_000 } = opcoes;
+  const { baseUrl, obterToken, buscar = fetch, tempoLimiteMs = 30_000, versaoDoAplicativo } = opcoes;
   const base = baseUrl.replace(/\/$/, "");
+  // Só nos pedidos à API (`pedir`), nunca no PUT da URL assinada (`enviarBytes`).
+  const daVersao = cabecalhosDaVersao(versaoDoAplicativo);
 
   /**
    * Um pedido com token, tempo limite e a renovacao de uma vez so.
@@ -196,7 +246,11 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
       try {
         return await buscar(`${base}${caminho}`, {
           method: metodo,
-          headers: { "content-type": "application/json", authorization: `Bearer ${comToken}` },
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${comToken}`,
+            ...daVersao,
+          },
           body: corpoDoPedido === undefined ? undefined : JSON.stringify(corpoDoPedido),
           signal: cancelador.signal,
         });
