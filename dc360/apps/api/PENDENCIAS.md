@@ -641,7 +641,7 @@ aceita e passam a ter dono:
 | --- | --- |
 | 1. Um e-mail, um município | F03-E15 (pessoa e conta), E16 (login em dois passos e troca de município), E17 (órgão externo em vários municípios) |
 | 2. Conta desativada prende o e-mail | F03-E09 (e-mail único só entre pessoas ativas) |
-| 3. 409 que confirma e-mail de outro município | F03-E10 (convite com 202 igual para e-mail livre, pessoa com conta ativa ou desativada em outro município e pessoa com convite aberto). O corpo igual do 409 da E09 não fecha isto, porque 201 e 409 continuam distinguíveis (ADR 0009, correção 1, decisão 6); até a E10 o oráculo é o de hoje e não aumenta |
+| 3. 409 que confirma e-mail de outro município | F03-E10 (convite com 202 igual para e-mail livre, pessoa com conta ativa ou desativada em outro município e pessoa com convite aberto). O corpo igual do 409 da E09 não fecha isto, porque 201 e 409 continuam distinguíveis (ADR 0009, correção 1, decisão 6); até a E10 o oráculo é o de hoje e não aumenta. Pela correção 2 da ADR (decisão 3), o 202 só fecha se também o tempo e o que o município lê depois forem iguais: o pedido grava o convite do município e o põe na fila, sem consultar pessoa nenhuma, e a conta só nasce no aceite |
 
 **O que continua aberto, e não é de nenhuma etapa da F03:**
 

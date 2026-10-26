@@ -272,12 +272,14 @@ repete no sistema.
   outras.
 - **Município ativo:** ao entrar, quem tem mais de uma conta escolhe o
   município, e o acesso vale só para ele. Para trabalhar em outro, troca de
-  município, confirma a senha de novo (e o código do segundo fator, se o outro
-  município o exige), e o sistema abre um acesso novo. Nunca há acesso a dois
-  de uma vez.
+  município, confirma a senha de novo (e o código do segundo fator sempre que
+  ela o tem ligado, ou que o papel no outro município o exige: trocar nunca
+  pede menos que entrar), e o sistema abre um acesso novo. Nunca há acesso a
+  dois de uma vez.
 - **Papel por município:** os quatro papéis acima continuam, e são papéis da
   conta. O administrador continua sendo o teto do município, mas só sobre as
-  contas dele: ele cria conta por convite, ativa, desativa e muda papel, e nunca
+  contas dele: ele convida (a conta só aparece quando a pessoa aceita), ativa,
+  desativa e muda papel, e nunca
   define a senha, o e-mail ou o segundo fator de pessoa que tem conta em outro
   município, nem fica sabendo se ela tem: nenhuma resposta que ele recebe muda
   por causa de outro município (regra final no CP-50).

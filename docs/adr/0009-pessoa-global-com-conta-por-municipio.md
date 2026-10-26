@@ -1,7 +1,8 @@
 # ADR 0009: pessoa global com conta e vínculo por município, e token de um município por vez
 
 - **Data da decisão:** 01/10/2026 (decisão D-08 do Rafael; registro escrito em 26/10/2026, V2-F03-E01;
-  correção 1 em 26/10/2026, depois da segunda leitura de segurança)
+  correção 1 em 26/10/2026, depois da segunda leitura de segurança; correção 2
+  em 26/10/2026, depois da segunda rodada dessa revisão)
 - **Situação:** PROPOSTA. Aceite pendente do Rafael (H97, junto com a redação
   proposta para o CLAUDE.md) e parecer do encarregado de dados (CP-49). Até o
   aceite, o código da F03 segue esta proposta como premissa
@@ -121,6 +122,38 @@ primeira redação (decisão 6); a prova nova de autenticação na troca de
 município (decisão 2); e os requisitos da E11, da E16 e do catálogo da parte 0B
 (decisões 2, 3 e 8).
 
+### O que a segunda rodada da revisão mudou (correção 2)
+
+A redação da correção 1 voltou à mesma revisão (Codex, somente leitura). Sete
+achados ficaram fechados como requisito; quatro ficaram parciais (1, 3, 5 e 6)
+e apareceram quatro bloqueios novos, todos nas transições que a correção 1
+deixou descritas só pelo resultado. A tabela item a item está em
+`docs/evidencias-v2/G03/V2-F03-E01/correcao-2/RESUMO.md`. Esta redação
+acrescenta:
+
+- **a liberação da segunda conta como procedimento de implantação**, e não
+  como "mesmo SHA": as proteções entram numa migração aditiva, a API nova é
+  implantada em todas as instâncias, e só então uma migração própria retira o
+  `UNIQUE (pessoa_id)`, recusando no banco os caminhos antigos, para que uma API
+  anterior contra o banco liberado falhe fechada; com rollback escrito
+  (decisão 1, "Como a segunda conta é liberada");
+- **a não enumeração estendida ao tempo e aos efeitos** que o município consegue
+  observar depois (conta, contagens, estado do convite, trilha, reemissão,
+  entrega), com o pedido aceito sem consulta fora do município e sem esperar o
+  provedor de e-mail (decisão 3, "Não enumeração");
+- **a conta nasce no aceite do convite**: não existe conta pendente em
+  `usuarios`, e o gatilho que cria pessoa nova fica só para quem nasce fora do
+  convite; mais o registro de qual índice impede qual duplicidade, antes e
+  depois da E09 (decisão 1);
+- **a ordem completa das travas**, com a linha do município, a trava da pessoa,
+  as linhas de conta e de pessoa, os gatilhos, convites, links e sessões, que
+  concilia o gatilho `pessoa_acompanha_as_contas` da E09 e a linha de
+  `organizacoes` que o login já toma (decisão 7);
+- dois esclarecimentos: a imutabilidade de `pessoa_id` vale para DML com o
+  gatilho habilitado, e DDL fica fora do alcance da aplicação (decisão 1); a
+  escolha e a troca de município exigem o código sempre que o login exigiria,
+  inclusive com o fator ligado por vontade da pessoa (decisão 2).
+
 ## Decisão
 
 **Existe pessoa global. Não existe token, sessão nem consulta que valha para dois
@@ -145,15 +178,40 @@ estão no fim.
   (uma conta por pessoa em cada município) e `UNIQUE (organizacao_id, id,
   pessoa_id)` (alvo das chaves compostas que precisam carregar a pessoa).
   Papel, matrícula, equipe e `ativo` continuam na conta, sob a RLS de hoje.
-- **`usuarios.pessoa_id` é atribuído uma vez e nunca muda.** Gatilho no banco
-  recusa qualquer UPDATE que altere um `pessoa_id` já preenchido, para todo
+- **`usuarios.pessoa_id` é atribuído uma vez, na criação da conta, e nunca
+  muda.** Depois do backfill da E15 a coluna é `NOT NULL`, então não existe
+  conta "ainda sem pessoa" que um UPDATE possa ligar depois. Gatilho no banco
+  recusa todo UPDATE em que `pessoa_id` mude (`IS DISTINCT FROM`), para todo
   papel, inclusive o dono das funções. O papel de aplicação não tem privilégio
-  de INSERT nem de UPDATE nessa coluna (privilégio de coluna, E15). A conta
-  nasce ligada a uma pessoa NOVA (backfill da E15 e o cadastro de hoje, até a
-  E10) ou é ligada a uma pessoa EXISTENTE só por `aceitar_convite` (E10), com a
-  prova da própria pessoa. Coincidência de e-mail nunca liga conta a pessoa: o
-  gatilho da E15 que preenche `pessoa_id` nulo só CRIA pessoa nova, nunca
-  procura uma pelo e-mail.
+  de INSERT nem de UPDATE nessa coluna (privilégio de coluna, E15). A conta só
+  nasce de dois jeitos:
+  - **sem pessoa informada**, fora do convite (backfill e sementes da E15,
+    `provisionar_municipio`, o `POST /usuarios` de hoje até a E10, o modo
+    local): o gatilho `BEFORE INSERT` vê `pessoa_id` nulo e CRIA uma pessoa
+    nova para ela. Ele nunca procura pessoa pelo e-mail, então coincidência de
+    e-mail nunca liga conta a pessoa;
+  - **com a pessoa já comprovada**, só dentro de `aceitar_convite` (E10): a
+    função cria a pessoa nova (quem aceita define a senha) ou usa a pessoa
+    existente (quem aceita prova que é ela), e só então insere a conta já com
+    esse `pessoa_id`. Um gatilho de restrição adiado (`DEFERRABLE INITIALLY
+    DEFERRED`) recusa, no fim da transação, toda conta inserida com `pessoa_id`
+    preenchido que não tenha, na mesma transação, o convite consumido
+    apontando para ela e para a mesma pessoa.
+- **O alcance do gatilho é DML com o gatilho habilitado, e DDL está fora do
+  alcance da aplicação.** Gatilho comum dispara também para SECURITY DEFINER e
+  para papel com BYPASSRLS, por isso vale para o dono das funções quando ele
+  faz UPDATE. Mas o dono da tabela pode desabilitar o gatilho por DDL (`ALTER
+  TABLE ... DISABLE TRIGGER`) e um superusuário pode desligá-lo por
+  `session_replication_role`. A garantia, então, é escrita assim: (1) o
+  `dc360_app` não é dono, não é superusuário, não tem o privilégio `TRIGGER` em
+  `usuarios` nem em `pessoas` e não pode mudar `session_replication_role`; (2)
+  nenhuma função de `FUNCOES_PRIVILEGIADAS` contém DDL nem mexe em
+  `session_replication_role` (o catálogo da 0B confere o corpo, decisão 8);
+  (3) quem pode fazer DDL são as identidades de migração e de operação do
+  banco, que a API não usa e que só agem por migração revisada. Uma migração
+  que desabilite o gatilho, ainda que por um instante, precisa dizer por quê no
+  cabeçalho e religá-lo na mesma transação, e o teste da E15 confere que ele
+  está habilitado (`tgenabled`) depois de toda a cadeia de migrações.
 - **`sessoes` ganha `pessoa_id` e continua por município.** Cada sessão é de uma
   conta num município, e a vigência confere as três coisas juntas (município,
   conta e pessoa).
@@ -175,16 +233,84 @@ Duas contas, em dois municípios, gravando credencial em linhas diferentes de
 exatamente o que a regra dos passos proíbe; com o UNIQUE, esse estado não pode
 existir em SHA nenhum.
 
-A **liberação da segunda conta** é o passo 4 da tabela abaixo: a migração que
-retira esse UNIQUE é da E16 (063), depois da E08 juntada, e só entra no mesmo
-SHA em que estão provados: os escritores antigos retirados (passo 3), a
-revogação com os dois escopos (decisão 7), a autorização por operação (decisão
-3), as intervenções administrativas na credencial na forma final (decisão 6), o
-segundo fator na pessoa com consumo atômico (E11, decisão 8) e o login em dois
-passos com a troca de município da decisão 2. Antes dela, nenhuma etapa cria a
-mesma pessoa em dois municípios, nem em teste de API: os testes de "mesma
-pessoa em A e B" (E18, E10 com pessoa existente, E17) rodam depois da
-liberação.
+A **liberação da segunda conta** é o passo 4 da tabela abaixo, da E16, depois
+da E08 juntada. Ela só acontece quando estão provados no código: os escritores
+antigos retirados (passo 3), a revogação com os dois escopos e a ordem das
+travas (decisão 7), a autorização por operação (decisão 3), as intervenções
+administrativas na credencial na forma final (decisão 6), o segundo fator na
+pessoa com consumo atômico (E11, decisão 8) e o login em dois passos com a
+escolha e a troca de município da decisão 2. "Provado no código" não basta: a
+liberação também exige essas proteções INSTALADAS em toda instância que atende
+o banco, e é por isso que ela é um procedimento de implantação, descrito
+abaixo. Antes dela, nenhuma etapa cria a mesma pessoa em dois municípios, nem
+em teste de API: os testes de "mesma pessoa em A e B" (E18, E10 com pessoa
+existente, E17) rodam depois da liberação.
+
+#### Como a segunda conta é liberada (passo 4), e por que a API anterior falha fechada
+
+O risco que o "mesmo SHA" não cobre: o banco é um só e a API roda em várias
+instâncias. Se a migração que retira o `UNIQUE (pessoa_id)` for aplicada
+enquanto uma instância ainda roda a versão anterior, essa instância continua
+oferecendo a redefinição de senha com senha provisória do período um para um
+(F00-E09, gravando em `pessoas` desde a E08) a quem administra A, sobre uma
+pessoa que, a partir dali, pode ter conta em B. Por isso a liberação tem três
+tempos, e o banco, não a API, é quem fecha os caminhos antigos:
+
+1. **Migração das proteções (063, E16), aditiva para a API anterior.** Cria as
+   funções novas (login em dois passos, `municipios_da_pessoa`, escolha, troca,
+   a forma final da redefinição pelo administrador e do reset do segundo fator
+   pelo superior, decisão 6) com nome ou assinatura NOVOS. Nenhuma função que a
+   API anterior chama muda de assinatura nem de contrato nesta migração, e o
+   `UNIQUE (pessoa_id)` continua de pé. O cabeçalho da 063 lista, por
+   assinatura (`regprocedure`), o CAMINHO ANTIGO: toda função cujo contrato
+   supõe uma conta por pessoa (no mínimo a redefinição com senha provisória, o
+   reset do segundo fator pelo superior do período um para um e o login de um
+   passo que devolve "a" conta da pessoa). O catálogo da 0B marca essas
+   entradas como "recusada depois da liberação". A API nova usa só as funções
+   novas desde a implantação, inclusive a forma final da decisão 6, mesmo
+   antes da 064.
+2. **Implantação da API nova em TODAS as instâncias**, conferida e arquivada
+   antes do passo seguinte: a lista de instâncias que atendem o banco, cada uma
+   com a versão que responde, nenhuma abaixo da versão da E16. Esta conferência
+   é operacional (pendência humana nova, abaixo) e não é a única barreira: o
+   passo 3 vale mesmo se ela errar.
+3. **Migração da liberação (064, migração própria, aplicada só depois do
+   tempo 2).** Na mesma transação: grava a MARCA DE LIBERAÇÃO numa tabela de
+   uma linha só, sem grant ao `dc360_app`; revoga o EXECUTE do `dc360_app`
+   sobre cada função do caminho antigo; redefine cada uma delas para conferir a
+   marca logo na entrada e recusar com erro quando ela existe (segunda barreira,
+   para o caso de um grant esquecido ou herdado); e só então retira o
+   `UNIQUE (pessoa_id)`. Uma instância anterior que sobrar, contra o banco
+   liberado, recebe erro nesses caminhos: não abre sessão, não muda credencial,
+   não muda segundo fator. Falha fechada, com custo de disponibilidade e não de
+   segurança.
+
+**Rollback escrito, por fase:**
+
+- antes da 064: voltar a API é o rollback de sempre, porque a 063 é aditiva e a
+  API anterior continua funcionando;
+- depois da 064 e enquanto nenhuma pessoa tiver mais de uma conta: o
+  `desfazer/` da 064 confere essa contagem na própria transação (e recusa se
+  ela não for zero), recria o `UNIQUE (pessoa_id)`, devolve os grants e apaga a
+  marca; só depois disso a API anterior pode voltar;
+- depois da 064 com alguma pessoa em dois municípios: não existe volta para a
+  API anterior, e o `desfazer/` se recusa. A correção é para frente, na API
+  nova. Se for preciso estancar, a parada de emergência é recusar no banco o
+  aceite de convite por pessoa existente (um campo da tabela da marca de
+  liberação, mudado só por migração, lido dentro de `aceitar_convite`; a
+  `config.ts` está congelada desde a 1C), o que impede novas segundas contas
+  sem tocar nas que
+  existem; conta existente só se desativa pelo município dela, com motivo, como
+  sempre.
+
+**Testes da liberação (E16):** com a 064 aplicada e uma pessoa em A e B, a API
+do SHA anterior à E16, construída e ligada ao mesmo banco, tenta o login de um
+passo, a redefinição com senha provisória e o reset do superior: as três falham
+fechadas (nenhuma sessão nova, `pessoas` sem mudança, nenhuma senha devolvida).
+O mesmo teste chama as funções do caminho antigo diretamente, com um grant
+devolvido de propósito ao `dc360_app`, e elas recusam pela marca. O `desfazer/`
+da 064 é provado nos dois sentidos: passa com zero pessoas em dois municípios
+e recusa com uma.
 
 #### A credencial muda de casa em passos, sem duas fontes graváveis ao mesmo tempo (P-04)
 
@@ -199,7 +325,7 @@ gravável:
 | 1 | E15 (054) | `usuarios` | `usuarios` (API não muda) | gatilho espelha cada escrita de credencial e de e-mail de `usuarios` em `pessoas`, de mão única | um para um, no banco |
 | 2 | E02 (sem migração) | `usuarios` | `pessoas` (`credenciais_da_pessoa`) | o mesmo espelho | um para um, no banco |
 | 3 | E08 (061) | só `pessoas` | `pessoas` | espelho desligado; privilégios de `usuarios` refeitos por coluna (abaixo) | um para um, no banco |
-| 4 | E16 (063) | só `pessoas` | `pessoas` | nada a espelhar | liberação da segunda conta, com as condições acima |
+| 4 | E16 (063 aditiva; 064 só depois da API nova em todas as instâncias) | só `pessoas` | `pessoas` | nada a espelhar | liberação da segunda conta pela 064, com as condições e os três tempos acima |
 
 **O passo 3 retira o privilégio de verdade.** Revogar UPDATE das colunas antigas
 não basta, porque o `dc360_app` tem UPDATE na tabela (001). A E08:
@@ -221,6 +347,9 @@ não basta, porque o `dc360_app` tem UPDATE na tabela (001). A E08:
    `dc360_app` pelo mesmo caminho (SELECT de tabela trocado por SELECT por
    coluna), de modo que a aplicação deixa de LER cópia velha de hash a partir do
    passo 3. As colunas caem numa migração posterior, que não é da F03.
+   `ultimo_acesso` NÃO vai para a pessoa: fica na conta, gravado pelo login e
+   pela escolha naquele município, porque na pessoa ele mostraria a A a
+   atividade da pessoa em B (decisão 3, "Não enumeração").
 
 **Inventário (a lista completa e conferida é da E15, antes do passo 1).** Ele
 cobre tudo o que lê ou grava a credencial, o e-mail que recebe a recuperação, a
@@ -233,27 +362,91 @@ código deste SHA:
 | `credenciais_para_login` (002, 013) | lê credencial e e-mail em `usuarios` | E02 troca a leitura por `credenciais_da_pessoa`; E08 a retira ou a deixa só de leitura em `pessoas` |
 | `registrar_tentativa_login` (002) | grava falhas e bloqueio em `usuarios`, pelo id recebido | E08 grava em `pessoas`, conferindo quem pede (decisão 3) |
 | `trocar_senha` (005, 049) | grava `senha_hash` pelo id recebido | E08: só a própria pessoa, com a senha atual relida sob a trava (decisão 3), escopo global (decisão 7) |
-| `abrir_recuperacao` (005) | procura o e-mail em `usuarios` ativos e cria o link para a conta | E08 procura em `pessoas` e cria o link para a PESSOA; antes disso, a relação um para um garante que a conta achada é a única da pessoa |
+| `abrir_recuperacao` (005) e `pedirRecuperacao` (`auth/servico.ts`) | procura o e-mail em `usuarios` ativos e cria o link para a conta; a rota espera essa consulta antes do 202 e só prepara envio quando acha | E08 procura em `pessoas` e cria o link para a PESSOA; antes disso, a relação um para um garante que a conta achada é a única da pessoa. A E08 também tira a consulta de dentro do pedido: o 202 só registra o pedido numa fila, e a consulta, o link e o envio saem do trabalhador (decisão 3, "Não enumeração") |
 | `consumir_recuperacao` (005, 049, 051) | grava a senha da conta do link | E08 grava em `pessoas`, escopo global (decisão 7) |
 | `recuperacoes_senha` (005) | link por `usuario_id` | E08 liga o link à pessoa e à versão da credencial |
 | gatilho `recuperacoes_morrem_com_a_credencial` (051) | `AFTER UPDATE OF senha_hash, ativo` de `usuarios` | E08 separa: troca de credencial em `pessoas` mata os links da pessoa (global); `ativo` da conta mata só os links ligados àquela conta (local) |
 | gatilho `senha_trocada_deixa_de_ser_provisoria` (046) | `BEFORE UPDATE OF senha_hash` de `usuarios` | E08 move para `pessoas` |
 | `dono_do_token` (002, 046, 048) | devolve a conta e o motivo de recusa | E08 devolve também a organização e confere o tenant |
 | `revogar_sessoes_do_usuario`, `travar_sessoes_do_usuario` (049) | trava e revoga por conta | E08 mantém por conta (escopo local) e cria o escopo global por pessoa (decisão 7) |
+| trava da pessoa (`travar_pessoa`, `travar_pessoa_da_conta`) | não existe hoje | E15 cria as duas (SECURITY INVOKER, como a da 049; a segunda resolve a pessoa pela conta sob o tenant, sem devolver `pessoa_id` à API); todo caminho do nível N2 da decisão 7 as usa |
+| gatilho `pessoa_acompanha_as_contas` (nasce na E09) | não existe hoje | E09: dispara em `UPDATE OF ativo` e em `DELETE` de `usuarios`; confere que a transação já tem a trava da pessoa e recusa se não tiver (decisão 7) |
+| `executar_eliminacoes_vencidas` e `ordem_de_apagamento_por_municipio` (038) | apagam o município tabela a tabela | E09 a faz tomar as travas da decisão 7 antes de apagar contas (o gatilho da E09 dispara no `DELETE`) |
 | `abrir_sessao` (002, 047, 049) e `emitirPar` (`auth/servico.ts`) | emitem a sessão e o par de tokens | E08 confere conta, pessoa e município juntos; E16 os chama na escolha e na troca |
 | desafio do segundo fator (`cr`, `auth/servico.ts`) | prova intermediária ligada à credencial | E11 e E16 mantêm a ligação à credencial e a estendem à pessoa (decisão 8) |
 | `auth/segundo-fator.ts` (`desativar` lê `senha_hash` de `usuarios`) | confere a senha na conta | E02 lê da pessoa; E11 move o fator para a pessoa (decisão 8) |
 | `provisionar_municipio` (036) | o console cria o primeiro administrador com senha | E15 cria a pessoa nova junto (nunca liga a pessoa existente); E08 grava a credencial só em `pessoas` |
-| `POST /usuarios` (`rotas/administracao.ts`) | cria a conta com a senha digitada por quem cria | E15 (gatilho cria a pessoa nova); E10 troca por convite, com senha no corpo respondendo 422 |
+| `POST /usuarios` (`rotas/administracao.ts`) | cria a conta com a senha digitada por quem cria | E15 (gatilho cria a pessoa nova); E10 troca por convite que NÃO cria conta (a conta nasce no aceite), com senha no corpo respondendo 422 |
 | `PATCH /usuarios/:id` (`rotas/administracao.ts`) | o administrador troca o e-mail de outra conta | E09 retira o e-mail do que o PATCH aceita: nenhum município troca o e-mail de uma pessoa (decisão 6) |
 | `POST /usuarios/:id/redefinir-senha` (`rotas/administracao.ts`, F00-E09) | o administrador define senha provisória | E08 grava em `pessoas` sob a trava da pessoa; E16 (passo 4) a deixa na forma final da decisão 6 |
 | reset do segundo fator pelo superior (nasce na E11) | não existe hoje | E11 o cria só para o período um para um; E16 (passo 4) o deixa na forma final da decisão 6 |
-| `aceitar_convite`, `convidar_pessoa` (nascem na E10) | não existem hoje | E10: únicas que ligam conta a pessoa existente (decisão 3) |
-| `INSERT INTO usuarios` direto (sementes, modo local, testes) | grava conta e senha | E15 confere que nenhum caminho de produção grava `pessoa_id` fora das funções acima; sementes e modo local seguem a regra da pessoa nova |
+| `aceitar_convite`, `convidar_pessoa` (nascem na E10) | não existem hoje | E10: `convidar_pessoa` só grava o convite no município, sem consultar pessoa nenhuma; `aceitar_convite` é a única que cria conta com `pessoa_id` preenchido (decisão 1, "A conta nasce no aceite") |
+| `INSERT INTO usuarios` direto (sementes, modo local, testes) | grava conta e senha | E15 confere que nenhum caminho de produção grava `pessoa_id` fora de `aceitar_convite`; sementes e modo local seguem a regra da pessoa nova |
 
 O backfill da E15 cria uma pessoa por conta (o e-mail já é único no sistema,
 então a relação de hoje é um para um), com as contagens antes e depois
 arquivadas.
+
+#### A conta nasce no aceite do convite: não existe conta pendente
+
+O roteiro da E10 (`05-api-identidade-autorizacao.md`) fazia a conta nascer
+inativa no convite e ser ativada no aceite. Com as regras acima isso não fecha:
+a conta pendente passaria pelo gatilho criador e receberia uma pessoa nova
+(Pnova), e no aceite por uma pessoa existente (Pexistente) trocar Pnova por
+Pexistente seria, corretamente, recusado pela imutabilidade. Abrir uma exceção
+("pode trocar enquanto a conta estiver pendente") criaria exatamente a brecha
+que a imutabilidade fecha. Por isso a decisão é outra, e não abre exceção
+nenhuma:
+
+- **O convite não cria linha em `usuarios`.** `convites_de_vinculo` (RLS
+  ativada e forçada por município) guarda o que o município digitou: e-mail,
+  nome, matrícula, papel, equipe, quem convidou, o hash do link, o prazo e o
+  estado. Não guarda `pessoa_id` nem `usuario_id` enquanto aberto, e
+  `convidar_pessoa` não consulta `pessoas` nem conta de outro município.
+- **A conta é criada no aceite, já com a pessoa comprovada**, por
+  `aceitar_convite`, numa transação:
+  - pessoa NOVA: quem tem o link define a senha; a função cria a pessoa com o
+    e-mail do convite e cria a conta com esse `pessoa_id`. Se já existe pessoa
+    ATIVA com esse e-mail, o índice de e-mail recusa e a resposta, só a quem
+    tem o link, é "entre com a sua senha para aceitar";
+  - pessoa EXISTENTE: quem tem o link prova que é a pessoa com prova nova (a
+    senha conferida naquele momento e, se o fator estiver ligado, o código, a
+    mesma régua da troca na decisão 2), e o e-mail dessa pessoa tem de ser o do
+    convite. Pessoa com senha provisória vigente não aceita convite até trocá-la
+    (a senha provisória é conhecida por quem a definiu). A conta é criada com o
+    `pessoa_id` dela;
+  - nos dois casos o convite passa a "aceito", com `usuario_id` e `pessoa_id`
+    gravados nesse momento, por UPDATE condicional (`WHERE` estado aberto e no
+    prazo); se o UPDATE não pegar a linha, a transação volta inteira e a conta
+    some junto. O gatilho adiado da decisão 1 confere essa ligação no fim da
+    transação.
+- **O gatilho criador fica só para quem nasce fora do convite** (backfill,
+  sementes, `provisionar_municipio`, o cadastro de hoje até a E10, modo local).
+  Em `aceitar_convite` a conta já chega com `pessoa_id`, e o gatilho não age.
+- **Até a liberação (passo 4)**, o aceite por pessoa que já tem conta esbarra no
+  `UNIQUE (pessoa_id)` e é recusado à própria pessoa, com mensagem neutra; o
+  convite continua aberto, e o município não vê diferença nenhuma.
+- **O que o município vê depois** é igual nos dois casos (pessoa nova ou
+  existente): o convite passa a "aceito" e a conta aparece, com o nome, a
+  matrícula, o papel e a equipe que ele mesmo digitou. Os campos da pessoa
+  (nome global, bloqueio, falhas, fator de papel sem obrigação, verificação do
+  e-mail) não aparecem para o município.
+
+#### E-mail: qual índice impede o quê, antes e depois da E09
+
+`UNIQUE (pessoa_id)` impede duas CONTAS da mesma pessoa; ele não impede duas
+PESSOAS diferentes com o mesmo e-mail. Quem impede isso é o índice de e-mail, e
+ele muda de lugar:
+
+| Período | Índice | O que impede | O que continua possível |
+| --- | --- | --- | --- |
+| hoje até a E15 | `usuarios_email_global_idx` (002), total, `lower(email)` em `usuarios` | duas contas com o mesmo e-mail em qualquer lugar, ativas ou não | nada além disso: uma conta é uma pessoa |
+| E15 até a E09 | o mesmo da 002, mais `pessoas_email_idx` (E15), total, `lower(email)` em `pessoas` | duas contas e duas pessoas com o mesmo e-mail, ativas ou não; como cada conta cria a sua pessoa e o e-mail é espelhado, os dois índices dizem a mesma coisa, e o de `pessoas` deixa a garantia na tabela certa | nada além disso |
+| a partir da E09 | `pessoas (lower(email)) WHERE ativo` (parcial); a E09 retira o índice total de `pessoas` e os dois de `usuarios` (002 e `UNIQUE (organizacao_id, email)` da 001) | duas pessoas ATIVAS com o mesmo e-mail | pessoas INATIVAS com o mesmo e-mail de uma ativa (é o desenho: a conta desativada solta o e-mail); conta desativada de Pantiga e conta ativa de Pnova com o mesmo e-mail no mesmo município. `UNIQUE (organizacao_id, pessoa_id)` impede duas contas da mesma pessoa num município, e `UNIQUE (pessoa_id)` (até a 064) duas contas da mesma pessoa no sistema |
+
+Pessoa inativa nunca volta a ser ativa se outra pessoa ativa tem o e-mail (o
+índice parcial recusa), e a conta dela nunca se reativa para a outra pessoa
+(decisão 6).
 
 ### 2. O token vale para um município por vez, e a pessoa escolhe o município ao entrar
 
@@ -270,14 +463,23 @@ arquivadas.
   ativa a resposta é a de hoje; com nenhuma, credenciais inválidas; com várias,
   a resposta traz a escolha (desafio curto e a lista dos municípios). A lista só
   sai DEPOIS da senha, então não é oráculo de e-mail, e mostra à pessoa só onde
-  ela mesma tem conta.
+  ela mesma tem conta. A escolha exige o mesmo que o login exigiria para a
+  conta escolhida: o código do segundo fator sempre que a pessoa o tem ligado
+  (seja por obrigação de algum papel, seja por vontade dela, como
+  `exigenciaNoLogin` faz hoje em `auth/segundo-fator.ts`), e a ativação do
+  fator, sem sessão, quando o papel da conta escolhida o exige e ele não está
+  ligado.
 - **Troca de município (E16) exige prova nova de autenticação para o destino.**
   A sessão do município de origem, sozinha, NÃO autoriza a troca: quem rouba o
   token ou a sessão de A não pode usá-los para chegar a B. `POST
   /v1/auth/trocar-municipio` exige a senha da pessoa conferida naquele momento
-  e, quando a conta de destino exige segundo fator (E11), um código novo; o
-  `mfa_verificado_em` do destino é o horário dessa conferência, e nada é
-  herdado da sessão de origem. A troca gera sessão nova e token novo no
+  e um código novo do segundo fator sempre que o login no destino o exigiria:
+  quando o fator está ligado, por obrigação de qualquer papel ou por vontade
+  da pessoa, o código é pedido, mesmo que o papel no destino não o exija; e
+  quando o papel no destino exige o fator e ele não está ligado, a troca não
+  abre sessão, só a ativação, como o login. A troca nunca é entrada mais fraca
+  que o login normal no mesmo destino. O `mfa_verificado_em` do destino é o
+  horário dessa conferência, e nada é herdado da sessão de origem. A troca gera sessão nova e token novo no
   destino. Nunca um token com dois `org`, nunca a lista de municípios dentro do
   token, nunca sessão compartilhada entre municípios. A forma mais leve (herdar
   a verificação do segundo fator por até `MFA_VIGENCIA_MINUTOS`, premissa
@@ -368,8 +570,8 @@ vindo da API sem o solicitante conferido reprova o teste da etapa.
 | ligar, trocar ou desligar o segundo fator | global | só a própria pessoa | senha atual e código do fator atual, ou código de recuperação (decisão 8) |
 | redefinir senha por administrador (F00-E09) | global | administrador do município, alvo diferente do solicitante, com posto | só enquanto vale a relação um para um; no passo 4, forma final da decisão 6 |
 | redefinir o segundo fator pelo superior (E11) | global | superior do município, com posto | idem |
-| ligar conta a pessoa existente | não se aplica | só `aceitar_convite` | link do convite e sessão da própria pessoa (pessoa existente) ou definição da senha (pessoa nova) |
-| desativar, reativar, mudar papel ou equipe da conta | local | quem gerencia usuários no município | as regras de posto de hoje |
+| criar conta ligada a pessoa (nova ou existente) | não se aplica | só `aceitar_convite`, que cria a conta nesse momento | link do convite e: pessoa existente, prova nova (senha conferida na hora e código se o fator estiver ligado), e-mail dela igual ao do convite e sem senha provisória vigente; pessoa nova, definição da senha |
+| desativar, reativar, mudar papel ou equipe da conta | local (a revogação); a desativação e a reativação tomam a trava da pessoa só para serializar (decisão 7) | quem gerencia usuários no município | as regras de posto de hoje |
 | encerrar as próprias sessões | local | a própria conta | sessão viva |
 
 #### O que nenhuma função e nenhuma rota pode fazer
@@ -388,6 +590,92 @@ O município enxerga a pessoa só pela conta que tem com ela. Esta última regra
 também a recomendação técnica do CP-49 ("nunca expor a um município o vínculo
 da pessoa em outro").
 
+#### Não enumeração: tempo e efeitos, não só a resposta
+
+Responder com o mesmo status, corpo e cabeçalho não basta se o tempo da
+resposta, ou o que o município consegue consultar depois, muda conforme a
+pessoa tenha algo em outro município. A regra completa:
+
+**Nada que o solicitante observe pode depender de conta, pessoa ou convite fora
+do município dele.** "Observar" inclui: status, corpo e cabeçalhos; o TEMPO da
+resposta; e todo efeito que ele consiga ler depois pelo produto: a conta (se
+aparece, quando, com que dados), as contagens (contas, convites, vagas), o
+estado do convite, a trilha do município, o resultado de uma reemissão e
+qualquer informação de entrega da mensagem.
+
+Como isso é cumprido, nos pedidos que um município faz sobre um e-mail ou uma
+pessoa (convidar e reemitir, E10; a forma final de `redefinir-senha` e do
+reset do superior, E16; e, com a exceção declarada no item 1, desativar e
+reativar a conta, E09):
+
+1. **O pedido é aceito sem consulta fora do município e sem o provedor de
+   e-mail.** O tratamento do pedido faz, em todos os casos, a mesma sequência de
+   comandos sobre tabelas do próprio município (grava o pedido e o põe na fila)
+   e responde. Não consulta `pessoas`, conta de outro município nem o
+   provedor. Trabalho constante por construção, não por espera artificial.
+   A desativação e a reativação da conta (E09) são a exceção declarada: o
+   gatilho `pessoa_acompanha_as_contas` toca a pessoa dentro do pedido. Ele faz
+   o mesmo trabalho em todos os casos (sempre um UPDATE da linha da pessoa,
+   recalculando `ativo` pelas contas ativas; na reativação, o conflito com
+   outra pessoa ativa do mesmo e-mail é tratado dentro do gatilho e deixa a
+   pessoa inativa, sem erro), e os dois pedidos entram no teste de tempo
+   abaixo, com e sem conta da pessoa em outro município.
+2. **O que depende da pessoa sai de um trabalhador assíncrono**, fora do pedido
+   (o relógio da API, sob `comTenantDoSistema`): abrir o link de recuperação da
+   pessoa, montar e enviar a mensagem. O convite nem isso precisa: a mensagem é
+   a mesma para pessoa nova ou existente ("você foi convidado; abra o link"), e
+   quem decide entre definir senha e entrar é a própria pessoa, na página do
+   link. O trabalhador do convite não consulta `pessoas`.
+3. **Estado do convite** só muda por ação do próprio município (emitir,
+   reemitir, revogar), pelo prazo fixo ou pelo aceite. Evento global da pessoa
+   (troca de senha, recuperação, segundo fator) NÃO muda o estado de convite
+   nenhum: um convite que "vencesse antes do prazo" contaria ao município que
+   a pessoa existe e teve um evento. A proteção que a correção 1 buscava com
+   essa invalidação vem do aceite com prova nova e da recusa com senha
+   provisória vigente (decisão 1).
+4. **Contagens e trilha** do município só contam linhas do município: contas,
+   convites e os eventos que ele mesmo causou, com o mesmo registro para
+   pessoa nova ou existente ("convite emitido", "convite aceito", "conta
+   criada", "pedido de redefinição registrado"). Nunca "link enviado",
+   "suprimido" ou "pessoa já existente".
+5. **Entrega.** Na F03 o município não vê situação de entrega por mensagem. Se
+   um dia vir, só poderá ser a do próprio envio, e o envio é idêntico nos
+   casos.
+6. **Limites, deduplicação e falhas.** O limite de pedidos é por solicitante e
+   por município, nunca por e-mail ou pessoa no sistema inteiro. Teto por
+   destinatário contra abuso, se existir, vale só no trabalhador, em silêncio,
+   e não aparece para o município. A deduplicação só olha convites do próprio
+   município. Falha do provedor fica no trabalhador (nova tentativa e log sem
+   o link), nunca vira resposta, estado ou contagem para o município. Erro do
+   banco no pedido só pode depender do que o pedido toca, que é do município.
+7. **Dados da pessoa.** O município não vê `ultimo_acesso` global (ele fica na
+   conta), bloqueio e falhas de senha ou do fator, fator ligado em papel sem
+   obrigação, nem verificação do e-mail. Para papel com fator obrigatório, vê
+   só se a exigência da conta DELE está cumprida.
+
+O pedido público de recuperação (`POST /auth/recuperar`), que não é de
+município, segue o mesmo desenho a partir da E08 (itens 1 e 2), fechando a
+diferença de caminho que existe hoje em `pedirRecuperacao` (consulta dentro do
+pedido, envio só quando acha).
+
+**Como se prova (testes do fluxo completo, não só da resposta):**
+
+- *estrutural, determinístico, a prova principal:* para cada caso (e-mail
+  livre; pessoa com conta ativa em outro município; pessoa só com conta
+  desativada em outro; pessoa com convite aberto em outro), o pedido executa a
+  mesma lista de comandos SQL, com os mesmos textos e as mesmas contagens de
+  linhas, capturada pela camada de banco; e, depois do trabalhador rodar, as
+  leituras do município (lista de contas, de convites, contagens, trilha,
+  reemissão) são iguais byte a byte, a menos dos identificadores e horários
+  gerados;
+- *de tempo, com margem declarada:* 50 pedidos de aquecimento e 300 por caso,
+  intercalados em ordem sorteada, contra o Postgres real; aprovado se, para cada
+  caso comparado ao e-mail livre, o intervalo de confiança de 99% da diferença
+  das medianas (bootstrap com 2000 reamostragens) ficar inteiro dentro de ±1 ms
+  ou ±5% da mediana do e-mail livre, o que for maior. Reprovação não se resolve
+  repetindo até passar: investiga-se a causa. O teste de tempo complementa o
+  estrutural, não o substitui.
+
 ### 4. O órgão é contexto dentro do município, não é tenant
 
 - O tenant continua sendo SÓ o município. O órgão (secretaria, autarquia,
@@ -400,9 +688,10 @@ da pessoa em outro").
 - O isolamento POR ÓRGÃO dentro do município (RLS fail-closed, dossiê, órgão que
   nunca consulta `ocorrencias`) é da ADR 0010 (V2-F04-E01), não desta.
 - A redação que o CLAUDE.md precisa para dizer isso está proposta em
-  `docs/evidencias-v2/G03/V2-F03-E01/correcao-1/proposta-de-redacao-do-claude-md.md`
-  (a versão da primeira redação, na pasta da etapa, fica como histórico). O
-  CLAUDE.md não é alterado antes do aceite do Rafael (H97).
+  `docs/evidencias-v2/G03/V2-F03-E01/correcao-2/proposta-de-redacao-do-claude-md.md`
+  (as versões da primeira redação, na pasta da etapa, e da correção 1, na pasta
+  dela, ficam como histórico). O CLAUDE.md não é alterado antes do aceite do
+  Rafael (H97).
 
 ### 5. O papel genérico `usuario_orgao`
 
@@ -445,7 +734,10 @@ do município:
     (F00-E09) continua, e o reset do segundo fator pelo superior (E11) pode
     existir, porque nesse período eles alcançam só uma pessoa exclusiva do
     município, sem condição nenhuma que precise ser respondida. Os dois tomam a
-    trava da pessoa (decisão 7) e invalidam os convites abertos para ela.
+    trava da pessoa (decisão 7). Eles NÃO mexem em convite nenhum (decisão 3,
+    "Não enumeração", item 3): o convite aberto em outro município não está
+    ligado a pessoa nenhuma, e a senha provisória que eles definem impede o
+    aceite por pessoa existente até ser trocada (decisão 1).
   - **A partir da liberação (passo 4, E16):** nenhuma intervenção de município
     na credencial de pessoa pode ser condicional ao que ela tem fora dele. A
     forma final é a recomendação técnica do CP-50 (alternativa A): o superior só
@@ -453,16 +745,21 @@ do município:
     a redefinição da senha e do segundo fator é feita pela própria pessoa (link
     de recuperação, código de recuperação) ou pelo fornecedor no console, com
     verificação e trilha. A rota `redefinir-senha` e o reset do superior passam,
-    no mesmo SHA da liberação, a responder igual para toda pessoa (202, pedido
-    registrado, link de recuperação enviado ao e-mail DA PESSOA quando a
-    recuperação por e-mail está ligada), sem senha na resposta.
+    na API da E16 (antes da 064, pelo procedimento da decisão 1), a responder
+    igual para toda pessoa (202, pedido registrado na fila do município, link
+    de recuperação enviado pelo trabalhador ao e-mail DA PESSOA quando a
+    recuperação por e-mail está ligada), sem senha na resposta, com o tempo e os
+    efeitos da decisão 3. As funções antigas são recusadas pelo banco a partir
+    da 064.
   - **Se o CP-50 decidir manter alguma intervenção depois da liberação**, ela
     só existe se cumprir as quatro condições juntas: (a) conta como "outra
-    conta" QUALQUER conta ligada à pessoa, ativa ou desativada, e todo convite
-    aberto para ela; (b) toma a trava da pessoa e é serializada com convite,
-    aceite, ativação, reativação e mudança de credencial; (c) responde ao
-    administrador o mesmo status e o mesmo corpo com ou sem outra conta; (d)
-    nunca devolve senha ao administrador. A forma que devolve senha provisória
+    conta" QUALQUER conta ligada à pessoa, ativa ou desativada (o convite
+    aberto não é ligado a pessoa; o que o protege é o aceite com prova nova e a
+    recusa com senha provisória vigente); (b) toma a trava da pessoa e é
+    serializada com aceite, ativação, reativação e mudança de credencial, na
+    ordem da decisão 7; (c) responde ao administrador o mesmo status, corpo,
+    cabeçalhos, tempo e efeitos com ou sem outra conta (decisão 3); (d) nunca
+    devolve senha ao administrador. A forma que devolve senha provisória
     na resposta não cumpre (c) e (d) ao mesmo tempo, e por isso não sobrevive à
     liberação.
 - **Criar conta também não pode ser oráculo.** Hoje o `POST /usuarios` responde
@@ -471,8 +768,11 @@ do município:
   pode ser apresentada como o fechamento. O fechamento é a E10: criar conta vira
   convite, e o 202 é igual para e-mail livre, para pessoa com conta ativa ou
   desativada em outro município e para pessoa com convite aberto em outro
-  município. Até a E10, o oráculo de hoje fica registrado como conhecido, desde
-  a F00, e não aumenta.
+  município, no status, no corpo, nos cabeçalhos, no tempo e nos efeitos que o
+  município lê depois (decisão 3, "Não enumeração"): o pedido só grava o
+  convite do município e o põe na fila, sem consultar pessoa nenhuma. Até a
+  E10, o oráculo de hoje fica registrado como conhecido, desde a F00, e não
+  aumenta.
 - **Reativar conta também não pode ser oráculo.** A reativação pela E09 responde
   igual com ou sem outra pessoa ativa usando o mesmo e-mail em outro lugar. Se
   a pessoa da conta não pode voltar a ser ativa porque o e-mail passou a outra
@@ -492,29 +792,115 @@ cada operação tem escopo declarado:
 | Escopo | Operações | O que revoga |
 | --- | --- | --- |
 | LOCAL (a conta, no município dela) | desativar a conta; suspender ou eliminar o município (console); encerrar as próprias sessões | as sessões e famílias daquela conta e os links de recuperação ligados àquela conta, e mais nada. A pessoa e as outras contas dela não são tocadas |
-| GLOBAL (a pessoa, em todos os municípios) | trocar a senha; recuperar a senha; redefinição pelo administrador no período um para um; ligar, trocar, desligar ou redefinir o segundo fator | todas as sessões e famílias de TODAS as contas da pessoa, todos os links de recuperação da pessoa, os desafios de login e de escolha emitidos antes (decisão 8) e os convites abertos para ela |
+| GLOBAL (a pessoa, em todos os municípios) | trocar a senha; recuperar a senha; redefinição pelo administrador no período um para um; ligar, trocar, desligar ou redefinir o segundo fator | todas as sessões e famílias de TODAS as contas da pessoa, todos os links de recuperação da pessoa e os desafios de login e de escolha emitidos antes (decisão 8). Convite não: ele não é ligado a pessoa enquanto aberto (decisão 1) e o estado dele não muda por evento da pessoa (decisão 3) |
 
-- **Trava comum por pessoa.** Toda operação global, todo aceite e emissão de
-  convite para pessoa existente, toda ativação e reativação de conta e a
-  liberação da segunda conta tomam `pg_advisory_xact_lock` sobre o
-  `pessoa_id` (chave própria, separada da de `travar_sessoes_do_usuario`).
-- **Ordem, para não haver ciclo:** trava da pessoa; depois a linha de
-  `pessoas`; depois as linhas de `usuarios` envolvidas; depois
-  `travar_sessoes_do_usuario` de cada conta, em ordem crescente de
-  `usuarios.id`. Nenhum caminho toma a trava da pessoa depois de já ter tomado
-  uma dessas. Operação local não toma a trava da pessoa e segue a ordem da 049
-  (linha de `usuarios` antes da trava das sessões). A E08 escreve essa ordem no
-  cabeçalho da migração 061.
+O escopo diz o que é REVOGADO. Quem toma qual TRAVA é outra pergunta: a
+desativação é local no que revoga, mas toma a trava da pessoa, porque o gatilho
+da E09 mexe na pessoa. As duas coisas são escritas separadas abaixo.
+
+#### A ordem das travas, completa
+
+A correção 1 mandava a operação global tomar a linha de `pessoas` antes das de
+`usuarios`, e a operação local não tomar a trava da pessoa. Isso fecha um ciclo
+com o gatilho `pessoa_acompanha_as_contas` da E09 (a desativação segura a linha
+da conta e o gatilho pede a linha da pessoa, enquanto a operação global segura
+a pessoa e pede a conta) e não posicionava a linha de `organizacoes`, que o
+login já toma antes da trava das sessões (050 e `emitirPar` em
+`auth/servico.ts`). A ordem que vale para todo caminho que toca identidade é
+uma só, por NÍVEIS:
+
+| Nível | O que se trava | Como |
+| --- | --- | --- |
+| N1 | a linha do município em `organizacoes` | `FOR SHARE` no login, na escolha, na troca e no aceite de convite (a 050); UPDATE na suspensão, na reativação e na eliminação do município (console) |
+| N2 | a trava da pessoa | `travar_pessoa` ou `travar_pessoa_da_conta` (E15), `pg_advisory_xact_lock` com chave própria, separada da de `travar_sessoes_do_usuario`; várias pessoas, em ordem crescente de `pessoa_id` |
+| N3 | linhas de `usuarios` | UPDATE ou INSERT da conta; várias, em ordem crescente de `usuarios.id` |
+| N4 | a linha de `pessoas` | UPDATE (credencial, `ativo`, versão da credencial) ou INSERT da pessoa nova |
+| N5 | linhas das tabelas da pessoa | segundo fator e códigos de recuperação do fator (E11), cotas (E19) |
+| N6 | linhas de `convites_de_vinculo` | UPDATE condicional do estado |
+| N7 | links de recuperação | UPDATE dos links, direto ou pelos gatilhos da 051 movidos na E08 |
+| N8 | a trava das sessões de cada conta | `travar_sessoes_do_usuario` (049), em ordem crescente de `usuarios.id` |
+| N9 | linhas de `sessoes` | INSERT da sessão nova, UPDATE da revogação |
+
+**As regras:**
+
+1. Uma transação pode pular níveis, mas nunca toma um nível MENOR do que um que
+   já segura. Dentro do mesmo nível, sempre em ordem crescente de id.
+2. Gatilho herda o nível do comando que o dispara e só pode tocar níveis
+   MAIORES: o espelho da E15 e o `pessoa_acompanha_as_contas` da E09 vão de N3
+   para N4; o gatilho da 051 movido para `pessoas` vai de N4 para N7, e a parte
+   de `ativo` de `usuarios` vai de N3 para N7. Por isso a ordem tem N3 antes de
+   N4: é o sentido em que os gatilhos já andam.
+3. Toda transação que escreve `ativo` de uma conta, cria conta ou escreve em
+   `pessoas` toma N2 antes de qualquer linha de N3 a N9 daquela pessoa. O
+   gatilho `pessoa_acompanha_as_contas` confere, na própria transação
+   (`pg_locks` do processo), que N2 da pessoa está tomada, e recusa se não
+   estiver: ele nunca toma N2 por conta própria, porque nesse ponto a linha da
+   conta (N3) já está presa.
+4. Leitura sem trava é livre. Quem precisa descobrir as chaves antes (o
+   convite pelo hash do link, o link de recuperação, a conta pelo id) lê sem
+   trava, toma as travas na ordem e RELÊ o que conferiu, recusando se mudou.
+5. O consumo atômico do código do segundo fator (N5) é transação própria, que
+   confirma antes da transação que abre a sessão (N1, N8, N9), ou acontece nela
+   antes de N8.
+6. Quem escreve `pessoas` depois da E08 não trava linha de `usuarios` (a lista
+   de contas da pessoa é lida sem trava, estável porque toda criação e toda
+   desativação de conta da pessoa toma N2).
+7. INSERT de linha nova não é trava de nível, porque nenhuma outra transação
+   enxerga a linha antes da confirmação. A única espera que ele cria é a de
+   índice único (duas transações inserindo o mesmo e-mail ou a mesma conta),
+   em que a segunda espera a primeira terminar; nos caminhos da tabela abaixo,
+   a primeira não espera nada que a segunda segure.
+
+**Por caminho:**
+
+| Caminho | Sequência |
+| --- | --- |
+| login, escolha e troca de município | N1 (`FOR SHARE` no município de destino), N8 da conta, releitura da pessoa e da conta (credencial, versão, `ativo`), N9. Sem N2: a mudança global que chega depois espera em N8 e revoga a sessão nova, como na 050 |
+| suspensão do município (console) | N1 (UPDATE), N8 de cada conta com sessão de pé (id crescente), N9. Como hoje (049) |
+| eliminação do município (`executar_eliminacoes_vencidas`) | N1, N2 de cada pessoa com conta no município (ordem crescente), N8 de cada conta (ordem crescente), e só então o apagamento na ordem das chaves estrangeiras (`ordem_de_apagamento_por_municipio()`), que apaga `sessoes` antes de `usuarios`. É a ÚNICA exceção declarada à regra 1: com N1, todo N2 e todo N8 do município presos, quem ainda pode segurar uma linha de N3 a N9 dele espera por uma dessas travas antes de tocá-la, menos "mudar papel ou equipe", que segura só N3 e não espera por nada; não há ciclo. A E09 escreve esse argumento no cabeçalho da migração que toca o apagamento |
+| desativar e reativar a conta (local) | N2 (`travar_pessoa_da_conta`), N3 (UPDATE de `ativo`; gatilhos: N4 pela E09, N7 pela 051), N8, N9 |
+| mudar papel ou equipe | N3 só (não dispara gatilho de pessoa) |
+| trocar a senha, recuperar, redefinição no período um para um (passo 3 em diante) | N2, N4 (gatilho para N7), N8 de cada conta da pessoa (id crescente), N9 |
+| as mesmas, nos passos 1 e 2 (credencial ainda em `usuarios`) | N3 (gatilhos: espelho para N4, 051 para N7), N8, N9. As funções de hoje não tomam N2 e não precisam: pulam o nível sem violar a ordem |
+| ligar, trocar, desligar ou redefinir o segundo fator | N2, N4, N5, N8 de cada conta, N9 |
+| consumo do código do segundo fator | N5, em transação própria (regra 5) |
+| registrar tentativa de login (falhas e bloqueio) | N2, N4, em transação própria |
+| emitir, reemitir e revogar convite | N6 só (não toca pessoa) |
+| aceitar convite | leitura do convite pelo hash, N1 (`FOR SHARE`), N2 da pessoa existente, INSERT da pessoa nova (regra 7), INSERT da conta, releitura da pessoa existente (credencial, versão, senha provisória), N6 (UPDATE condicional), e N8 e N9 se abrir sessão |
+| abrir link de recuperação (trabalhador) | N2, N7 |
+| liberação (064) | DDL fora da aplicação, numa janela sem a API anterior (decisão 1) |
+
+A E15 escreve essa tabela no cabeçalho da 054, e cada migração que cria ou
+redefine um caminho (E09, E08, E10, E11, E16) cita o caminho e o nível de cada
+comando no próprio cabeçalho.
+
 - **Sobrevivência de família e de link confere as três coisas juntas.** A
   renovação de sessão e o consumo de link só valem se município, conta e pessoa
   baterem com o que estava gravado, e se a versão da credencial da pessoa ainda
   for a mesma.
-- **Testes concorrentes obrigatórios (E08):** recuperação em A durante
-  renovação em B (B não renova); desativação em A durante renovação em B (B
-  renova); troca de senha concorrente com aceite de convite (nenhum dos dois
-  perde a escrita, nenhum deadlock); dois consumos do mesmo link em municípios
-  diferentes (um só vence). Os testes de B com a mesma pessoa rodam depois da
-  liberação (E16), na E18.
+- **Testes concorrentes obrigatórios**, cada um com duas conexões e a ordem
+  forçada nos DOIS sentidos (cada lado chega primeiro uma vez), sem nenhum
+  40P01 e com o estado final conferido:
+  - E08: recuperação em A durante renovação em B (B não renova); desativação em
+    A durante renovação em B (B renova); troca de senha concorrente com aceite
+    de convite (nenhum dos dois perde a escrita); dois consumos do mesmo link
+    em municípios diferentes (um só vence); troca de senha (global)
+    concorrente com a desativação da última conta ativa da pessoa (gatilho da
+    E09): os dois efeitos ficam, a pessoa termina inativa e sem sessão;
+  - E09: desativação concorrente com troca de senha e com recuperação da mesma
+    pessoa; reativação concorrente com a desativação de outra conta da mesma
+    pessoa; o gatilho `pessoa_acompanha_as_contas` disparado sem N2 é recusado;
+    eliminação de município concorrente com a troca de senha de uma pessoa que
+    tem conta nele;
+  - E16: login, escolha e troca concorrentes com a suspensão do município de
+    destino (nenhuma sessão de pé depois da suspensão, nos dois sentidos);
+    troca concorrente com a desativação da conta de destino; escolha
+    concorrente com a recuperação da senha da pessoa (o desafio emitido antes
+    não abre sessão depois).
+
+  Os testes que precisam da mesma pessoa em A e B rodam depois da liberação
+  (064), na E18; antes dela, os mesmos encontros são provados com uma conta
+  só.
 
 ### 8. Requisitos que a segunda leitura de segurança fixou para a E11, a E16 e o catálogo da 0B
 
@@ -545,10 +931,14 @@ cada operação tem escopo declarado:
 - `mfa_verificado_em` é o horário da conferência real do código, gravado pelo
   servidor na sessão; renovação de sessão e troca de município nunca o
   recalculam nem o estendem;
-- a troca exige a prova nova da decisão 2;
-- a mesma migração (063) faz a liberação da segunda conta (passo 4), com as
-  condições da decisão 1, e a E16 deixa `redefinir-senha` e o reset do superior
-  na forma final da decisão 6.
+- a troca exige a prova nova da decisão 2, e a escolha e a troca exigem o
+  código sempre que o login exigiria (fator ligado por obrigação ou por
+  vontade da pessoa), nunca menos que o login;
+- a 063 cria as proteções sem mudar o contrato de função nenhuma que a API
+  anterior chama, e a liberação (passo 4) é a 064, migração própria, aplicada
+  só depois da API nova em todas as instâncias, com a marca de liberação, a
+  revogação do caminho antigo e o rollback da decisão 1; a API da E16 já usa
+  `redefinir-senha` e o reset do superior na forma final da decisão 6.
 
 **Catálogo da parte 0B (`FUNCOES_PRIVILEGIADAS` e `EXCECOES_AO_ISOLAMENTO`):**
 
@@ -569,16 +959,28 @@ cada operação tem escopo declarado:
   conferidas na policy, como hoje, e `pessoas` mantém RLS forçada e zero grant;
 - os testes de hoje sobre grants efetivos, RLS, chaves estrangeiras e auditoria
   continuam valendo sem afrouxamento, inclusive a distinção entre "sem a
-  coluna" e "sem policy".
+  coluna" e "sem policy";
+- o corpo de cada função da lista é conferido: nenhuma contém DDL (`ALTER`,
+  `DROP`, `CREATE`, `DISABLE TRIGGER`) nem mexe em `session_replication_role`;
+  `EXECUTE` de texto montado só é aceito com modelo constante de DML no
+  próprio corpo (como o `format('DELETE FROM %I ...')` da 038), e qualquer
+  outro reprova; e o `dc360_app` não tem o
+  privilégio `TRIGGER` em tabela nenhuma (decisão 1, alcance do gatilho);
+- as funções do caminho antigo da liberação (decisão 1) ficam marcadas na lista
+  como "recusada depois da liberação", e o teste confere, com a marca presente,
+  que nenhuma delas tem EXECUTE do `dc360_app` e que todas recusam pela marca.
 
 ### Premissas do plano da F03 que esta ADR fixa como norma
 
 O plano (`docs/roadmap-v2/retomada/plano-f03.md`, seção 1) tem doze premissas.
 Algumas são norma de segurança e ficam valendo como esta ADR; as outras são
 ordem de trabalho e não são regra de produto. Duas premissas do plano foram
-alteradas por esta correção (a herança do segundo fator na troca, na E16, e o
+alteradas pela correção 1 (a herança do segundo fator na troca, na E16, e o
 409 `pessoa_em_varios_municipios`, na E08 e na E11); a mudança exata do plano
-está no RESUMO da correção 1, para o orquestrador.
+está no RESUMO da correção 1, para o orquestrador. A correção 2 muda a
+numeração das migrações (a liberação ganha migração própria, 064, e a E17 e a
+E20 andam uma casa), a conta pendente da E10, o gatilho da E09 e os testes
+concorrentes de várias partes; a mudança exata está no RESUMO da correção 2.
 
 | Premissa | O que diz | Aqui é |
 | --- | --- | --- |
@@ -593,7 +995,7 @@ está no RESUMO da correção 1, para o orquestrador.
 | P-09 | login do `usuario_orgao` fechado no lote 1; `PORTAL_ATIVO` declarado na 1C e ligado na 2A | NORMA: a conta `usuario_orgao` não entra antes do G03 (decisão 5) |
 | P-10 | E10 e E18 divididas em banco e API | ordem de trabalho |
 | P-11 | pontos de extensão vazios na abertura da API | NORMA só na parte da configuração: toda chave da F03 nasce com padrão fechado e sem efeito |
-| P-12 | migrações 053 a 065 | numeração, não norma (a liberação entra na 063, sem migração nova) |
+| P-12 | migrações 053 a 065 | numeração, não norma; pela correção 2 vão a 066, porque a liberação é migração própria (064) e precisa ser aplicada em separado da 063 |
 
 ## Consequências
 
@@ -607,31 +1009,31 @@ está no RESUMO da correção 1, para o orquestrador.
 | E05 | `orgao_vinculos` por município, chave composta com a conta e o órgão, encerra e não apaga |
 | E06 | ator (conta, pessoa, papel, órgão) no contexto do banco; papel e pessoa vêm da vigência, nunca do token; é dele que as funções da decisão 3 leem o solicitante |
 | E07 | plateia pela conta escolhida; `dc360-portal` não vale no painel e vice-versa; registra nesta ADR o que provou (lote 7B) |
-| E08 | passo 3 inteiro (privilégio de tabela retirado, lista positiva por coluna, escritores privilegiados redefinidos, gatilhos movidos, colunas antigas esvaziadas e sem SELECT); funções de autenticação conferem tenant e solicitante (decisão 3); `abrir_recuperacao` e os links na pessoa; escopos local e global e a trava da pessoa (decisão 7); `redefinir-senha` gravando em `pessoas` sob a trava |
-| E09 | e-mail único só entre PESSOAS ativas; o `PATCH /usuarios/:id` deixa de aceitar e-mail; reativação com resposta igual (decisão 6); conta desativada nunca se reativa para outra pessoa; NÃO se apresenta como fechamento da enumeração no cadastro |
-| E10 | conta nasce por convite; 202 igual nos quatro casos da decisão 6; a ligação a pessoa existente só no aceite, uma vez; até o passo 4 o aceite por pessoa que já tem conta é recusado à própria pessoa, com mensagem neutra, e a resposta ao administrador não muda; convidar não muda a credencial de quem já existe; mudança de credencial invalida o convite aberto, e quem convidou vê o mesmo estado de convite vencido |
+| E08 | passo 3 inteiro (privilégio de tabela retirado, lista positiva por coluna, escritores privilegiados redefinidos, gatilhos movidos, colunas antigas esvaziadas e sem SELECT); funções de autenticação conferem tenant e solicitante (decisão 3); `abrir_recuperacao` e os links na pessoa; escopos local e global e a ordem das travas por nível, escrita na 061 para os caminhos dela (decisão 7); `redefinir-senha` gravando em `pessoas` sob a trava; o pedido público de recuperação com consulta e envio só no trabalhador (decisão 3); `ultimo_acesso` fica na conta |
+| E09 | e-mail único só entre PESSOAS ativas (o índice parcial substitui o total de `pessoas` da E15 e os dois de `usuarios`); o `PATCH /usuarios/:id` deixa de aceitar e-mail; reativação com resposta igual (decisão 6); conta desativada nunca se reativa para outra pessoa; o gatilho `pessoa_acompanha_as_contas` com trabalho igual em todos os casos e recusando sem N2; a desativação, a reativação e a eliminação de município tomando as travas da decisão 7; NÃO se apresenta como fechamento da enumeração no cadastro |
+| E10 | o convite NÃO cria conta: `convites_de_vinculo` guarda o que o município digitou, e a conta nasce em `aceitar_convite` já com a pessoa comprovada (decisão 1); `convidar_pessoa` sem consulta a `pessoas`; 202 igual nos quatro casos, no tempo e nos efeitos da decisão 3, com o envio por fila; aceite por pessoa existente com prova nova, e-mail igual ao do convite e sem senha provisória vigente; até o passo 4 o aceite por pessoa que já tem conta é recusado à própria pessoa, com mensagem neutra, e o município não vê diferença; convidar não muda a credencial de quem já existe; evento global da pessoa não muda o estado de convite nenhum |
 | E11 | segundo fator na pessoa; obrigatório para `usuario_orgao`, coordenador e administrador; os requisitos da decisão 8; reset pelo superior só no período um para um, sem 409 `pessoa_em_varios_municipios` |
 | E12 e E13 | rota sem ação declarada é negada; a matriz inclui o `usuario_orgao` |
 | E14 | recorte em lista positiva |
-| E15 | `pessoas` com as quatro travas da decisão 3; `UNIQUE (pessoa_id)` total em `usuarios`; `pessoa_id` imutável e fora do privilégio da aplicação; gatilho que só cria pessoa nova; backfill sem perda; espelho da credencial e do e-mail (passo 1); inventário completo da decisão 1 |
-| E16 | login em dois passos; escolha e troca como operações restritas, a troca com prova nova (decisão 2); requisitos da decisão 8; liberação da segunda conta (passo 4) e forma final das intervenções da decisão 6, no mesmo SHA |
+| E15 | `pessoas` com as quatro travas da decisão 3; `UNIQUE (pessoa_id)` total em `usuarios`; `pessoa_id` `NOT NULL` depois do backfill, imutável (`IS DISTINCT FROM`) e fora do privilégio da aplicação; gatilho que só cria pessoa nova, para conta que chega sem pessoa; gatilho adiado que só aceita conta com pessoa preenchida vinda de `aceitar_convite`; `pessoas_email_idx` total; `travar_pessoa` e `travar_pessoa_da_conta`; a tabela de níveis da decisão 7 no cabeçalho da 054; backfill sem perda; espelho da credencial e do e-mail (passo 1); inventário completo da decisão 1 |
+| E16 | login em dois passos; escolha e troca como operações restritas, a troca com prova nova e nenhuma das duas mais fraca que o login (decisão 2); requisitos da decisão 8; 063 aditiva, implantação conferida em todas as instâncias e só então a 064 (liberação com marca, revogação do caminho antigo e rollback, decisão 1); forma final das intervenções da decisão 6 na API da E16 |
 | E17 | órgão externo como linha em cada município; a mesma pessoa convidada por cada um; roda depois do passo 4 |
 | E18 | prova de cruzamento com a mesma pessoa em A e B, banco e API, depois do passo 4; registra nesta ADR o resultado (lote 7B) |
 | E19 | `cotas_de_uso` como exceção nomeada própria, chave por HMAC |
-| E20 | a trilha da conta não revela evento de outra pessoa nem de outro município |
+| E20 | a trilha da conta não revela evento de outra pessoa nem de outro município, e registra o mesmo evento para pessoa nova ou existente (decisão 3) |
 | E21 | o sigilo usa o ator da E06; nada muda nesta ADR |
 
 ### Testes obrigatórios que a etapa responsável traz
 
 | Etapa | Teste |
 | --- | --- |
-| 0B | sobrecarga de função privilegiada com o mesmo nome e outra assinatura reprova; EXECUTE a mais que a ACL declarada reprova; tabela da lista de exceções que deixa de cumprir um invariante declarado como mantido (por exemplo, `pessoas` sem RLS forçada ou com grant ao `dc360_app`) reprova |
-| E15 | segunda conta (ativa ou desativada) com o mesmo `pessoa_id` recusada pelo banco; UPDATE de `pessoa_id` já preenchido recusado, como `dc360_app` e como dono; INSERT e UPDATE de `pessoa_id` pelo `dc360_app` com "permissão negada"; e-mail de pessoa existente não liga a conta nova a ela; toque em `pessoas` pelo `dc360_app` com "permissão negada" |
-| E08 | para CADA coluna antiga (`senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate`, `email`, `pessoa_id`), UPDATE pelo `dc360_app` recebe "permissão negada"; SELECT das colunas de credencial também; cada função do inventário, chamada, não muda as colunas antigas; função chamada com alvo e sem solicitante conferido é recusada; troca de senha de outra pessoa com a própria sessão é recusada; os testes concorrentes da decisão 7 |
-| E09 | o `PATCH` com e-mail diferente é recusado; reativação com resposta byte a byte igual com e sem outra pessoa ativa usando o e-mail |
-| E10 | 202 com status, corpo e cabeçalhos iguais para: e-mail livre, pessoa com conta ativa em outro município, pessoa só com conta desativada em outro município, pessoa com convite aberto em outro município; aceite com a sessão de outra pessoa recusado; aceite por pessoa que já tem conta recusado até o passo 4 |
+| 0B | sobrecarga de função privilegiada com o mesmo nome e outra assinatura reprova; EXECUTE a mais que a ACL declarada reprova; tabela da lista de exceções que deixa de cumprir um invariante declarado como mantido (por exemplo, `pessoas` sem RLS forçada ou com grant ao `dc360_app`) reprova; função da lista com DDL ou `session_replication_role` no corpo reprova; `dc360_app` com privilégio `TRIGGER` reprova |
+| E15 | segunda conta (ativa ou desativada) com o mesmo `pessoa_id` recusada pelo banco; UPDATE de `pessoa_id` recusado, como `dc360_app` e como dono; INSERT de conta com `pessoa_id` preenchido fora de `aceitar_convite` recusado no fim da transação, também pelo dono; INSERT e UPDATE de `pessoa_id` pelo `dc360_app` com "permissão negada"; e-mail de pessoa existente não liga a conta nova a ela; segunda pessoa com o mesmo e-mail recusada por `pessoas_email_idx`; o gatilho de imutabilidade está habilitado depois de toda a cadeia de migrações; toque em `pessoas` pelo `dc360_app` com "permissão negada" |
+| E08 | para CADA coluna antiga (`senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate`, `email`, `pessoa_id`), UPDATE pelo `dc360_app` recebe "permissão negada"; SELECT das colunas de credencial também; cada função do inventário, chamada, não muda as colunas antigas; função chamada com alvo e sem solicitante conferido é recusada; troca de senha de outra pessoa com a própria sessão é recusada; os testes concorrentes da E08 na decisão 7; o pedido público de recuperação com o teste estrutural da decisão 3 (mesma sequência de comandos com e sem a pessoa) |
+| E09 | o `PATCH` com e-mail diferente é recusado; reativação com resposta byte a byte igual com e sem outra pessoa ativa usando o e-mail; desativação e reativação no teste de tempo da decisão 3, com e sem conta da pessoa em outro município; os testes concorrentes da E09 na decisão 7 |
+| E10 | o convite não cria linha em `usuarios`; o teste estrutural e o de tempo da decisão 3 nos quatro casos (e-mail livre, pessoa com conta ativa em outro município, pessoa só com conta desativada em outro município, pessoa com convite aberto em outro município), cobrindo status, corpo, cabeçalhos, a sequência de comandos e, depois do trabalhador, lista de contas, lista de convites, contagens, trilha e reemissão; troca de senha, recuperação e mudança de fator da pessoa não mudam o estado de convite nenhum; aceite com a sessão de outra pessoa recusado; aceite por pessoa existente sem a senha conferida na hora, com e-mail diferente do convite ou com senha provisória vigente recusado; dois aceites concorrentes do mesmo convite: um vence, o outro volta sem deixar conta; aceite por pessoa que já tem conta recusado até o passo 4 |
 | E11 | o mesmo código TOTP em duas entradas concorrentes vale uma vez; desligar com só a senha é recusado; desligar com conta ativa de fator obrigatório é recusado; falhas do fator não mexem nas falhas de senha |
-| E16 | desafio de escolha emitido antes de uma recuperação não cria sessão depois dela; desafio de escolha não vale como desafio do segundo fator, nem o contrário; troca com só o token de origem é recusada; troca não estende `mfa_verificado_em`; `organizacaoId` fora da lista responde 404 sem nenhuma consulta de negócio do destino; na liberação, `redefinir-senha` e o reset do superior respondem igual com e sem outra conta |
+| E16 | desafio de escolha emitido antes de uma recuperação não cria sessão depois dela; desafio de escolha não vale como desafio do segundo fator, nem o contrário; troca com só o token de origem é recusada; troca não estende `mfa_verificado_em`; `organizacaoId` fora da lista responde 404 sem nenhuma consulta de negócio do destino; troca e escolha pedem o código com o fator ligado por vontade da pessoa em papel sem obrigação; `redefinir-senha` e o reset do superior na forma final com o teste estrutural e o de tempo da decisão 3, com e sem outra conta; os testes da liberação da decisão 1 (API anterior contra o banco liberado falha fechada, funções do caminho antigo recusam pela marca, `desfazer/` da 064 nos dois sentidos); os testes concorrentes da E16 na decisão 7 |
 | E18 | mesma pessoa em A e B: desativação em A não toca B; recuperação em A revoga B; nenhuma rota de A responde diferente por causa de B |
 
 ### O que fica proibido
@@ -652,8 +1054,21 @@ São as mesmas condições que reabrem o G03:
   `usuarios` para o `dc360_app` depois do passo 3;
 - duas contas ligadas à mesma pessoa antes do passo 4; `pessoa_id` que muda
   depois de atribuído; conta ligada a pessoa existente fora de `aceitar_convite`;
+  conta pendente em `usuarios` criada pelo convite;
+- retirar o `UNIQUE (pessoa_id)` na mesma migração que cria as proteções, ou
+  antes de a API nova estar em todas as instâncias; função do caminho antigo
+  que continue aceitando chamada depois da marca de liberação;
+- escolha ou troca de município que peça menos que o login no mesmo destino;
+- caminho que tome um nível de trava menor do que um que já segura (decisão 7),
+  fora da exceção declarada da eliminação; gatilho que tome a trava da pessoa
+  por conta própria;
 - 403 onde o recurso é de outro município (é 404);
-- resposta a município que dependa de conta, pessoa ou convite em outro;
+- resposta a município que dependa de conta, pessoa ou convite em outro, no
+  status, no corpo, nos cabeçalhos, no tempo ou nos efeitos que ele lê depois;
+  pedido de município que consulte `pessoas` ou espere o provedor de e-mail
+  antes de responder (fora da exceção declarada da E09); limite por e-mail ou
+  pessoa no sistema inteiro visível ao município; evento global da pessoa que
+  mude o estado de um convite;
 - município que define senha, e-mail ou segundo fator de pessoa com conta em
   outro município, ou que enxerga a conta, o vínculo ou a sessão dela em outro;
 - revogação global feita só por conta, ou revogação local que alcance outra
@@ -695,7 +1110,19 @@ São as mesmas condições que reabrem o G03:
   código de recuperação) ou o console do fornecedor. É a pendência H94, com a
   recomendação nova no RESUMO da correção 1.
 - **A troca de município custa uma digitação de senha** (e um código, quando o
-  destino exige o fator). Com uma conta, nada muda.
+  fator está ligado ou o papel no destino o exige). Com uma conta, nada muda.
+- **A liberação da segunda conta é um procedimento, não um merge.** Exige duas
+  migrações aplicadas em momentos diferentes, com a implantação conferida no
+  meio, e depois da primeira segunda conta não há volta para a API anterior.
+  Se a conferência falhar, a instância esquecida para de atender os caminhos
+  antigos (custo de disponibilidade, não de segurança).
+- **O convite fica mais lento de ver acontecer.** O e-mail sai de uma fila, e o
+  município não vê se a pessoa já existia nem se a mensagem foi entregue; vê só
+  "aberto", "aceito", "vencido" ou "revogado".
+- **A desativação e a reativação tocam a pessoa dentro do pedido** (gatilho da
+  E09). O trabalho é igual em todos os casos e entra no teste de tempo, mas a
+  igualdade é por medida, não por construção, como nos pedidos que só gravam
+  na fila.
 - **Login mais longo e cliente que precisa ser atualizado:** quem tem várias
   contas passa pela escolha, e cliente abaixo de `VERSAO_ESCOLHA_DE_MUNICIPIO`
   com várias contas recebe 409 (E16). Com uma conta, nada muda.
@@ -720,18 +1147,27 @@ São as mesmas condições que reabrem o G03:
 | Provedor de identidade externo para a pessoa global | Os motivos da ADR 0004 continuam: o `org` do token é contexto de banco e não sai do repositório, e o custo e a operação de um provedor não se pagam para servidor municipal. |
 | Responder 409 `pessoa_em_varios_municipios` ao administrador (primeira redação) | Confirma ao município A uma conta fora de A. Retirada pela correção 1 (decisão 6). |
 | Conflito de cadastro com corpo igual como fechamento da enumeração (E09 da primeira redação) | 201 e 409 continuam distinguíveis: quem administra tenta um e-mail que não está na própria lista e lê a resposta. Só o 202 igual do convite (E10) fecha. |
-| Contar só as contas ATIVAS para liberar intervenção do administrador | Com A ativa e B desativada, A redefiniria a credencial global; quando B reativasse, a credencial conhecida por A abriria B. Por isso a relação um para um conta toda conta, e qualquer intervenção que sobreviva à liberação conta toda conta e todo convite (decisão 6). |
+| Contar só as contas ATIVAS para liberar intervenção do administrador | Com A ativa e B desativada, A redefiniria a credencial global; quando B reativasse, a credencial conhecida por A abriria B. Por isso a relação um para um conta toda conta, e qualquer intervenção que sobreviva à liberação conta toda conta, ativa ou não (decisão 6). |
 | Revogar UPDATE só das colunas antigas, mantendo o UPDATE de tabela da 001 | No Postgres não retira nada: o privilégio de tabela continua cobrindo as colunas. O passo 3 retira o de tabela e concede por coluna (decisão 1). |
 | Converter todas as travas e revogações de conta para pessoa | A desativação em A derrubaria B. A decisão 7 separa o escopo local do global. |
 | Liberar a segunda conta junto do convite (E10) | Ainda haveria escritores antigos da credencial em `usuarios` e as proteções globais não estariam no código. A liberação é o passo 4, na E16. |
+| Liberar a segunda conta na mesma migração das proteções, "no mesmo SHA" (correção 1) | O SHA não diz quais instâncias estão rodando. Aplicada a migração com uma instância anterior de pé, ela oferece a redefinição com senha provisória a A sobre pessoa que já pode ter conta em B. Por isso 063 aditiva, implantação conferida e 064 recusando no banco o caminho antigo (decisão 1). |
+| Conta pendente em `usuarios` criada no convite e ligada à pessoa no aceite | A conta pendente passaria pelo gatilho criador e ganharia pessoa nova; ligar no aceite exigiria trocar `pessoa_id`, ou uma exceção à imutabilidade "enquanto pendente", que é a brecha que a imutabilidade fecha. Também apareceria na lista e nas contagens do município antes do aceite. A conta nasce no aceite (decisão 1). |
+| `convidar_pessoa` que acha a pessoa pelo e-mail na hora do convite (roteiro original da E10) | Põe a consulta global dentro do pedido do município, com caminho e tempo diferentes conforme a pessoa exista, e liga convite a pessoa por coincidência de e-mail. O convite guarda só o que o município digitou e quem decide é a pessoa, no aceite (decisões 1 e 3). |
+| Convite aberto invalidado por troca de senha ou recuperação da pessoa (correção 1) | O município veria o convite "vencer" antes do prazo e saberia que a pessoa existe e teve um evento. A proteção vem do aceite com prova nova e da recusa com senha provisória vigente (decisões 1 e 3). |
+| Ordem de travas com a pessoa antes da conta, e operação local sem a trava da pessoa (correção 1) | Fecha ciclo com o gatilho `pessoa_acompanha_as_contas` da E09, que anda da conta para a pessoa, e não posicionava a linha do município que o login toma (050). A ordem por níveis da decisão 7 põe a conta antes da pessoa, que é o sentido dos gatilhos, e faz a desativação tomar a trava da pessoa. |
+| Troca e escolha pedindo o código só quando o papel no destino exige o fator | Quem ligou o fator por vontade própria teria, na troca, uma entrada mais fraca que o login normal no mesmo destino. A régua é a do login (decisão 2). |
 
 ## Estado e aceite
 
 - **Situação:** PROPOSTA.
 - **Aceite do Rafael (H97):** desta ADR e da redação proposta para o CLAUDE.md
-  (`docs/evidencias-v2/G03/V2-F03-E01/correcao-1/proposta-de-redacao-do-claude-md.md`).
+  (`docs/evidencias-v2/G03/V2-F03-E01/correcao-2/proposta-de-redacao-do-claude-md.md`).
   Com o aceite, a situação passa a "aceita, em vigor" com a data, e o trecho
   entra no CLAUDE.md pela mão dele.
+- **Liberação em produção:** a conferência de que nenhuma instância anterior
+  atende o banco antes da 064 é operacional e fica com quem implanta (pendência
+  nova, no RESUMO da correção 2); a recusa no banco vale mesmo sem ela.
 - **Parecer do encarregado (CP-49):** base legal da identidade global, o que
   fica na pessoa e o que fica na conta, controlador de cada dado, retenção da
   pessoa sem conta e atendimento ao titular com vários vínculos. Bloqueia só a
@@ -743,11 +1179,14 @@ São as mesmas condições que reabrem o G03:
   forma mais leve só com o risco aceito por ele, por escrito.
 - **H94 (redefinição por administrador):** recomendação refeita pela correção 1
   (RESUMO da correção, seção "Para o orquestrador").
-- **Segunda leitura de segurança:** feita (Codex, somente leitura, onze achados,
-  oito bloqueando o aceite); a correção 1 fecha os onze nesta redação, e a
-  tabela está no RESUMO da correção. Os requisitos que dependem de código
-  futuro (decisões 7 e 8) são cobrados pelos testes da etapa dona, não por esta
-  ADR.
+- **Revisão de segurança:** primeira rodada (Codex, somente leitura, onze
+  achados, oito bloqueando o aceite), respondida pela correção 1; segunda
+  rodada sobre a correção 1 (sete fechados como requisito, quatro parciais,
+  quatro bloqueios novos), respondida pela correção 2, com a tabela no RESUMO
+  dela. "Fechado" aqui quer dizer fechado como requisito desta ADR: nada disso
+  está implementado, e os requisitos que dependem de código futuro (decisões 1,
+  3, 7 e 8) são cobrados pelos testes da etapa dona. Se a revisão fizer uma
+  terceira rodada, ela é sobre esta redação.
 - **Registros previstos nesta ADR:** o que a E07 (plateia) e a E18 (cruzamento)
   provarem entra como nota no fim, na consolidação da F03 (lote 7B), sem
   reescrever o texto acima.
@@ -767,7 +1206,8 @@ São as mesmas condições que reabrem o G03:
   `convite.test.ts` (E10), `escolha-de-municipio.test.ts` (E16),
   `db/test/pessoa-em-dois-municipios.test.ts` e
   `apps/api/test/cruzamento-de-municipios.test.ts` (E18).
-- Revisão de segurança e correção: `docs/evidencias-v2/G03/V2-F03-E01/correcao-1/`.
+- Revisão de segurança e correções: `docs/evidencias-v2/G03/V2-F03-E01/correcao-1/`
+  e `docs/evidencias-v2/G03/V2-F03-E01/correcao-2/`.
 - Pessoas e papéis em linguagem de gente: `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`,
   seção "Pessoa, conta e vínculo".
 - Backlog que esta decisão substitui: `dc360/apps/api/PENDENCIAS.md`, seção
