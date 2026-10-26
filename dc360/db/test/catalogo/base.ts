@@ -21,6 +21,7 @@ import type {
   ExcecaoAoIsolamento,
   FuncaoPrivilegiada,
   PreparoDeTabela,
+  PrivilegioDeColuna,
 } from "./tipos.js";
 
 const APP = ["dc360_app"] as const;
@@ -746,10 +747,33 @@ const preparos: readonly PreparoDeTabela[] = [
   },
 ];
 
+/**
+ * O privilégio por coluna que NÃO é o UPDATE do papel de aplicação (parte 0G):
+ * hoje, só o do console nas duas colunas de cancelamento do livro de
+ * eliminações (038). Até a 0G ele morava só no portão
+ * (`O_CONSOLE_ALCANCA_POR_COLUNA`, que continua lá como segunda trava); agora a
+ * conferência de privilégio por coluna também o cobra, nos dois sentidos.
+ */
+const privilegiosDeColuna: readonly PrivilegioDeColuna[] = [
+  {
+    tabela: "eliminacoes_de_municipio",
+    papel: "dc360_console",
+    privilegio: "UPDATE",
+    colunas: ["cancelada_em", "cancelada_por_email"],
+    migracao: "038",
+    etapa: "base",
+    motivo:
+      "O console cancela uma eliminação agendada e mais nada naquela linha: o livro de " +
+      "eliminações é registro do pedido (quem, quando, por quê, as contagens) e não se reescreve.",
+  },
+];
+
 export const BASE: ContribuicaoDoCatalogo = {
   funcoes,
   excecoes,
   colunasComUpdate,
+  privilegiosDeColuna,
+  chavesParaGlobais: [],
   preparos,
   semProvaComportamental: [],
   policiesRestritivas: [],

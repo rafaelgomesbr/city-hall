@@ -19,6 +19,12 @@
  * junção com o rótulo dele, e cada entrada diz a etapa do arquivo), e nunca a
  * lista de nomes: cada parte da F03 (1A, 1B...) edita só o próprio arquivo de
  * etapa, sem colidir com as outras neste.
+ *
+ * As sondas 12 a 16 são da parte 0G (as formas que a ADR 0009 pedia e o portão
+ * não sabia dizer: privilégio por coluna de INSERT e SELECT, chave estrangeira
+ * para tabela global, tabela protegida sem município com o destino na
+ * eliminação provado, e o caminho da tabela temporária de mesmo nome que um
+ * gatilho privilegiado aceitava).
  */
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync, readdirSync } from "node:fs";
@@ -27,21 +33,31 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BASE } from "./catalogo/base.js";
 import {
+  CHAVES_PARA_GLOBAIS,
   CONTRIBUICOES_DO_CATALOGO,
   EXCECOES_AO_ISOLAMENTO,
   FUNCOES_PRIVILEGIADAS,
   INVARIANTES,
+  PRIVILEGIOS_DE_COLUNA,
+  conferirChavesEstrangeiras,
+  conferirCriacaoDeObjetos,
+  conferirEliminacaoSemMunicipio,
   conferirEsquemas,
   conferirExcecoes,
   conferirFontes,
   conferirFuncoesPrivilegiadas,
+  conferirGatilhosPrivilegiados,
+  conferirPrivilegiosDeColuna,
   fontesDoRepositorio,
   juntarCatalogo,
   quemExecuta,
+  type ChaveParaTabelaGlobal,
+  type ColunaComPrivilegio,
   type ContribuicaoDoCatalogo,
   type ExcecaoAoIsolamento,
   type FontesDoCatalogo,
   type FuncaoPrivilegiada,
+  type PrivilegioDeColuna,
 } from "./catalogo/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -205,6 +221,16 @@ describe("a BASE congelada (só ela é fixada aqui)", () => {
       "saidas_a_campo.prorrogacoes",
       "saidas_a_campo.retorno_previsto_em",
     ]);
+  });
+
+  it("o único privilégio por coluna que não é UPDATE do app: o cancelamento do livro pelo console (parte 0G)", () => {
+    expect(
+      (BASE.privilegiosDeColuna ?? []).map(
+        (p) => `${p.papel}:${p.tabela}:${p.privilegio}:${p.colunas.join(",")}`,
+      ),
+    ).toEqual(["dc360_console:eliminacoes_de_municipio:UPDATE:cancelada_em,cancelada_por_email"]);
+    expect(BASE.chavesParaGlobais ?? []).toEqual([]);
+    expect(BASE.excecoes.filter((e) => e.semMunicipio)).toEqual([]);
   });
 
   it("a dívida de tenant da base está declarada, com a etapa que a paga", () => {
@@ -939,5 +965,732 @@ describe("sonda 11: a junção das contribuições das etapas", () => {
         ["sonda", { ...vazia, colunasComUpdate: [{ ...c("sonda"), motivo: "curto" }] }],
       ]),
     ).toThrow(/COLUNAS_COM_UPDATE_DO_APP: "t.c" tem motivo curto demais/);
+  });
+});
+
+/* ========================================================================= */
+/* Parte 0G: as formas que a ADR 0009 pedia e o portão não sabia dizer.      */
+/* ========================================================================= */
+
+const MOTIVO_DE_SONDA =
+  "Entrada de sonda: o motivo existe só para passar do tamanho mínimo do texto.";
+
+/** Um grupo de privilégio por coluna de sonda. */
+const grupo = (
+  tabela: string,
+  privilegio: PrivilegioDeColuna["privilegio"],
+  colunas: string[],
+  extra: Partial<PrivilegioDeColuna> = {},
+): PrivilegioDeColuna => ({
+  tabela,
+  papel: "dc360_app",
+  privilegio,
+  colunas,
+  migracao: "999",
+  etapa: "sonda",
+  motivo: MOTIVO_DE_SONDA,
+  ...extra,
+});
+
+const achatar = (gs: readonly PrivilegioDeColuna[]): ColunaComPrivilegio[] =>
+  gs.flatMap((g) =>
+    g.colunas.map((coluna) => ({
+      tabela: g.tabela,
+      coluna,
+      papel: g.papel,
+      privilegio: g.privilegio,
+      etapa: g.etapa,
+    })),
+  );
+
+describe("sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos", () => {
+  const ABRIR = `
+    CREATE TABLE sonda_colunas (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      organizacao_id uuid NOT NULL REFERENCES organizacoes(id),
+      a text, b text, c text);
+    ALTER TABLE sonda_colunas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_colunas FORCE ROW LEVEL SECURITY;
+    GRANT INSERT (organizacao_id, a, b) ON sonda_colunas TO dc360_app;
+    GRANT SELECT (id, a) ON sonda_colunas TO dc360_app;`;
+  const FECHAR = "DROP TABLE sonda_colunas";
+  const DECLARADOS = [
+    grupo("sonda_colunas", "INSERT", ["organizacao_id", "a", "b"]),
+    grupo("sonda_colunas", "SELECT", ["id", "a"]),
+  ];
+  const conferir = (gs: readonly PrivilegioDeColuna[] = DECLARADOS) =>
+    conferirPrivilegiosDeColuna(db, [...PRIVILEGIOS_DE_COLUNA, ...achatar(gs)]);
+
+  it("o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)", async () => {
+    expect(await conferirPrivilegiosDeColuna(db, PRIVILEGIOS_DE_COLUNA)).toEqual([]);
+  });
+
+  it("INSERT e SELECT por coluna, declarados por tabela e papel, passam", async () => {
+    expect(await comBuraco(ABRIR, FECHAR, () => conferir())).toEqual([]);
+  });
+
+  it("INSERT de TABELA dado ao app junto do INSERT de coluna reprova", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR} GRANT INSERT ON sonda_colunas TO dc360_app;`,
+      FECHAR,
+      () => conferir(),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(
+        /^dc360_app:sonda_colunas:INSERT: dc360_app tem INSERT por coluna em sonda_colunas e TAMBÉM o INSERT de tabela/,
+      ),
+    ]);
+  });
+
+  it("coluna a mais no grant reprova", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR} GRANT INSERT (c) ON sonda_colunas TO dc360_app;`,
+      FECHAR,
+      () => conferir(),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(
+        /^privilégio de coluna no banco que o catálogo não declara: dc360_app:sonda_colunas\.c:INSERT/,
+      ),
+    ]);
+  });
+
+  it("coluna declarada que o banco não concede reprova (nada a menos)", async () => {
+    const problemas = await comBuraco(ABRIR, FECHAR, () =>
+      conferir([DECLARADOS[0]!, grupo("sonda_colunas", "SELECT", ["id", "a", "b"])]),
+    );
+    expect(problemas).toEqual([
+      "consta no catálogo e o banco não concede por coluna: dc360_app:sonda_colunas.b:SELECT",
+    ]);
+  });
+
+  it("opção de concessão, PUBLIC e REFERENCES por coluna reprovam", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR}
+       GRANT SELECT (a) ON sonda_colunas TO dc360_app WITH GRANT OPTION;
+       GRANT SELECT (c) ON sonda_colunas TO PUBLIC;
+       GRANT REFERENCES (b) ON sonda_colunas TO dc360_app;`,
+      FECHAR,
+      () => conferir(),
+    );
+    const texto = problemas.join("\n");
+    expect(texto).toMatch(
+      /privilégio de coluna com opção de concessão: dc360_app:sonda_colunas\.a:SELECT/,
+    );
+    expect(texto).toMatch(/não declara: PUBLIC:sonda_colunas\.c:SELECT/);
+    expect(texto).toMatch(/não declara: dc360_app:sonda_colunas\.b:REFERENCES/);
+  });
+
+  it("o console com uma coluna a mais no livro de eliminações reprova", async () => {
+    const problemas = await comBuraco(
+      "GRANT UPDATE (motivo) ON eliminacoes_de_municipio TO dc360_console",
+      "REVOKE UPDATE (motivo) ON eliminacoes_de_municipio FROM dc360_console",
+      () => conferirPrivilegiosDeColuna(db, PRIVILEGIOS_DE_COLUNA),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(/não declara: dc360_console:eliminacoes_de_municipio\.motivo:UPDATE/),
+    ]);
+  });
+
+  it("tirar uma coluna de hoje do catálogo reprova", async () => {
+    const semUma = PRIVILEGIOS_DE_COLUNA.filter(
+      (c) => !(c.tabela === "oficio_envios" && c.coluna === "desfecho"),
+    );
+    expect(await conferirPrivilegiosDeColuna(db, semUma)).toEqual([
+      expect.stringMatching(/não declara: dc360_app:oficio_envios\.desfecho:UPDATE/),
+    ]);
+  });
+
+  it("a junção: grupo repetido, redefinição com migração menor, o mesmo UPDATE nos dois lugares, coluna repetida e motivo curto", () => {
+    const comGrupos = (de: string, gs: PrivilegioDeColuna[]) =>
+      [de, { ...vazia, privilegiosDeColuna: gs }] as const;
+    expect(() =>
+      juntarCatalogo([
+        comGrupos("V2-F03-E15", [grupo("usuarios", "INSERT", ["nome"], { etapa: "V2-F03-E15" })]),
+        comGrupos("V2-F03-E08", [grupo("usuarios", "INSERT", ["nome"], { etapa: "V2-F03-E08" })]),
+      ]),
+    ).toThrow(/PRIVILEGIOS_DE_COLUNA: "dc360_app:usuarios:INSERT" aparece duas vezes/);
+    expect(() =>
+      juntarCatalogo([
+        comGrupos("V2-F03-E15", [
+          grupo("usuarios", "INSERT", ["nome", "email"], { etapa: "V2-F03-E15", migracao: "054" }),
+        ]),
+        comGrupos("V2-F03-E08", [
+          grupo("usuarios", "INSERT", ["nome"], {
+            etapa: "V2-F03-E08",
+            migracao: "053",
+            redefine: true,
+          }),
+        ]),
+      ]),
+    ).toThrow(/redefine com a migração 053, que não é maior que a 054/);
+    const encolhida = juntarCatalogo([
+      comGrupos("V2-F03-E15", [
+        grupo("usuarios", "INSERT", ["nome", "email"], { etapa: "V2-F03-E15", migracao: "054" }),
+      ]),
+      comGrupos("V2-F03-E08", [
+        grupo("usuarios", "INSERT", ["nome"], {
+          etapa: "V2-F03-E08",
+          migracao: "061",
+          redefine: true,
+        }),
+      ]),
+    ]);
+    expect(encolhida.privilegiosDeColunaAchatados.map((c) => c.coluna)).toEqual(["nome"]);
+    expect(() =>
+      juntarCatalogo([
+        ["base", BASE],
+        comGrupos("V2-F03-E15", [
+          grupo("oficio_envios", "UPDATE", ["desfecho"], { etapa: "V2-F03-E15" }),
+        ]),
+      ]),
+    ).toThrow(/também está em COLUNAS_COM_UPDATE_DO_APP \(desfecho, detalhe, provedor_id\)/);
+    expect(() => juntarCatalogo([comGrupos("sonda", [grupo("t", "SELECT", ["a", "a"])])])).toThrow(
+      /"dc360_app:t:SELECT" sem colunas, ou com coluna repetida/,
+    );
+    expect(() =>
+      juntarCatalogo([comGrupos("sonda", [grupo("t", "SELECT", ["a"], { motivo: "curto" })])]),
+    ).toThrow(/PRIVILEGIOS_DE_COLUNA: "dc360_app:t:SELECT" tem motivo curto demais/);
+  });
+});
+
+/** O destino na eliminação de uma tabela de sonda, com a semeadura por uma conta em `usuarios`. */
+const naEliminacaoDeSonda = (
+  tabela: string,
+  destino: "fica" | "some",
+  extra: Partial<NonNullable<ExcecaoAoIsolamento["semMunicipio"]>["naEliminacao"]> = {},
+) => ({
+  destino,
+  porque: "Sonda: o destino declarado existe para a prova da eliminação conferir.",
+  semear:
+    "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +
+    "VALUES (:org, 'Servidor da Prova', 'P-1', 'prova-0g@exemplo.gov.br', 'administrador'); " +
+    `INSERT INTO ${tabela} (usuario_id) SELECT id FROM usuarios WHERE organizacao_id = :org;`,
+  linhasDoMunicipio:
+    `SELECT m.usuario_id AS chave FROM ${tabela} m JOIN usuarios u ON u.id = m.usuario_id ` +
+    "WHERE u.organizacao_id = :org",
+  coluna: "usuario_id",
+  ...extra,
+});
+
+const protegida = (tabela: string, destino: "fica" | "some" = "fica") =>
+  excecaoDeSonda(tabela, {
+    mantem: ["rls_forcada", "grants_declarados", "fk_com_organizacao", "sem_delete"],
+    semMunicipio: { especie: "protegida", naEliminacao: naEliminacaoDeSonda(tabela, destino) },
+  });
+
+const global_ = (tabela: string) =>
+  excecaoDeSonda(tabela, {
+    semMunicipio: {
+      especie: "global",
+      naEliminacao: {
+        destino: "fica",
+        porque: "Sonda: a linha global sobrevive ao município, como a pessoa da ADR 0009.",
+        semear: `INSERT INTO ${tabela} (id) VALUES (gen_random_uuid()); ` + "SELECT :org",
+        linhasDoMunicipio: `SELECT id AS chave FROM ${tabela} WHERE :org IS NOT NULL`,
+        coluna: "id",
+      },
+    },
+  });
+
+describe("sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada", () => {
+  const ISENTAS = [
+    ["console_operadores", "console_operadores"],
+    ["console_codigos_de_recuperacao", "console_operadores"],
+  ] as const;
+  const ABRIR = `
+    CREATE TABLE sonda_pessoas (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+    ALTER TABLE sonda_pessoas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_pessoas FORCE ROW LEVEL SECURITY;
+    CREATE TABLE sonda_contas (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      organizacao_id uuid NOT NULL REFERENCES organizacoes(id),
+      pessoa_id uuid NOT NULL CONSTRAINT sonda_contas_pessoa_fkey REFERENCES sonda_pessoas(id));`;
+  const FECHAR = "DROP TABLE sonda_contas; DROP TABLE sonda_pessoas;";
+  const CHAVE: ChaveParaTabelaGlobal = {
+    tabela: "sonda_contas",
+    restricao: "sonda_contas_pessoa_fkey",
+    colunas: ["pessoa_id"],
+    alvo: "sonda_pessoas",
+    migracao: "999",
+    etapa: "sonda",
+    motivo: MOTIVO_DE_SONDA,
+  };
+  const fk = (
+    excecoes: readonly ExcecaoAoIsolamento[] = [
+      ...EXCECOES_AO_ISOLAMENTO,
+      global_("sonda_pessoas"),
+    ],
+    chaves: readonly ChaveParaTabelaGlobal[] = [...CHAVES_PARA_GLOBAIS, CHAVE],
+  ) => conferirChavesEstrangeiras(db, excecoes, chaves, ISENTAS);
+
+  it("o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome", async () => {
+    expect(await fk(EXCECOES_AO_ISOLAMENTO, CHAVES_PARA_GLOBAIS)).toEqual([]);
+    const semIsencao = await conferirChavesEstrangeiras(
+      db,
+      EXCECOES_AO_ISOLAMENTO,
+      CHAVES_PARA_GLOBAIS,
+      [],
+    );
+    expect(semIsencao).toHaveLength(2);
+    expect(semIsencao.join("\n")).toMatch(/console_codigos_de_recuperacao -> console_operadores/);
+  });
+
+  it("a chave declarada para tabela global declarada passa", async () => {
+    expect(await comBuraco(ABRIR, FECHAR, () => fk())).toEqual([]);
+  });
+
+  it("chave para a tabela global sem a declaração da chave reprova", async () => {
+    const problemas = await comBuraco(ABRIR, FECHAR, () =>
+      fk([...EXCECOES_AO_ISOLAMENTO, global_("sonda_pessoas")], CHAVES_PARA_GLOBAIS),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(
+        /^sonda_contas -> sonda_pessoas \(sonda_contas_pessoa_fkey\) não inclui organizacao_id.*sonda_pessoas é tabela global, e a chave para ela entra por nome/,
+      ),
+    ]);
+  });
+
+  it("chave declarada para tabela que não é global no catálogo reprova", async () => {
+    const problemas = await comBuraco(ABRIR, FECHAR, () =>
+      fk([...EXCECOES_AO_ISOLAMENTO, excecaoDeSonda("sonda_pessoas")]),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(/aponta para sonda_pessoas, que não é tabela global do catálogo/),
+    ]);
+  });
+
+  it("chave sem organizacao_id para outra tabela qualquer continua reprovando", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR} ALTER TABLE sonda_contas ADD COLUMN interesse uuid REFERENCES interesse_municipio(id);`,
+      FECHAR,
+      () => fk(),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(
+        /^sonda_contas -> interesse_municipio \(sonda_contas_interesse_fkey\) não inclui organizacao_id: essa referência alcança linha de outro município$/,
+      ),
+    ]);
+  });
+
+  it("chave para tabela global com cascata, ou com a coluna gravável pelo app, reprova", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR}
+       ALTER TABLE sonda_contas DROP CONSTRAINT sonda_contas_pessoa_fkey;
+       ALTER TABLE sonda_contas ADD CONSTRAINT sonda_contas_pessoa_fkey
+         FOREIGN KEY (pessoa_id) REFERENCES sonda_pessoas(id) ON DELETE CASCADE;
+       GRANT INSERT (organizacao_id, pessoa_id) ON sonda_contas TO dc360_app;
+       GRANT UPDATE ON sonda_contas TO dc360_console;`,
+      FECHAR,
+      () => fk(),
+    );
+    const texto = problemas.join("\n");
+    expect(texto).toMatch(
+      /sonda_contas\.sonda_contas_pessoa_fkey: chave para tabela global com ação em cascata \(ON DELETE c/,
+    );
+    expect(texto).toMatch(/dc360_app tem INSERT em sonda_contas\.pessoa_id/);
+    expect(texto).toMatch(/dc360_console tem UPDATE em sonda_contas\.pessoa_id/);
+  });
+
+  it("chave declarada que o banco não tem, ou que inclui organizacao_id, reprova", async () => {
+    expect(await fk(EXCECOES_AO_ISOLAMENTO, [...CHAVES_PARA_GLOBAIS, CHAVE])).toEqual([
+      "consta em chavesParaGlobais (sonda) mas a restrição não existe no banco: sonda_contas.sonda_contas_pessoa_fkey",
+    ]);
+    const problemas = await comBuraco(
+      `CREATE TABLE sonda_alvo_org (organizacao_id uuid NOT NULL, id uuid NOT NULL, PRIMARY KEY (organizacao_id, id));
+       CREATE TABLE sonda_ref_org (organizacao_id uuid NOT NULL, alvo uuid NOT NULL,
+         CONSTRAINT sonda_ref_org_fkey FOREIGN KEY (organizacao_id, alvo) REFERENCES sonda_alvo_org (organizacao_id, id));`,
+      "DROP TABLE sonda_ref_org; DROP TABLE sonda_alvo_org;",
+      () =>
+        fk(EXCECOES_AO_ISOLAMENTO, [
+          {
+            ...CHAVE,
+            tabela: "sonda_ref_org",
+            restricao: "sonda_ref_org_fkey",
+            colunas: ["organizacao_id", "alvo"],
+            alvo: "sonda_alvo_org",
+          },
+        ]),
+    );
+    expect(problemas.join("\n")).toMatch(
+      /sonda_ref_org\.sonda_ref_org_fkey: declarada em chavesParaGlobais, mas inclui organizacao_id/,
+    );
+  });
+});
+
+describe("sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy", () => {
+  const ABRIR = `
+    CREATE TABLE sonda_marcas (usuario_id uuid PRIMARY KEY, gravada_em timestamptz NOT NULL DEFAULT now());
+    ALTER TABLE sonda_marcas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_marcas FORCE ROW LEVEL SECURITY;`;
+  const FECHAR = "DROP TABLE sonda_marcas";
+  const com = (e: ExcecaoAoIsolamento) => conferirExcecoes(db, [...EXCECOES_AO_ISOLAMENTO, e]);
+
+  it("a protegida e a global, na forma certa, passam", async () => {
+    expect(await comBuraco(ABRIR, FECHAR, () => com(protegida("sonda_marcas")))).toEqual([]);
+    expect(
+      await comBuraco(
+        "CREATE TABLE sonda_global (id uuid PRIMARY KEY); ALTER TABLE sonda_global ENABLE ROW LEVEL SECURITY; ALTER TABLE sonda_global FORCE ROW LEVEL SECURITY;",
+        "DROP TABLE sonda_global",
+        () => com(global_("sonda_global")),
+      ),
+    ).toEqual([]);
+  });
+
+  it("tabela protegida com um grant ao app reprova", async () => {
+    const problemas = await comBuraco(
+      `${ABRIR} GRANT SELECT ON sonda_marcas TO dc360_app;`,
+      FECHAR,
+      () => com(protegida("sonda_marcas")),
+    );
+    const texto = problemas.join("\n");
+    expect(texto).toMatch(
+      /sonda_marcas \(protegida\): tabela sem município que o banco deixa alcançar: dc360_app:SELECT/,
+    );
+    expect(texto).toMatch(/sonda_marcas: declara manter grants_declarados, e o banco diz que não/);
+  });
+
+  it("tabela sem organizacao_id fingindo ser protegida (RLS não forçada, policy aberta, grant declarado) reprova", async () => {
+    const problemas = await comBuraco(
+      `CREATE TABLE sonda_marcas (usuario_id uuid PRIMARY KEY);
+       ALTER TABLE sonda_marcas ENABLE ROW LEVEL SECURITY;
+       GRANT INSERT ON sonda_marcas TO dc360_app;
+       CREATE POLICY sonda_aberta ON sonda_marcas FOR INSERT TO dc360_app WITH CHECK (true);`,
+      FECHAR,
+      () =>
+        com({
+          ...protegida("sonda_marcas"),
+          grants: { dc360_app: ["INSERT"], dc360_console: [], PUBLIC: [] },
+        }),
+    );
+    const texto = problemas.join("\n");
+    expect(texto).toMatch(
+      /sonda_marcas \(protegida\): tabela sem município não concede nada a papel do produto nem a PUBLIC, e a entrada declara dc360_app:INSERT/,
+    );
+    expect(texto).toMatch(
+      /sonda_marcas \(protegida\): tabela sem município que o banco deixa alcançar: dc360_app:INSERT/,
+    );
+    expect(texto).toMatch(
+      /sonda_marcas \(protegida\): tabela sem município sem RLS ativada E forçada/,
+    );
+    expect(texto).toMatch(/sonda_marcas \(protegida\): tabela sem município com 1 policy/);
+  });
+
+  it("tabela sem município que não mantém o que precisa manter reprova", async () => {
+    const e = protegida("sonda_marcas");
+    const problemas = await comBuraco(ABRIR, FECHAR, () =>
+      com({
+        ...e,
+        dispensa: [...e.dispensa, "sem_delete"],
+        mantem: e.mantem.filter((i) => i !== "sem_delete"),
+      }),
+    );
+    expect(problemas.join("\n")).toMatch(
+      /sonda_marcas \(protegida\): tabela sem município precisa MANTER sem_delete/,
+    );
+  });
+
+  it("a junção: sem município e do fornecedor ao mesmo tempo, e o porquê curto, são recusados", () => {
+    expect(() =>
+      juntarCatalogo([
+        [
+          "base",
+          { ...vazia, excecoes: [{ ...protegida("x"), etapa: "base", doFornecedor: true }] },
+        ],
+      ]),
+    ).toThrow(/"x" declara semMunicipio e doFornecedor/);
+    const curta = protegida("x");
+    expect(() =>
+      juntarCatalogo([
+        [
+          "sonda",
+          {
+            ...vazia,
+            excecoes: [
+              {
+                ...curta,
+                semMunicipio: {
+                  ...curta.semMunicipio!,
+                  naEliminacao: { ...curta.semMunicipio!.naEliminacao, porque: "curto" },
+                },
+              },
+            ],
+          },
+        ],
+      ]),
+    ).toThrow(/"x" tem o porquê do destino na eliminação curto demais/);
+  });
+});
+
+describe("sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação", () => {
+  const ABRIR = `
+    CREATE TABLE sonda_marcas (usuario_id uuid PRIMARY KEY);
+    ALTER TABLE sonda_marcas ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_marcas FORCE ROW LEVEL SECURITY;`;
+  const FECHAR = "DROP TABLE sonda_marcas";
+  /** A marca SOME com a conta: um gatilho de usuarios a apaga junto. */
+  const SOME = `
+    CREATE FUNCTION sonda_marca_some() RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp
+      AS $$ BEGIN DELETE FROM public.sonda_marcas WHERE usuario_id = OLD.id; RETURN OLD; END $$;
+    CREATE TRIGGER sonda_marca_some AFTER DELETE ON usuarios FOR EACH ROW EXECUTE FUNCTION sonda_marca_some();`;
+  const FECHAR_SOME =
+    "DROP TRIGGER sonda_marca_some ON usuarios; DROP FUNCTION sonda_marca_some();";
+  const eliminar = (e: ExcecaoAoIsolamento) => conferirEliminacaoSemMunicipio(db, [e]);
+  const organizacoes = async () =>
+    (await db.query<{ n: number }>("SELECT count(*)::int AS n FROM organizacoes")).rows[0]!.n;
+
+  it("o catálogo de hoje não declara nenhuma, e passa", async () => {
+    expect(await conferirEliminacaoSemMunicipio(db, EXCECOES_AO_ISOLAMENTO)).toEqual([]);
+  });
+
+  it("a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco", async () => {
+    const antes = await organizacoes();
+    expect(
+      await comBuraco(ABRIR, FECHAR, () => eliminar(protegida("sonda_marcas", "fica"))),
+    ).toEqual([]);
+    expect(await organizacoes()).toBe(antes);
+  });
+
+  it("a marca que FICA, declarada some, reprova", async () => {
+    expect(
+      await comBuraco(ABRIR, FECHAR, () => eliminar(protegida("sonda_marcas", "some"))),
+    ).toEqual([
+      "sonda_marcas (protegida, some): o catálogo diz que as linhas do município SOMEM na eliminação, e 1 de 1 ficaram",
+    ]);
+  });
+
+  it("a marca que SOME com a conta, declarada some, passa; declarada fica, reprova", async () => {
+    expect(
+      await comBuraco(`${ABRIR} ${SOME}`, `${FECHAR_SOME} ${FECHAR}`, () =>
+        eliminar(protegida("sonda_marcas", "some")),
+      ),
+    ).toEqual([]);
+    expect(
+      await comBuraco(`${ABRIR} ${SOME}`, `${FECHAR_SOME} ${FECHAR}`, () =>
+        eliminar(protegida("sonda_marcas", "fica")),
+      ),
+    ).toEqual([
+      "sonda_marcas (protegida, fica): o catálogo diz que as linhas do município FICAM na eliminação, e 1 de 1 sumiram",
+    ]);
+  });
+
+  it("prova vazia, e semeadura que quebra, reprovam", async () => {
+    const vaziaDeLinhas = protegida("sonda_marcas");
+    expect(
+      await comBuraco(ABRIR, FECHAR, () =>
+        eliminar({
+          ...vaziaDeLinhas,
+          semMunicipio: {
+            especie: "protegida",
+            naEliminacao: { ...vaziaDeLinhas.semMunicipio!.naEliminacao, semear: "SELECT :org" },
+          },
+        }),
+      ),
+    ).toEqual([
+      "sonda_marcas (protegida, fica): linhasDoMunicipio não achou nenhuma linha depois de semear: a prova da eliminação seria vazia",
+    ]);
+    const problemas = await comBuraco(ABRIR, FECHAR, () =>
+      eliminar({
+        ...vaziaDeLinhas,
+        semMunicipio: {
+          especie: "protegida",
+          naEliminacao: {
+            ...vaziaDeLinhas.semMunicipio!.naEliminacao,
+            semear: "INSERT INTO tabela_que_nao_existe VALUES (:org)",
+          },
+        },
+      }),
+    );
+    expect(problemas).toEqual([
+      expect.stringMatching(/a prova do destino na eliminação não chegou ao fim/),
+    ]);
+  });
+});
+
+describe("sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado", () => {
+  /*
+    O caminho que a revisão da 1B achou: com TEMP no banco e EXECUTE numa
+    função de gatilho SECURITY DEFINER, o `dc360_app` cria `pg_temp.<tabela
+    real>`, anexa a ela o gatilho e o faz gravar como o dono numa tabela que
+    ele não alcança. Aqui o ataque roda DE VERDADE.
+  */
+  const BASE_DO_ATAQUE = (confereRelid: boolean) => `
+    CREATE TABLE sonda_cofre (quem text NOT NULL);
+    ALTER TABLE sonda_cofre ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE sonda_cofre FORCE ROW LEVEL SECURITY;
+    CREATE TABLE sonda_alvo (organizacao_id uuid NOT NULL, nome text);
+    CREATE FUNCTION sonda_grava_no_cofre() RETURNS trigger LANGUAGE plpgsql
+      SECURITY DEFINER SET search_path = public, pg_temp AS $$
+      BEGIN
+        ${confereRelid ? "IF TG_RELID <> 'public.sonda_alvo'::regclass THEN RAISE EXCEPTION 'gatilho fora da tabela' USING ERRCODE = '42501'; END IF;" : ""}
+        INSERT INTO public.sonda_cofre (quem) VALUES (NEW.nome);
+        RETURN NEW;
+      END $$;
+    REVOKE ALL ON FUNCTION sonda_grava_no_cofre() FROM PUBLIC;
+    CREATE TRIGGER sonda_alvo_grava AFTER INSERT ON sonda_alvo FOR EACH ROW EXECUTE FUNCTION sonda_grava_no_cofre();`;
+  const FECHAR = `
+    DROP TABLE sonda_alvo; DROP TABLE sonda_cofre; DROP FUNCTION sonda_grava_no_cofre();
+    DO $$ BEGIN EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM dc360_app', current_database()); END $$;`;
+  const TEMP =
+    "DO $$ BEGIN EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO dc360_app', current_database()); END $$;";
+  const EXECUTE = "GRANT EXECUTE ON FUNCTION sonda_grava_no_cofre() TO dc360_app;";
+
+  /** O ataque, como o papel de aplicação. Devolve o erro, ou quantas linhas o cofre ganhou. */
+  async function atacar(): Promise<string | number> {
+    try {
+      await db.transaction(async (tx) => {
+        await tx.exec("SET LOCAL ROLE dc360_app");
+        await tx.exec(
+          "CREATE TEMP TABLE sonda_alvo (organizacao_id uuid, nome text) ON COMMIT DROP",
+        );
+        await tx.exec(
+          "CREATE TRIGGER invasor AFTER INSERT ON pg_temp.sonda_alvo FOR EACH ROW EXECUTE FUNCTION public.sonda_grava_no_cofre()",
+        );
+        await tx.exec("INSERT INTO pg_temp.sonda_alvo VALUES (gen_random_uuid(), 'invasor')");
+      });
+    } catch (erro) {
+      return (erro as Error).message;
+    }
+    return (
+      await db.query<{ n: number }>(
+        "SELECT count(*)::int AS n FROM sonda_cofre WHERE quem = 'invasor'",
+      )
+    ).rows[0]!.n;
+  }
+
+  /** A entrada como o catálogo de ANTES da 0G a aceitava: EXECUTE ao app, sem gatilhoEm. */
+  const ANTIGA: FuncaoPrivilegiada = {
+    nome: "sonda_grava_no_cofre",
+    assinatura: "public.sonda_grava_no_cofre()",
+    migracao: "999",
+    etapa: "sonda",
+    executavelPor: ["dc360_app"],
+    motivo: "Sonda: função de gatilho privilegiada que grava numa tabela que o app não alcança.",
+    tenant: "antes_do_tenant",
+    confere: "Sonda: age só sobre a linha que disparou o gatilho (NEW).",
+    semProva: "Sonda: a prova é o ataque desta própria sonda, que a chama pelo gatilho.",
+  };
+  const NOVA: FuncaoPrivilegiada = { ...ANTIGA, executavelPor: [], gatilhoEm: ["sonda_alvo"] };
+
+  it("o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe", async () => {
+    expect(await conferirCriacaoDeObjetos(db)).toEqual([]);
+    expect(await conferirGatilhosPrivilegiados(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("com TEMP e EXECUTE o ataque grava no cofre; a entrada de antes da 0G passava, e agora as três conferências reprovam", async () => {
+    const [resultado, funcoesAntigas, criacao, gatilhos] = await comBuraco(
+      `${BASE_DO_ATAQUE(false)} ${TEMP} ${EXECUTE}`,
+      FECHAR,
+      async () =>
+        [
+          await atacar(),
+          await conferirFuncoesPrivilegiadas(db, [...FUNCOES_PRIVILEGIADAS, ANTIGA]),
+          await conferirCriacaoDeObjetos(db),
+          await conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+        ] as const,
+    );
+    expect(resultado, "o ataque não gravou: a sonda não reproduz o caminho").toBe(1);
+    expect((funcoesAntigas as string[]).join("\n")).toMatch(
+      /public\.sonda_grava_no_cofre\(\): função de gatilho com EXECUTE declarado \(dc360_app\)/,
+    );
+    expect((funcoesAntigas as string[]).join("\n")).toMatch(/função de gatilho sem gatilhoEm/);
+    expect(criacao).toEqual([expect.stringMatching(/^dc360_app tem TEMPORARY no banco /)]);
+    const texto = (gatilhos as string[]).join("\n");
+    expect(texto).toMatch(
+      /dc360_app tem EXECUTE na função de gatilho privilegiada public\.sonda_grava_no_cofre\(\)/,
+    );
+    expect(texto).toMatch(/não confere a tabela que a disparou \(TG_RELID/);
+    expect(texto).toMatch(/o corpo não cita public\.sonda_alvo qualificado/);
+  });
+
+  it("sem TEMP o ataque não começa, e sem EXECUTE o gatilho não se anexa", async () => {
+    expect(await comBuraco(`${BASE_DO_ATAQUE(false)} ${EXECUTE}`, FECHAR, atacar)).toMatch(
+      /permission denied (to create temporary tables|for schema pg_temp)/,
+    );
+    expect(await comBuraco(`${BASE_DO_ATAQUE(false)} ${TEMP}`, FECHAR, atacar)).toMatch(
+      /permission denied for function (public\.)?sonda_grava_no_cofre/,
+    );
+  });
+
+  it("com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências", async () => {
+    expect(await comBuraco(`${BASE_DO_ATAQUE(true)} ${TEMP} ${EXECUTE}`, FECHAR, atacar)).toMatch(
+      /gatilho fora da tabela/,
+    );
+    const [funcoes_, gatilhos] = await comBuraco(BASE_DO_ATAQUE(true), FECHAR, async () => [
+      await conferirFuncoesPrivilegiadas(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+      await conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+    ]);
+    expect(funcoes_).toEqual([]);
+    expect(gatilhos).toEqual([]);
+  });
+
+  it("o gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam", async () => {
+    const problemas = await comBuraco(
+      `${BASE_DO_ATAQUE(true)}
+       CREATE TABLE sonda_outra (nome text);
+       CREATE TRIGGER sonda_outra_grava AFTER INSERT ON sonda_outra FOR EACH ROW EXECUTE FUNCTION sonda_grava_no_cofre();`,
+      `DROP TABLE sonda_outra; ${FECHAR}`,
+      () => conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+    );
+    expect(problemas).toEqual([
+      "public.sonda_grava_no_cofre(): os gatilhos do banco que a chamam estão em (sonda_alvo, sonda_outra), e o catálogo declara (sonda_alvo)",
+    ]);
+    const nu = await comBuraco(
+      BASE_DO_ATAQUE(true).replace("'public.sonda_alvo'::regclass", "'sonda_alvo'::regclass"),
+      FECHAR,
+      () => conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+    );
+    expect(nu).toEqual([expect.stringMatching(/o corpo não cita public\.sonda_alvo qualificado/)]);
+  });
+
+  it("conferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova", async () => {
+    const PELO_ESQUEMA =
+      "IF TG_TABLE_SCHEMA <> 'public' OR TG_TABLE_NAME <> 'sonda_alvo' THEN RAISE EXCEPTION 'gatilho fora da tabela' USING ERRCODE = '42501'; END IF;";
+    const SO_PELO_NOME =
+      "IF TG_TABLE_NAME <> 'sonda_alvo' THEN RAISE EXCEPTION 'gatilho fora da tabela' USING ERRCODE = '42501'; END IF;";
+    const comCorpo = (conferencia: string) =>
+      BASE_DO_ATAQUE(false).replace("BEGIN\n", `BEGIN\n        ${conferencia}\n`);
+    expect(
+      await comBuraco(comCorpo(PELO_ESQUEMA), FECHAR, () =>
+        conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+      ),
+    ).toEqual([]);
+    expect(await comBuraco(`${comCorpo(PELO_ESQUEMA)} ${TEMP} ${EXECUTE}`, FECHAR, atacar)).toMatch(
+      /gatilho fora da tabela/,
+    );
+    const soPeloNome = await comBuraco(comCorpo(SO_PELO_NOME), FECHAR, () =>
+      conferirGatilhosPrivilegiados(db, [...FUNCOES_PRIVILEGIADAS, NOVA]),
+    );
+    expect(soPeloNome.join("\n")).toMatch(/não confere a tabela que a disparou/);
+    expect(await comBuraco(`${comCorpo(SO_PELO_NOME)} ${TEMP} ${EXECUTE}`, FECHAR, atacar)).toBe(1);
+  });
+
+  it("CREATE no banco ou num esquema, dado a PUBLIC, reprova", async () => {
+    const problemas = await comBuraco(
+      `GRANT CREATE ON SCHEMA public TO PUBLIC;
+       DO $$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO PUBLIC', current_database()); END $$;`,
+      `REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+       DO $$ BEGIN EXECUTE format('REVOKE CREATE ON DATABASE %I FROM PUBLIC', current_database()); END $$;`,
+      () => conferirCriacaoDeObjetos(db),
+    );
+    const texto = problemas.join("\n");
+    for (const papel of ["PUBLIC", "dc360_app", "dc360_console"]) {
+      expect(texto).toMatch(new RegExp(`^${papel} tem CREATE no banco `, "m"));
+      expect(texto).toMatch(new RegExp(`^${papel} tem CREATE no esquema public`, "m"));
+    }
+  });
+
+  it("a função de gatilho na lista com EXECUTE vazio não reprova mais por 'ninguém a chama', e a comum continua reprovando", async () => {
+    const comum = FUNCOES_PRIVILEGIADAS.map((f) =>
+      f.nome === "interesse_recente" ? { ...f, executavelPor: [] } : f,
+    );
+    const problemas = await conferirFuncoesPrivilegiadas(db, comum);
+    expect(problemas.join("\n")).toMatch(/interesse_recente\(text\): sem nenhum papel com EXECUTE/);
+    const comGatilhoEm = FUNCOES_PRIVILEGIADAS.map((f) =>
+      f.nome === "interesse_recente" ? { ...f, gatilhoEm: ["interesse_municipio"] } : f,
+    );
+    expect((await conferirFuncoesPrivilegiadas(db, comGatilhoEm)).join("\n")).toMatch(
+      /interesse_recente\(text\): gatilhoEm numa função que não retorna trigger/,
+    );
   });
 });

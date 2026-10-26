@@ -1111,6 +1111,19 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     demais `*.espacial.test.ts`. Total 75, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0D": { total: 75, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, parte 0G (extensao do portao: as formas que a ADR 0009 pedia e
+    o portao nao sabia dizer). `isolamento.test.ts` ganha 4 casos: todo
+    privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e o do
+    catalogo; o destino de cada tabela sem municipio na eliminacao de verdade;
+    nenhum papel do produto nem PUBLIC com TEMP ou CREATE; e a funcao de
+    gatilho privilegiada sem EXECUTE, nas tabelas declaradas e conferindo a
+    tabela por TG_RELID. O caso das chaves estrangeiras continua um so (a
+    regra foi para `conferirChavesEstrangeiras`). `catalogo-nominal.test.ts`
+    ganha 35 (as sondas 12 a 16 e a fixacao do privilegio de coluna da base).
+    Total 39, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-parte-0G": { total: 39, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

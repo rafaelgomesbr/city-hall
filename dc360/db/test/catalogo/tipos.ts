@@ -22,6 +22,15 @@
  *   - `COLUNAS_COM_UPDATE_DO_APP`: o privilégio de UPDATE por coluna que o
  *     papel de aplicação tem, também por nome.
  *
+ * A parte 0G acrescenta as formas que a ADR 0009 pedia e o portão não sabia
+ * dizer: privilégio por coluna de INSERT, SELECT e UPDATE, por tabela e papel
+ * (`PrivilegioDeColuna`); a tabela sem município com regime próprio, `global`
+ * ou `protegida`, com o destino na eliminação de município provado
+ * (`RegimeSemMunicipio`); a chave estrangeira sem `organizacao_id` só para
+ * tabela `global` e só por nome (`ChaveParaTabelaGlobal`); e a função de
+ * gatilho privilegiada sem EXECUTE de ninguém, presa às tabelas declaradas e
+ * conferindo a que a disparou (`gatilhoEm`).
+ *
  * Quem cria função, exceção ou coluna com UPDATE na F03 escreve a entrada no
  * arquivo da PRÓPRIA etapa (`f03-eNN.ts`), nunca em `isolamento.test.ts`: o
  * portão fica congelado depois desta parte, e o que muda a cada etapa é o
@@ -123,6 +132,22 @@ export interface FuncaoPrivilegiada {
    * função só; marca em função que não cita a tabela reprova.
    */
   readonly gravaOrigemDeConta?: "criador" | "aceite";
+  /**
+   * FUNÇÃO DE GATILHO privilegiada (retorna `trigger`), parte 0G. Obrigatório
+   * (e só aceito) quando a função retorna `trigger`: as tabelas cujos gatilhos
+   * a chamam, como o catálogo nominal escreve o nome (nu em `public`).
+   *
+   * O caminho que isto fecha: com EXECUTE na função e TEMP no banco, o
+   * `dc360_app` criava uma tabela temporária com o MESMO NOME de uma tabela real
+   * (`pg_temp.usuarios`), anexava a ela o gatilho privilegiado e o fazia gravar
+   * em tabela protegida como o dono. Por isso, CONFERIDO
+   * (`conferirGatilhosPrivilegiados`): os gatilhos do banco que chamam a função
+   * estão exatamente nestas tabelas; o corpo confere a tabela que disparou por
+   * `TG_RELID` (ou por `TG_TABLE_SCHEMA` e `TG_TABLE_NAME` juntos) e cita cada
+   * uma delas; e `executavelPor` é VAZIO, porque quem executa função de gatilho
+   * é o gatilho, não o papel (nenhum papel do produto, nem PUBLIC, tem EXECUTE).
+   */
+  readonly gatilhoEm?: readonly string[];
 }
 
 /**
@@ -194,6 +219,132 @@ export interface ExcecaoAoIsolamento {
   /** O que prende a tabela no lugar do que ela dispensa. */
   readonly trava: string;
   readonly redefine?: true;
+  /**
+   * TABELA SEM MUNICÍPIO com regime próprio (parte 0G): `global` (a `pessoas`
+   * da ADR 0009, a única espécie que pode ser ALVO de chave estrangeira sem
+   * `organizacao_id`, e só pelas chaves de `chavesParaGlobais`) ou `protegida`
+   * (a `origens_de_conta`: registro que nenhum papel do produto alcança). Ver
+   * `RegimeSemMunicipio`. Opcional: sem ele, a exceção é a de sempre, e não
+   * pode ser alvo de chave estrangeira.
+   */
+  readonly semMunicipio?: RegimeSemMunicipio;
+}
+
+/**
+ * O regime de uma tabela SEM MUNICÍPIO que o portão aceita por nome (parte
+ * 0G). As duas espécies MANTÊM, conferido no banco: RLS ativada e forçada;
+ * NENHUM privilégio de `dc360_app`, `dc360_console` ou PUBLIC, de tabela ou de
+ * coluna, nem SELECT (os `grants` declarados são vazios e o banco confirma);
+ * NENHUMA policy, de papel nenhum; e nenhum DELETE. Dispensam
+ * `organizacao_id` e a policy de contexto, e só isso (o resto é cobrado).
+ *
+ *   - `global`: a linha vale em todo município (a pessoa). É o único alvo
+ *     aceito de chave estrangeira sem `organizacao_id`, e só pelas chaves
+ *     declaradas em `chavesParaGlobais`.
+ *   - `protegida`: registro que nenhum papel do produto lê nem escreve (só
+ *     função privilegiada nomeada). Não é alvo de chave estrangeira.
+ *
+ * Nas DUAS, o destino na ELIMINAÇÃO DE MUNICÍPIO é declarado e PROVADO
+ * (`naEliminacao`): o portão cria um município, semeia, executa a eliminação
+ * de verdade (`executar_eliminacoes_vencidas` e `concluir_eliminacao`, numa
+ * transação desfeita no fim) e confere se as linhas ligadas ao município
+ * ficaram ou sumiram, como o catálogo diz.
+ */
+export interface RegimeSemMunicipio {
+  readonly especie: "global" | "protegida";
+  readonly naEliminacao: DestinoNaEliminacao;
+}
+
+export interface DestinoNaEliminacao {
+  /** `fica`: as linhas ligadas ao município sobrevivem à eliminação; `some`: saem com ele. */
+  readonly destino: "fica" | "some";
+  /** Por que esse destino, e quem cuida da linha depois. Tamanho mínimo conferido. */
+  readonly porque: string;
+  /**
+   * SQL rodado como DONO, num município novo e recém-semeado, ANTES da
+   * eliminação, que devolve numa coluna chamada `chave` o valor de `coluna`
+   * das linhas desta tabela ligadas ao município. `:org` vira o uuid do
+   * município (literal). Precisa devolver ao menos uma linha: prova vazia
+   * reprova.
+   */
+  readonly linhasDoMunicipio: string;
+  /** A coluna da tabela comparada com `chave` depois da eliminação. */
+  readonly coluna: string;
+  /**
+   * SQL rodado como DONO logo depois de criar o município (`:org`), para que
+   * existam linhas desta tabela ligadas a ele (por exemplo, uma conta em
+   * `usuarios`, que o gatilho criador liga a uma pessoa nova).
+   */
+  readonly semear: string;
+}
+
+/**
+ * Chave estrangeira SEM `organizacao_id` para uma tabela `global` (parte 0G),
+ * como `usuarios.pessoa_id -> pessoas(id)` da ADR 0009. Toda outra chave sem
+ * `organizacao_id` continua reprovando no portão. CONFERIDO
+ * (`conferirChavesEstrangeiras`), nos dois sentidos: a restrição existe com
+ * estas colunas e este alvo; o alvo é exceção `global` no catálogo; ela não
+ * inclui `organizacao_id` (declaração que sobra reprova); não apaga nem
+ * altera em cascata (`ON DELETE`/`ON UPDATE` NO ACTION ou RESTRICT); e as
+ * colunas dela não são graváveis (INSERT ou UPDATE, de tabela ou de coluna)
+ * por `dc360_app`, `dc360_console` nem PUBLIC, porque quem informa o valor
+ * escolhe a linha global a que a linha do município se liga.
+ */
+export interface ChaveParaTabelaGlobal {
+  /** A tabela que referencia, como o catálogo escreve o nome. */
+  readonly tabela: string;
+  /** O nome da restrição (`pg_constraint.conname`). */
+  readonly restricao: string;
+  /** As colunas da chave, na ordem da restrição. */
+  readonly colunas: readonly string[];
+  /** A tabela global referenciada. */
+  readonly alvo: string;
+  readonly migracao: string;
+  readonly etapa: string;
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/** Os privilégios que o catálogo aceita por COLUNA (parte 0G). REFERENCES por coluna nunca. */
+export type PrivilegioPorColuna = "INSERT" | "SELECT" | "UPDATE";
+
+/**
+ * Privilégio de COLUNA, generalizado (parte 0G): INSERT, SELECT ou UPDATE,
+ * por tabela e papel, com a lista das colunas. A chave é
+ * `papel:tabela:privilegio`; uma etapa posterior que mude a lista (a E08
+ * encolhendo a de `usuarios`) declara `redefine: true` com migração maior.
+ *
+ * CONFERIDO (`conferirPrivilegiosDeColuna`) contra o banco, nos dois
+ * sentidos, por `information_schema.column_privileges` e pela ACL de cada
+ * coluna (`pg_attribute.attacl`): nada a mais (privilégio de coluna de papel
+ * do produto ou de PUBLIC fora da lista reprova, inclusive coluna a mais num
+ * grupo declarado), nada a menos, nunca com opção de concessão; e a tabela
+ * de um grupo declarado NÃO tem o mesmo privilégio de TABELA para o mesmo
+ * papel (o de tabela cobre toda coluna, e a lista viraria enfeite).
+ *
+ * `colunasComUpdate` continua valendo (é o UPDATE do `dc360_app`, coluna a
+ * coluna), e entra na mesma conferência; o mesmo grupo nos dois lugares é
+ * erro na junção.
+ */
+export interface PrivilegioDeColuna {
+  readonly tabela: string;
+  readonly papel: PapelDoBanco;
+  readonly privilegio: PrivilegioPorColuna;
+  readonly colunas: readonly string[];
+  readonly migracao: string;
+  readonly etapa: string;
+  /** Por que por coluna, e por que estas. Tamanho mínimo conferido. */
+  readonly motivo: string;
+  readonly redefine?: true;
+}
+
+/** Uma coluna com um privilégio de um papel: a forma achatada que a conferência compara. */
+export interface ColunaComPrivilegio {
+  readonly tabela: string;
+  readonly coluna: string;
+  readonly papel: PapelDoBanco;
+  readonly privilegio: PrivilegioPorColuna;
+  readonly etapa: string;
 }
 
 export interface ColunaComUpdate {
@@ -328,4 +479,8 @@ export interface ContribuicaoDoCatalogo {
   readonly tiposProprios?: readonly TipoProprio[];
   readonly sequencias?: readonly SequenciaDoProduto[];
   readonly leiturasDeExtensao?: readonly LeituraDeExtensao[];
+  /** Parte 0G: privilégio de coluna de INSERT, SELECT ou UPDATE, por tabela e papel. */
+  readonly privilegiosDeColuna?: readonly PrivilegioDeColuna[];
+  /** Parte 0G: chave estrangeira sem `organizacao_id` para tabela `global`. */
+  readonly chavesParaGlobais?: readonly ChaveParaTabelaGlobal[];
 }

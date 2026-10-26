@@ -22,6 +22,8 @@
  */
 import {
   INVARIANTES,
+  type ChaveParaTabelaGlobal,
+  type ColunaComPrivilegio,
   type ContribuicaoDoCatalogo,
   type ExcecaoAoIsolamento,
   type FuncaoPrivilegiada,
@@ -87,6 +89,8 @@ interface FuncaoDoBanco {
   acl: string | null;
   dono: string;
   fonte: string;
+  /** A função retorna `trigger` (parte 0G). */
+  gatilho: boolean;
 }
 
 async function definidorasDoBanco(db: ConsultaSql): Promise<FuncaoDoBanco[]> {
@@ -95,7 +99,8 @@ async function definidorasDoBanco(db: ConsultaSql): Promise<FuncaoDoBanco[]> {
              replace(oidvectortypes(p.proargtypes), ', ', ',') || ')' AS assinatura,
            array_to_string(p.proacl, ',') AS acl,
            pg_get_userbyid(p.proowner)::text AS dono,
-           coalesce(p.prosrc, '') AS fonte
+           coalesce(p.prosrc, '') AS fonte,
+           p.prorettype = 'trigger'::regtype AS gatilho
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE p.prosecdef
@@ -244,10 +249,37 @@ export async function conferirFuncoesPrivilegiadas(
     if (f.tenant !== "ainda_nao_confere" && f.corrigidaEm) {
       problemas.push(`${chave}: tem corrigidaEm mas já declara conferir o tenant (${f.tenant})`);
     }
-    if (f.executavelPor.length === 0) {
-      problemas.push(
-        `${chave}: sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir`,
-      );
+    /*
+      Parte 0G: função de GATILHO é executada pelo gatilho, não pelo papel.
+      Ela não se concede a ninguém (EXECUTE vazio) e declara as tabelas em
+      que dispara (`gatilhoEm`); o resto da regra está em
+      `conferirGatilhosPrivilegiados`. Só a função comum precisa de quem a
+      execute. Quem decide se é de gatilho é o BANCO (o tipo de retorno), e
+      não a entrada; sem a função no banco, vale o que a entrada diz.
+    */
+    const deGatilho = noBanco.get(chave)?.gatilho ?? f.gatilhoEm !== undefined;
+    if (deGatilho) {
+      if (f.executavelPor.length > 0) {
+        problemas.push(
+          `${chave}: função de gatilho com EXECUTE declarado (${f.executavelPor.join(", ")}). Quem a ` +
+            "executa é o gatilho; com EXECUTE e TEMP, o papel a anexaria a uma tabela temporária de " +
+            "mesmo nome e a faria escrever como o dono. executavelPor fica vazio.",
+        );
+      }
+      if (!f.gatilhoEm || f.gatilhoEm.length === 0) {
+        problemas.push(
+          `${chave}: função de gatilho sem gatilhoEm (as tabelas em que ela dispara e que o corpo confere por TG_RELID)`,
+        );
+      }
+    } else {
+      if (f.executavelPor.length === 0) {
+        problemas.push(
+          `${chave}: sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir`,
+        );
+      }
+      if (f.gatilhoEm !== undefined) {
+        problemas.push(`${chave}: gatilhoEm numa função que não retorna trigger`);
+      }
     }
   }
 
@@ -263,6 +295,7 @@ interface TabelaDoBanco {
   policies_alem_do_insert_do_app: number;
   policies_fora_do_console: number;
   policies_de_delete: number;
+  policies_total: number;
   fks_sem_organizacao: number;
   grants: string[];
 }
@@ -321,6 +354,9 @@ async function tabelasDoBanco(db: ConsultaSql): Promise<TabelaDoBanco[]> {
              WHERE p.schemaname = n.nspname AND p.tablename = c.relname
                AND p.cmd IN ('DELETE', 'ALL')
            ) AS policies_de_delete,
+           (SELECT count(*)::int FROM pg_policies p
+             WHERE p.schemaname = n.nspname AND p.tablename = c.relname
+           ) AS policies_total,
            (SELECT count(*)::int FROM pg_constraint k
              WHERE k.conrelid = c.oid AND k.contype = 'f'
                AND k.confrelid <> 'public.organizacoes'::regclass
@@ -519,6 +555,7 @@ export async function conferirExcecoes(
         `${e.tabela}: doFornecedor sem dispensar a policy de contexto não faz sentido`,
       );
     }
+    if (e.semMunicipio) problemas.push(...conferirSemMunicipio(e, real));
     if (e.motivo.trim().length < MINIMO_DO_MOTIVO) {
       problemas.push(
         `${e.tabela}: o motivo está curto demais para ser um motivo (mínimo ${MINIMO_DO_MOTIVO} caracteres)`,
@@ -532,6 +569,559 @@ export async function conferirExcecoes(
   }
 
   return problemas;
+}
+
+/*
+  ===========================================================================
+  Parte 0G: as três formas que a ADR 0009 pedia e o portão não sabia dizer
+  (privilégio por coluna de INSERT e SELECT, chave estrangeira para a tabela
+  global, tabela protegida sem município), mais o fechamento do caminho da
+  tabela temporária de mesmo nome (função de gatilho privilegiada, TEMP).
+  ===========================================================================
+*/
+
+/** Os invariantes que uma tabela sem município (global ou protegida) mantém, sempre. */
+const MANTIDOS_SEM_MUNICIPIO: readonly Invariante[] = [
+  "rls_forcada",
+  "grants_declarados",
+  "sem_delete",
+];
+
+/**
+ * O regime de tabela SEM MUNICÍPIO (`semMunicipio`, parte 0G), no banco: as
+ * duas espécies dispensam a coluna e a policy de contexto, mantêm RLS
+ * forçada, os grants (VAZIOS, declarados e no banco) e nenhum DELETE, e não
+ * têm policy nenhuma. A eliminação é provada à parte
+ * (`conferirEliminacaoSemMunicipio`), porque precisa executar a eliminação.
+ */
+function conferirSemMunicipio(e: ExcecaoAoIsolamento, real: TabelaDoBanco): string[] {
+  const problemas: string[] = [];
+  const regime = e.semMunicipio!;
+  const nome = `${e.tabela} (${regime.especie})`;
+  for (const inv of ["organizacao_id", "policy_de_contexto"] as const) {
+    if (!e.dispensa.includes(inv)) {
+      problemas.push(`${nome}: tabela sem município que não dispensa ${inv}`);
+    }
+  }
+  for (const inv of MANTIDOS_SEM_MUNICIPIO) {
+    if (!e.mantem.includes(inv)) {
+      problemas.push(`${nome}: tabela sem município precisa MANTER ${inv}`);
+    }
+  }
+  const declarados = PAPEIS_COM_GRANT.flatMap((p) => (e.grants[p] ?? []).map((g) => `${p}:${g}`));
+  if (declarados.length) {
+    problemas.push(
+      `${nome}: tabela sem município não concede nada a papel do produto nem a PUBLIC, e a entrada declara ${declarados.join(", ")}`,
+    );
+  }
+  if (real.grants.length) {
+    problemas.push(
+      `${nome}: tabela sem município que o banco deixa alcançar: ${real.grants.join(", ")}. ` +
+        "Nem SELECT: só função privilegiada nomeada a toca.",
+    );
+  }
+  if (!(real.rls && real.rls_forcada)) {
+    problemas.push(`${nome}: tabela sem município sem RLS ativada E forçada`);
+  }
+  if (real.policies_total > 0) {
+    problemas.push(
+      `${nome}: tabela sem município com ${real.policies_total} policy(ies). Sem município não há ` +
+        "contexto a que se amarrar, e uma policy aqui só serviria para abrir.",
+    );
+  }
+  if (e.doFornecedor) {
+    problemas.push(`${nome}: semMunicipio e doFornecedor são regimes que se excluem`);
+  }
+  const d = regime.naEliminacao;
+  if (d.porque.trim().length < MINIMO_DO_MOTIVO) {
+    problemas.push(
+      `${nome}: o porquê do destino na eliminação está curto demais (mínimo ${MINIMO_DO_MOTIVO} caracteres)`,
+    );
+  }
+  if (!/:org\b/.test(d.linhasDoMunicipio) || !/:org\b/.test(d.semear)) {
+    problemas.push(`${nome}: linhasDoMunicipio e semear precisam usar :org (o município da prova)`);
+  }
+  return problemas;
+}
+
+/** O banco da prova da eliminação: consulta, comando e transação desfeita. */
+export interface BancoComTransacao extends ConsultaSql {
+  transaction<T>(
+    fn: (
+      tx: ConsultaSql & { exec(sql: string): Promise<unknown>; rollback(): Promise<void> },
+    ) => Promise<T>,
+  ): Promise<T>;
+}
+
+/** `[esquema, tabela]` de um nome como o catálogo escreve. */
+function partesDoNome(t: string): [string, string] {
+  const i = t.indexOf(".");
+  return i < 0 ? ["public", t] : [t.slice(0, i), t.slice(i + 1)];
+}
+
+const identificador = (s: string) => `"${s.replace(/"/g, '""')}"`;
+const relacaoSql = (t: string) => partesDoNome(t).map(identificador).join(".");
+
+/**
+ * O DESTINO NA ELIMINAÇÃO de cada tabela sem município (parte 0G), provado
+ * com a eliminação de verdade: num município novo, `semear` cria as linhas,
+ * `linhasDoMunicipio` as lista, o livro e a organização são postos como
+ * vencidos (como dono, o único jeito de mudar o tempo num teste), e
+ * `executar_eliminacoes_vencidas()` e `concluir_eliminacao()` rodam. Depois,
+ * `fica` exige todas as linhas listadas presentes e `some` nenhuma. Tudo numa
+ * transação DESFEITA no fim: o banco do portão não muda.
+ *
+ * Prova vazia reprova (sem linha ligada ao município não há o que provar), e
+ * eliminação que não chega ao fim (DC366, município fora da saída) também.
+ */
+export async function conferirEliminacaoSemMunicipio(
+  db: BancoComTransacao,
+  excecoes: readonly ExcecaoAoIsolamento[],
+): Promise<string[]> {
+  const problemas: string[] = [];
+  for (const e of excecoes) {
+    if (!e.semMunicipio) continue;
+    const d = e.semMunicipio.naEliminacao;
+    const nome = `${e.tabela} (${e.semMunicipio.especie}, ${d.destino})`;
+    try {
+      const achado = await db.transaction(async (tx) => {
+        const org = (
+          await tx.query<{ id: string }>(
+            `INSERT INTO organizacoes (nome, municipio, uf)
+             VALUES ('Defesa Civil da Prova da Eliminacao', 'Prova da Eliminacao', 'MG') RETURNING id`,
+          )
+        ).rows[0]!.id;
+        const comOrg = (sql: string) => sql.replace(/:org\b/g, `'${org}'::uuid`);
+        await tx.exec(comOrg(d.semear));
+        const chaves = (await tx.query<{ chave: unknown }>(comOrg(d.linhasDoMunicipio))).rows.map(
+          (l) => String(l.chave),
+        );
+        const unicas = [...new Set(chaves)];
+        if (unicas.length === 0) {
+          await tx.rollback();
+          return `${nome}: linhasDoMunicipio não achou nenhuma linha depois de semear: a prova da eliminação seria vazia`;
+        }
+        await tx.query(
+          `INSERT INTO eliminacoes_de_municipio
+             (organizacao_id, municipio_nome, uf, solicitada_em, executar_em, solicitada_por_email, motivo)
+           VALUES ($1, 'Prova da Eliminacao', 'MG', now() - interval '8 days', now() - interval '1 day',
+                   'prova@exemplo.gov.br', 'prova do destino na eliminacao (portao, parte 0G)')`,
+          [org],
+        );
+        await tx.query(
+          `UPDATE organizacoes
+              SET acesso_suspenso_em = now() - interval '2 days',
+                  suspensao_motivo = 'prova do destino na eliminacao (portao, parte 0G)',
+                  eliminacao_agendada_para = now() - interval '1 day'
+            WHERE id = $1`,
+          [org],
+        );
+        const eliminados = (
+          await tx.query<{ organizacao_id: string }>(
+            "SELECT organizacao_id::text AS organizacao_id FROM executar_eliminacoes_vencidas()",
+          )
+        ).rows.map((l) => l.organizacao_id);
+        if (!eliminados.includes(org)) {
+          await tx.rollback();
+          return `${nome}: executar_eliminacoes_vencidas() não eliminou o município da prova`;
+        }
+        await tx.query("SELECT concluir_eliminacao($1)", [org]);
+        const restam = (
+          await tx.query<{ n: number }>(
+            `SELECT count(DISTINCT ${identificador(d.coluna)}::text)::int AS n
+               FROM ${relacaoSql(e.tabela)} WHERE ${identificador(d.coluna)}::text = ANY($1::text[])`,
+            [unicas],
+          )
+        ).rows[0]!.n;
+        const orgRestou = (
+          await tx.query<{ n: number }>(
+            "SELECT count(*)::int AS n FROM organizacoes WHERE id = $1",
+            [org],
+          )
+        ).rows[0]!.n;
+        await tx.rollback();
+        if (orgRestou !== 0) return `${nome}: a eliminação da prova não apagou a organização`;
+        if (d.destino === "fica" && restam !== unicas.length) {
+          return (
+            `${nome}: o catálogo diz que as linhas do município FICAM na eliminação, e ` +
+            `${unicas.length - restam} de ${unicas.length} sumiram`
+          );
+        }
+        if (d.destino === "some" && restam !== 0) {
+          return (
+            `${nome}: o catálogo diz que as linhas do município SOMEM na eliminação, e ` +
+            `${restam} de ${unicas.length} ficaram`
+          );
+        }
+        return null;
+      });
+      if (achado) problemas.push(achado);
+    } catch (erro) {
+      problemas.push(
+        `${nome}: a prova do destino na eliminação não chegou ao fim: ${(erro as Error).message}`,
+      );
+    }
+  }
+  return problemas;
+}
+
+/**
+ * PRIVILÉGIO DE COLUNA, generalizado (parte 0G): INSERT, SELECT e UPDATE por
+ * coluna, de `dc360_app` e `dc360_console`, contra o banco nos dois sentidos.
+ *
+ * Duas fontes, e as duas precisam bater: `information_schema.column_privileges`
+ * (o que se vê por coluna, menos o que vem de privilégio de TABELA do mesmo
+ * papel), e a ACL de cada coluna (`pg_attribute.attacl`, o GRANT feito em
+ * coluna, que aparece mesmo quando um GRANT de tabela o esconde da primeira).
+ * Reprova: privilégio de coluna de papel do produto ou de PUBLIC que a lista
+ * não nomeia (inclusive coluna a mais num grupo declarado, e REFERENCES por
+ * coluna, que não se declara); entrada que o banco não concede por coluna;
+ * opção de concessão; e grupo declarado cuja tabela também dá ao papel o
+ * MESMO privilégio de tabela.
+ */
+export async function conferirPrivilegiosDeColuna(
+  db: ConsultaSql,
+  declarados: readonly ColunaComPrivilegio[],
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const chave = (p: { papel: string; tabela: string; coluna: string; privilegio: string }) =>
+    `${p.papel}:${p.tabela}.${p.coluna}:${p.privilegio}`;
+  const naLista = new Set(declarados.map(chave));
+
+  const papeisSql = "('dc360_app', 'dc360_console', 'PUBLIC')";
+  const acl = await db.query<{
+    esquema: string;
+    tabela: string;
+    coluna: string;
+    papel: string;
+    privilegio: string;
+    concede: boolean;
+  }>(`
+    SELECT n.nspname::text AS esquema, c.relname::text AS tabela, a.attname::text AS coluna,
+           CASE WHEN x.grantee = 0 THEN 'PUBLIC' ELSE pg_get_userbyid(x.grantee)::text END AS papel,
+           x.privilege_type::text AS privilegio, x.is_grantable AS concede
+      FROM pg_attribute a
+      JOIN pg_class c ON c.oid = a.attrelid
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN LATERAL aclexplode(a.attacl) x
+     WHERE a.attacl IS NOT NULL AND a.attnum > 0 AND NOT a.attisdropped
+       AND ${FORA_DO_SISTEMA}
+       AND (n.nspname = 'public' OR NOT ${DE_EXTENSAO("pg_class", "c.oid")})
+  `);
+  const concedidos = acl.rows
+    .filter((l) => ["dc360_app", "dc360_console", "PUBLIC"].includes(l.papel))
+    .map((l) => ({ ...l, tabela: nomeQualificado(l.esquema, l.tabela) }));
+
+  const vistas = await db.query<{
+    esquema: string;
+    tabela: string;
+    coluna: string;
+    papel: string;
+    privilegio: string;
+  }>(`
+    SELECT c.table_schema::text AS esquema, c.table_name::text AS tabela, c.column_name::text AS coluna,
+           c.grantee::text AS papel, c.privilege_type::text AS privilegio
+      FROM information_schema.column_privileges c
+     WHERE c.grantee IN ${papeisSql}
+       AND c.table_schema NOT LIKE 'pg\\_%' AND c.table_schema <> 'information_schema'
+       AND NOT EXISTS (
+         SELECT 1 FROM information_schema.table_privileges g
+          WHERE g.table_schema = c.table_schema AND g.table_name = c.table_name
+            AND g.grantee = c.grantee AND g.privilege_type = c.privilege_type)
+  `);
+  const visiveis = vistas.rows.map((l) => ({ ...l, tabela: nomeQualificado(l.esquema, l.tabela) }));
+
+  const concedidosPorChave = new Set(concedidos.map(chave));
+  const aMais = new Set<string>();
+  for (const l of [...concedidos, ...visiveis]) {
+    const k = chave(l);
+    if (!naLista.has(k)) aMais.add(k);
+  }
+  for (const k of [...aMais].sort()) {
+    problemas.push(
+      `privilégio de coluna no banco que o catálogo não declara: ${k}. Cada privilégio por coluna ` +
+        "entra em privilegiosDeColuna (ou colunasComUpdate) da etapa, com o motivo.",
+    );
+  }
+  for (const l of concedidos) {
+    if (l.concede) problemas.push(`privilégio de coluna com opção de concessão: ${chave(l)}`);
+  }
+  for (const k of [...naLista].sort()) {
+    if (!concedidosPorChave.has(k)) {
+      problemas.push(`consta no catálogo e o banco não concede por coluna: ${k}`);
+    }
+  }
+
+  /* A regra do grupo: privilégio por coluna e o mesmo privilégio de tabela não andam juntos. */
+  const grupos = new Map<string, ColunaComPrivilegio>();
+  for (const d of declarados) grupos.set(`${d.papel}:${d.tabela}:${d.privilegio}`, d);
+  for (const [k, d] of grupos) {
+    const r = await db.query<{ existe: boolean; tem: boolean | null }>(
+      `SELECT to_regclass($1::text) IS NOT NULL AS existe,
+              CASE WHEN to_regclass($1::text) IS NULL THEN NULL
+                   ELSE has_table_privilege($2::name, to_regclass($1::text), $3::text) END AS tem`,
+      [relacaoSql(d.tabela), d.papel, d.privilegio],
+    );
+    if (!r.rows[0]!.existe) {
+      problemas.push(`${k}: a tabela do privilégio por coluna não existe no banco`);
+    } else if (r.rows[0]!.tem) {
+      problemas.push(
+        `${k}: ${d.papel} tem ${d.privilegio} por coluna em ${d.tabela} e TAMBÉM o ${d.privilegio} de ` +
+          "tabela, que cobre toda coluna: a lista por coluna vira enfeite. Tire o de tabela (REVOKE).",
+      );
+    }
+  }
+  return problemas;
+}
+
+/**
+ * TODA chave estrangeira, em todo esquema fora do sistema (parte 0G; antes
+ * era só `public`, e o resto está barrado por `conferirEsquemas`): ou inclui
+ * `organizacao_id`, ou aponta para `organizacoes` (a âncora do tenant), ou é
+ * uma das referências do fornecedor isentas pelo portão (`isentas`, pares
+ * `[tabela, alvo]`), ou é uma chave DECLARADA em `chavesParaGlobais` para uma
+ * tabela `global` do catálogo. Qualquer outra reprova, como sempre reprovou.
+ *
+ * A chave declarada é conferida nos dois sentidos e por inteiro: existe com
+ * as colunas e o alvo declarados; o alvo é exceção `global`; não inclui
+ * `organizacao_id`; não apaga nem altera em cascata; e as colunas dela não
+ * são graváveis por papel do produto nem PUBLIC.
+ */
+export async function conferirChavesEstrangeiras(
+  db: ConsultaSql,
+  excecoes: readonly ExcecaoAoIsolamento[],
+  chaves: readonly ChaveParaTabelaGlobal[],
+  isentas: ReadonlyArray<readonly [string, string]>,
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const r = await db.query<{
+    esquema: string;
+    tabela: string;
+    esquema_alvo: string;
+    alvo: string;
+    nome: string;
+    colunas: string[];
+    ao_apagar: string;
+    ao_alterar: string;
+  }>(`
+    SELECT nr.nspname::text AS esquema, r.relname::text AS tabela,
+           nf.nspname::text AS esquema_alvo, f.relname::text AS alvo,
+           k.conname::text AS nome,
+           ARRAY(SELECT a.attname::text
+                   FROM unnest(k.conkey) WITH ORDINALITY AS u(n, i)
+                   JOIN pg_attribute a ON a.attrelid = k.conrelid AND a.attnum = u.n
+                  ORDER BY u.i) AS colunas,
+           k.confdeltype::text AS ao_apagar, k.confupdtype::text AS ao_alterar
+      FROM pg_constraint k
+      JOIN pg_class r ON r.oid = k.conrelid
+      JOIN pg_namespace nr ON nr.oid = r.relnamespace
+      JOIN pg_class f ON f.oid = k.confrelid
+      JOIN pg_namespace nf ON nf.oid = f.relnamespace
+     WHERE k.contype = 'f'
+       AND nr.nspname NOT LIKE 'pg\\_%' AND nr.nspname <> 'information_schema'
+       AND (nr.nspname = 'public' OR NOT ${DE_EXTENSAO("pg_class", "r.oid")})
+     ORDER BY 1, 2, 5
+  `);
+  if (r.rows.length === 0) {
+    return [
+      "a consulta não devolveu nenhuma chave estrangeira: a conferência quebrou, não o banco",
+    ];
+  }
+  const globais = new Set(
+    excecoes.filter((e) => e.semMunicipio?.especie === "global").map((e) => e.tabela),
+  );
+  const declaradas = new Map(chaves.map((c) => [`${c.tabela}.${c.restricao}`, c]));
+  const vistas = new Set<string>();
+
+  for (const fk of r.rows) {
+    const tabela = nomeQualificado(fk.esquema, fk.tabela);
+    const alvo = nomeQualificado(fk.esquema_alvo, fk.alvo);
+    const k = `${tabela}.${fk.nome}`;
+    const declarada = declaradas.get(k);
+    if (declarada) vistas.add(k);
+    const comOrganizacao = fk.colunas.includes("organizacao_id");
+    if (declarada) {
+      if (comOrganizacao) {
+        problemas.push(
+          `${k}: declarada em chavesParaGlobais, mas inclui organizacao_id e não precisa da declaração`,
+        );
+      }
+      if (
+        declarada.alvo !== alvo ||
+        JSON.stringify(declarada.colunas) !== JSON.stringify(fk.colunas)
+      ) {
+        problemas.push(
+          `${k}: o banco diz (${fk.colunas.join(",")}) -> ${alvo}, e o catálogo declara ` +
+            `(${declarada.colunas.join(",")}) -> ${declarada.alvo}`,
+        );
+      }
+      if (!globais.has(alvo)) {
+        problemas.push(
+          `${k}: aponta para ${alvo}, que não é tabela global do catálogo (semMunicipio.especie = "global")`,
+        );
+      }
+      if (!["a", "r"].includes(fk.ao_apagar) || !["a", "r"].includes(fk.ao_alterar)) {
+        problemas.push(
+          `${k}: chave para tabela global com ação em cascata (ON DELETE ${fk.ao_apagar}, ON UPDATE ` +
+            `${fk.ao_alterar}); só NO ACTION ou RESTRICT: a linha global não leva consigo linha de município`,
+        );
+      }
+      for (const coluna of fk.colunas) {
+        const g = await db.query<{ papel: string; privilegio: string }>(
+          `SELECT papel, pr AS privilegio
+             FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS papel,
+                  unnest(ARRAY['INSERT', 'UPDATE']) AS pr
+            WHERE has_column_privilege(papel::name, to_regclass($1::text), $2::text, pr)`,
+          [relacaoSql(tabela), coluna],
+        );
+        for (const l of g.rows) {
+          problemas.push(
+            `${k}: ${l.papel === "public" ? "PUBLIC" : l.papel} tem ${l.privilegio} em ${tabela}.${coluna}: ` +
+              "quem grava a coluna escolhe a linha global a que a linha do município se liga",
+          );
+        }
+      }
+      continue;
+    }
+    if (alvo === "organizacoes" || comOrganizacao) continue;
+    if (isentas.some(([t, a]) => t === tabela && a === alvo)) continue;
+    problemas.push(
+      `${tabela} -> ${alvo} (${fk.nome}) não inclui organizacao_id: essa referência alcança linha de ` +
+        "outro município" +
+        (globais.has(alvo)
+          ? `. ${alvo} é tabela global, e a chave para ela entra por nome em chavesParaGlobais`
+          : ""),
+    );
+  }
+  for (const [k, c] of declaradas) {
+    if (!vistas.has(k)) {
+      problemas.push(
+        `consta em chavesParaGlobais (${c.etapa}) mas a restrição não existe no banco: ${k}`,
+      );
+    }
+  }
+  return problemas;
+}
+
+/**
+ * Função de GATILHO privilegiada (parte 0G), e o caminho que ela abria: com
+ * EXECUTE na função e o privilégio TEMP no banco, o `dc360_app` criava
+ * `pg_temp.usuarios`, anexava a ela o gatilho e o fazia escrever em tabela
+ * protegida como o dono.
+ *
+ *   - nenhum papel do produto, nem PUBLIC, tem EXECUTE em função `SECURITY
+ *     DEFINER` que retorna `trigger`, venha de onde vier (concessão direta,
+ *     PUBLIC, herança: `has_function_privilege`);
+ *   - os gatilhos do banco que chamam cada função de gatilho do catálogo estão
+ *     EXATAMENTE nas tabelas de `gatilhoEm`;
+ *   - o corpo confere a tabela que disparou: `TG_RELID` (ou `TG_TABLE_SCHEMA`
+ *     e `TG_TABLE_NAME` juntos) e o nome QUALIFICADO (`esquema.tabela`) de
+ *     cada tabela de `gatilhoEm`. Qualificado porque, sem `pg_temp` no fim do
+ *     `search_path`, o nome nu resolve primeiro para a temporária.
+ */
+export async function conferirGatilhosPrivilegiados(
+  db: ConsultaSql,
+  funcoes: readonly FuncaoPrivilegiada[],
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const executam = await db.query<{ assinatura: string; papel: string }>(`
+    SELECT n.nspname || '.' || p.proname || '(' ||
+             replace(oidvectortypes(p.proargtypes), ', ', ',') || ')' AS assinatura,
+           papel
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      CROSS JOIN unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS papel
+     WHERE p.prosecdef AND p.prorettype = 'trigger'::regtype
+       AND ${FORA_DO_SISTEMA}
+       AND (n.nspname = 'public' OR NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
+       AND has_function_privilege(papel, p.oid, 'EXECUTE')
+     ORDER BY 1, 2
+  `);
+  for (const l of executam.rows) {
+    problemas.push(
+      `${l.papel === "public" ? "PUBLIC" : l.papel} tem EXECUTE na função de gatilho privilegiada ` +
+        `${l.assinatura}: com TEMP, ele a anexaria a uma tabela temporária de mesmo nome e a faria ` +
+        "escrever como o dono. REVOKE EXECUTE de PUBLIC e dos papéis do produto.",
+    );
+  }
+
+  for (const f of funcoes) {
+    if (!f.gatilhoEm) continue;
+    const r = await db.query<{ esquema: string; tabela: string; fonte: string }>(
+      `SELECT n.nspname::text AS esquema, c.relname::text AS tabela, coalesce(p.prosrc, '') AS fonte
+         FROM pg_proc p
+         LEFT JOIN pg_trigger t ON t.tgfoid = p.oid AND NOT t.tgisinternal
+         LEFT JOIN pg_class c ON c.oid = t.tgrelid
+         LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE p.oid = to_regprocedure($1::text)`,
+      [f.assinatura],
+    );
+    if (r.rows.length === 0) continue; // função ausente: conferirFuncoesPrivilegiadas já reprova
+    const noBanco = [
+      ...new Set(
+        r.rows.filter((l) => l.tabela !== null).map((l) => nomeQualificado(l.esquema, l.tabela)),
+      ),
+    ].sort();
+    const declaradas = [...f.gatilhoEm].sort();
+    if (JSON.stringify(noBanco) !== JSON.stringify(declaradas)) {
+      problemas.push(
+        `${f.assinatura}: os gatilhos do banco que a chamam estão em (${noBanco.join(", ") || "nenhuma tabela"}), ` +
+          `e o catálogo declara (${declaradas.join(", ")})`,
+      );
+    }
+    const corpo = semComentarios(r.rows[0]!.fonte);
+    const porRelid = /\bTG_RELID\b/i.test(corpo);
+    const porNome = /\bTG_TABLE_SCHEMA\b/i.test(corpo) && /\bTG_TABLE_NAME\b/i.test(corpo);
+    if (!porRelid && !porNome) {
+      problemas.push(
+        `${f.assinatura}: função de gatilho privilegiada que não confere a tabela que a disparou ` +
+          "(TG_RELID, ou TG_TABLE_SCHEMA e TG_TABLE_NAME)",
+      );
+    }
+    for (const t of declaradas) {
+      const [esquema, tabela] = partesDoNome(t);
+      // Com TG_RELID, o nome qualificado ('public.usuarios'::regclass); pelo nome, os dois literais.
+      const qualificado = new RegExp(`\\b${esquema}\\.${tabela}\\b`, "i").test(corpo);
+      const literais = corpo.includes(`'${esquema}'`) && corpo.includes(`'${tabela}'`);
+      if (!((porRelid && qualificado) || (porNome && literais))) {
+        problemas.push(
+          `${f.assinatura}: o corpo não cita ${esquema}.${tabela} qualificado (com TG_RELID), nem ` +
+            `'${esquema}' e '${tabela}' (com TG_TABLE_SCHEMA e TG_TABLE_NAME): o nome nu pode ` +
+            "resolver para uma tabela temporária de mesmo nome, e só o nome da tabela é o dela",
+        );
+      }
+    }
+  }
+  return problemas;
+}
+
+/**
+ * Nenhum papel do produto, nem PUBLIC, cria objeto (parte 0G): sem TEMP e sem
+ * CREATE no banco, e sem CREATE em esquema nenhum fora do sistema. TEMP é o
+ * que deixava o `dc360_app` criar `pg_temp.<tabela real>` e anexar a ela um
+ * gatilho privilegiado; o Postgres o dá a PUBLIC por padrão em todo banco
+ * criado do `template0` ou do `postgres`, e por isso a conferência pergunta ao
+ * banco, papel a papel, em vez de supor.
+ */
+export async function conferirCriacaoDeObjetos(db: ConsultaSql): Promise<string[]> {
+  const r = await db.query<{ papel: string; onde: string; privilegio: string }>(`
+    SELECT papel, 'banco ' || current_database() AS onde, pr AS privilegio
+      FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS papel,
+           unnest(ARRAY['TEMPORARY', 'CREATE']) AS pr
+     WHERE has_database_privilege(papel, current_database(), pr)
+    UNION ALL
+    SELECT papel, 'esquema ' || n.nspname, 'CREATE'
+      FROM pg_namespace n
+      CROSS JOIN unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS papel
+     WHERE ${FORA_DO_SISTEMA}
+       AND has_schema_privilege(papel, n.oid, 'CREATE')
+     ORDER BY 1, 2, 3
+  `);
+  return r.rows.map(
+    (l) =>
+      `${l.papel === "public" ? "PUBLIC" : l.papel} tem ${l.privilegio} no ${l.onde}: papel do produto não ` +
+      "cria objeto (com TEMP, uma tabela temporária de mesmo nome que uma real recebe o gatilho privilegiado)",
+  );
 }
 
 /**

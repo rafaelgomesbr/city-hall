@@ -27,6 +27,8 @@ import { CATALOGO_F03_E20 } from "./f03-e20.js";
 import { CATALOGO_F03_E21 } from "./f03-e21.js";
 import {
   INVARIANTES_QUE_NAO_SE_DISPENSAM,
+  type ChaveParaTabelaGlobal,
+  type ColunaComPrivilegio,
   type ColunaComUpdate,
   type ContribuicaoDoCatalogo,
   type ExcecaoAoIsolamento,
@@ -34,6 +36,7 @@ import {
   type LeituraDeExtensao,
   type PolicyRestritiva,
   type PreparoDeTabela,
+  type PrivilegioDeColuna,
   type SequenciaDoProduto,
   type TabelaSemProvaComportamental,
   type TipoProprio,
@@ -44,14 +47,19 @@ import { MINIMO_DO_MOTIVO, chaveDaFuncao, type FontesDoCatalogo } from "./confer
 export * from "./tipos.js";
 export {
   chaveDaFuncao,
+  conferirChavesEstrangeiras,
+  conferirCriacaoDeObjetos,
+  conferirEliminacaoSemMunicipio,
   conferirEsquemas,
   conferirExcecoes,
   conferirFontes,
   conferirFuncoesPrivilegiadas,
+  conferirGatilhosPrivilegiados,
+  conferirPrivilegiosDeColuna,
   nomeQualificado,
   quemExecuta,
 } from "./conferir.js";
-export type { ConsultaSql, FontesDoCatalogo } from "./conferir.js";
+export type { BancoComTransacao, ConsultaSql, FontesDoCatalogo } from "./conferir.js";
 export {
   HistoricoDasDefinicoes,
   composicoesDePolicies,
@@ -158,6 +166,16 @@ export interface CatalogoJuntado {
   readonly tiposProprios: readonly TipoProprio[];
   readonly sequencias: readonly SequenciaDoProduto[];
   readonly leiturasDeExtensao: readonly LeituraDeExtensao[];
+  /** Parte 0G: os grupos de privilégio por coluna, como declarados (por tabela, papel e privilégio). */
+  readonly privilegiosDeColuna: readonly PrivilegioDeColuna[];
+  /**
+   * Parte 0G: TODO privilégio de coluna, achatado coluna a coluna, os grupos
+   * de `privilegiosDeColuna` mais o UPDATE do `dc360_app` de `colunasComUpdate`.
+   * É o que a conferência compara com o banco.
+   */
+  readonly privilegiosDeColunaAchatados: readonly ColunaComPrivilegio[];
+  /** Parte 0G: as chaves estrangeiras sem `organizacao_id` para tabela global. */
+  readonly chavesParaGlobais: readonly ChaveParaTabelaGlobal[];
 }
 
 /** A junção como função pura, para o teste do próprio mecanismo. */
@@ -282,10 +300,94 @@ export function juntarCatalogo(
       chave,
     );
 
+  /*
+    Parte 0G. O regime de tabela sem município não se soma ao do fornecedor,
+    e o porquê do destino na eliminação tem de estar escrito.
+  */
+  for (const e of excecoes) {
+    if (e.semMunicipio && e.doFornecedor) {
+      throw new Error(
+        `EXCECOES_AO_ISOLAMENTO: "${e.tabela}" declara semMunicipio e doFornecedor, regimes que se excluem`,
+      );
+    }
+    if (e.semMunicipio && e.semMunicipio.naEliminacao.porque.trim().length < MINIMO_DO_MOTIVO) {
+      throw new Error(
+        `EXCECOES_AO_ISOLAMENTO: "${e.tabela}" tem o porquê do destino na eliminação curto demais ` +
+          `(mínimo ${MINIMO_DO_MOTIVO} caracteres)`,
+      );
+    }
+  }
+
+  /*
+    Parte 0G: o privilégio por coluna generalizado. Um grupo por tabela, papel
+    e privilégio; `redefine` (a E08 encolhendo a lista de `usuarios`) só com
+    migração maior. O mesmo grupo não se declara também em `colunasComUpdate`:
+    duas fontes para a mesma lista é como uma delas envelhece.
+  */
+  const chaveDoGrupo = (p: PrivilegioDeColuna) => `${p.papel}:${p.tabela}:${p.privilegio}`;
+  const privilegiosDeColuna = comMotivo(
+    "PRIVILEGIOS_DE_COLUNA",
+    juntar(
+      "PRIVILEGIOS_DE_COLUNA",
+      deCada((c) => c.privilegiosDeColuna ?? []),
+      chaveDoGrupo,
+      (anterior, nova, de) => {
+        if (!(Number(nova.migracao) > Number(anterior.migracao))) {
+          throw new Error(
+            `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(nova)}" em ${de} redefine com a migração ` +
+              `${nova.migracao}, que não é maior que a ${anterior.migracao} da entrada substituída`,
+          );
+        }
+      },
+    ),
+    chaveDoGrupo,
+  );
+  for (const p of privilegiosDeColuna) {
+    if (p.colunas.length === 0 || new Set(p.colunas).size !== p.colunas.length) {
+      throw new Error(
+        `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(p)}" sem colunas, ou com coluna repetida`,
+      );
+    }
+    if (p.papel === "dc360_app" && p.privilegio === "UPDATE") {
+      const tambem = colunasComUpdate.filter((c) => c.tabela === p.tabela);
+      if (tambem.length) {
+        throw new Error(
+          `PRIVILEGIOS_DE_COLUNA: "${chaveDoGrupo(p)}" também está em COLUNAS_COM_UPDATE_DO_APP ` +
+            `(${tambem.map((c) => c.coluna).join(", ")}): o UPDATE por coluna de uma tabela mora num lugar só`,
+        );
+      }
+    }
+  }
+  const privilegiosDeColunaAchatados: ColunaComPrivilegio[] = [
+    ...colunasComUpdate.map((c) => ({
+      tabela: c.tabela,
+      coluna: c.coluna,
+      papel: "dc360_app" as const,
+      privilegio: "UPDATE" as const,
+      etapa: c.etapa,
+    })),
+    ...privilegiosDeColuna.flatMap((p) =>
+      p.colunas.map((coluna) => ({
+        tabela: p.tabela,
+        coluna,
+        papel: p.papel,
+        privilegio: p.privilegio,
+        etapa: p.etapa,
+      })),
+    ),
+  ];
+
   return {
     funcoes,
     excecoes,
     colunasComUpdate,
+    privilegiosDeColuna,
+    privilegiosDeColunaAchatados,
+    chavesParaGlobais: lista(
+      "CHAVES_PARA_GLOBAIS",
+      (c) => c.chavesParaGlobais,
+      (k) => `${k.tabela}.${k.restricao}`,
+    ),
     preparos: lista(
       "PREPAROS",
       (c) => c.preparos,
@@ -334,6 +436,16 @@ export const EXCECOES_AO_ISOLAMENTO: readonly ExcecaoAoIsolamento[] = JUNTADO.ex
 
 /** O UPDATE por coluna do papel de aplicação, por nome. */
 export const COLUNAS_COM_UPDATE_DO_APP: readonly ColunaComUpdate[] = JUNTADO.colunasComUpdate;
+
+/**
+ * Parte 0G: TODO privilégio por coluna (INSERT, SELECT, UPDATE) de `dc360_app`
+ * e `dc360_console`, achatado coluna a coluna (os grupos de
+ * `privilegiosDeColuna` mais `COLUNAS_COM_UPDATE_DO_APP`).
+ */
+export const PRIVILEGIOS_DE_COLUNA: readonly ColunaComPrivilegio[] =
+  JUNTADO.privilegiosDeColunaAchatados;
+/** Parte 0G: as chaves estrangeiras sem `organizacao_id` para tabela global, por nome. */
+export const CHAVES_PARA_GLOBAIS: readonly ChaveParaTabelaGlobal[] = JUNTADO.chavesParaGlobais;
 
 /** Parte 0D: como a fábrica da prova comportamental monta a linha de cada tabela que precisa. */
 export const PREPAROS: readonly PreparoDeTabela[] = JUNTADO.preparos;
