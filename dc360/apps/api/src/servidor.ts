@@ -51,7 +51,7 @@ import { rotasRota, type OpcoesDaRota } from "./rotas/rota.js";
 import { rotasMapa, type OpcoesDoMapa } from "./rotas/mapa.js";
 import { rotasBusca } from "./rotas/busca.js";
 import { rotasAplicativos } from "./rotas/aplicativos.js";
-import { hookDeVersaoNoV1 } from "./versao-do-aplicativo.js";
+import { hookDeVersaoNoV1, hookDoEspelho } from "./versao-do-aplicativo.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
@@ -946,6 +946,16 @@ export async function construirServidor(
     { prefix: PREFIXO_V1 },
   );
   await app.register(async (espelho) => {
+    /*
+      Uso e encerramento do espelho (V2-F02-E08): conta cada pedido em log
+      `info` (rota e versão, sem usuário nem município) e, com
+      `ESPELHO_LEGADO_ENCERRADO=sim` depois do fim do dia de
+      `ESPELHO_LEGADO_ATE`, responde 426 antes de autenticar. O `onSend` logo
+      abaixo acrescenta os cabeçalhos de depreciação (e o `Link` para `/v1`) a
+      toda resposta do escopo, a recusa inclusive.
+    */
+    const usoDoEspelho = hookDoEspelho(espelho, config);
+    espelho.addHook("onRequest", async (req, resposta) => usoDoEspelho(req, resposta));
     espelho.addHook("onSend", async (req, resposta) => {
       for (const [nome, valor] of Object.entries(
         cabecalhosDeDepreciacao(config.ESPELHO_LEGADO_ATE, req.url),

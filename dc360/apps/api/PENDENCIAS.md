@@ -522,8 +522,16 @@ fica em aberto:
 3. **O painel, o campo e o console ainda falam o caminho sem prefixo.** Migrá-los
    para `/v1` é a V2-F02-E02; até lá o espelho é o caminho vivo dos três, e o
    cabeçalho de depreciação já aparece nas respostas que eles recebem.
-4. **Nada mede o uso do espelho ainda.** Sem essa medição, a data de retirada não
-   tem como ser decidida com dado. É escopo da E08.
+4. **A medição do uso do espelho existe (V2-F02-E08), mas ninguém a lê ainda.**
+   Cada pedido ao espelho gera uma linha de log `info` (`evento: "uso_do_espelho"`,
+   método, modelo da rota e versão). O que falta é a OPERAÇÃO reter esse log e
+   agregá-lo por rota e versão no período, para o Rafael decidir a data com dado
+   (`docs/POLITICA-DE-VERSOES-DA-API.md`, seção 5). Enquanto o aplicativo de campo
+   instalado não enviar `X-App-Version`, as linhas saem como `ausente`, e isso
+   mede o uso sem dizer a versão.
+5. **`ESPELHO_LEGADO_ENCERRADO` existe e nasce `nao`.** Só a V2-F28-E11 liga
+   `sim`, depois de o Rafael decidir a data (H86). A recusa 426 do espelho
+   encerrado está provada em teste, mas não foi exercida em ambiente real.
 
 ## O contrato OpenAPI do `/v1` (V2-F02-E04)
 

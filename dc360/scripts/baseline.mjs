@@ -872,6 +872,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
   // V2-F02-E06, parte 3A (API): `apps/api/test/versao-do-aplicativo.test.ts` e novo, com 41 casos (versao igual ou acima do minimo, pre-lancamento, o painel que nunca e recusado, o minimo de cada aplicativo, minimo vazio, a rota publica com e sem minimo, o CORS; 426 em varias rotas, antes do 401 e da validacao; 12 formas de cabecalho malformado mais o repetido, sem 500; o cabecalho ausente contado em log sem usuario, municipio, token nem IP; o mesmo corpo para qualquer municipio e id; token de B contra recurso de A segue 404; a rota so existe em /v1; a configuracao).
   "V2-F02-E06-parte-3A": { total: 41, falhas: 0, puladas: 0 },
+  // V2-F02-E08: `apps/api/test/versao-v1.test.ts` ganhou 19 casos (o espelho encerrado responde 426 com Link, antes do 401 e igual para todo municipio, data futura e chave desligada atendem com os cabecalhos, o fim do dia vale inteiro, a infraestrutura fica fora; a chave e a data na configuracao e na partida em producao; o contador de uso sem usuario, municipio, token, IP, corpo nem consulta).
+  "V2-F02-E08": { total: 19, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

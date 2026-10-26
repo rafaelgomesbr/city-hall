@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 434 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 448 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2082 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2101 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2010 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 379 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -127,8 +127,8 @@ deixa de responder nela) e `Link` com `rel="successor-version"` para o mesmo
 caminho sob `/v1`. A política de depreciação (V2-F02-E08) é
 `docs/POLITICA-DE-VERSOES-DA-API.md` e a retirada do espelho é da V2-F28-E11.
 
-Um controle de versão do aplicativo vive na API, DESLIGADO por padrão e com
-rollback por configuração, sem novo deploy de código:
+Dois controles de versão do aplicativo vivem na API, ambos DESLIGADOS por padrão
+e com rollback por configuração, sem novo deploy de código:
 
 - **Versão mínima por aplicativo (V2-F02-E06).** O aplicativo informa
   `X-App-Version: campo/1.4.0`. Com `VERSAO_MINIMA_CAMPO` ou
@@ -138,6 +138,21 @@ rollback por configuração, sem novo deploy de código:
   ausente é aceito e contado em log `info`; malformado é ignorado, nunca 500.
   `GET /v1/aplicativos/:aplicativo/versao-minima` informa o mínimo sem token e sem
   dado de município (só existe em `/v1`, `ROTAS_SO_NO_V1`).
+- **Medição e encerramento do espelho (V2-F02-E08).** Cada pedido ao espelho vira
+  uma linha de log `info` (`evento: "uso_do_espelho"`, método, modelo da rota e
+  versão, sem usuário, município, IP, token, corpo nem consulta). Com
+  `ESPELHO_LEGADO_ENCERRADO=sim` (padrão `nao`, só a V2-F28-E11 liga) e depois do
+  fim do dia de `ESPELHO_LEGADO_ATE`, o espelho responde `426` com `Link` para
+  `/v1`; antes disso, ou com a chave em `nao`, atende com os cabeçalhos.
+
+Ficam sem prefixo, e a razão de cada uma está em `ROTAS_FORA_DO_PREFIXO`
+(`apps/api/src/versao-v1.ts`): `GET /saude` (sonda de infraestrutura),
+`GET` e `PUT /armazenamento/objeto` (URL assinada, e a assinatura cobre o
+caminho) e `GET /publico/oficio/:token` (endereço que vive em e-mail já
+enviado). `POST /publico/interesse` vai a `/v1`. Senha provisória, redação do
+segredo no log, marca da fila do campo e limitador valem nos dois prefixos; o
+balde do limitador é um só por rota, para o limite do login não dobrar pela
+escolha do prefixo.
 
 ### O contrato OpenAPI do `/v1` (V2-F02-E04)
 
@@ -1789,9 +1804,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4424 testes em seis pacotes
+npm test                    # 4443 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 448 testes do banco
-npm run test:api            # 2082 testes da API
+npm run test:api            # 2101 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **6434 testes somando o aplicativo** (contagem estática de `npm run
+- **6453 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -253,13 +253,16 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
 
   Tudo em `https://`, e a config recusa `http` e `localhost` em produção.
 
-- Variáveis **opcionais** da versão da API (V2-F02-E06). Nenhuma é necessária para
+- Variáveis **opcionais** da versão da API (V2-F02-E06 e E08; a regra completa
+  está em `docs/POLITICA-DE-VERSOES-DA-API.md`). Nenhuma é necessária para
   subir, e os padrões não recusam nenhum aplicativo:
 
   | Variável | O que é |
   | --- | --- |
   | `VERSAO_MINIMA_CAMPO` | `maior.menor.correção` (`1.3.0`). Vazia (o padrão) não há mínimo. Com valor, o aplicativo de campo abaixo dele recebe `426` em `/v1`, antes de autenticar. Valor fora do formato **impede a partida**. Esvaziar desliga a recusa, sem novo deploy de código |
   | `VERSAO_MINIMA_CIDADAO` | o mesmo, para o aplicativo do cidadão |
+  | `ESPELHO_LEGADO_ATE` | `AAAA-MM-DD`, vai no cabeçalho `Sunset` do caminho sem prefixo. O padrão (`2027-12-31`) é **provisório**. Data inválida ou vazia impede a partida |
+  | `ESPELHO_LEGADO_ENCERRADO` | `nao` (o padrão). `sim` só pela V2-F28-E11, depois da data decidida e do aviso: o caminho sem prefixo passa a responder `426` depois do fim do dia de `ESPELHO_LEGADO_ATE`. Com `sim`, `ESPELHO_LEGADO_ATE` precisa estar escrita no ambiente, ou a partida é recusada |
 
 ### 4. Armazenamento de fotos e assinaturas
 
@@ -359,7 +362,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, lint, formatação, 6434 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 6453 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
