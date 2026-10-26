@@ -30,7 +30,7 @@ export function exigePostgis(env: NodeJS.ProcessEnv = process.env): boolean {
 
 const COMO_RODAR =
   "Para rodar de verdade: suba um Postgres com PostGIS (docker compose up banco, " +
-  "ou a imagem postgis/postgis:17-3.5) e aponte DC360_POSTGRES_DE_PROVA para um " +
+  "ou a imagem postgis/postgis:17-3.6) e aponte DC360_POSTGRES_DE_PROVA para um " +
   "superusuário dele, depois npm run test:espacial.";
 
 const PROBLEMA: Record<Exclude<EstadoDoServidor, "ok">, string> = {

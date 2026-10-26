@@ -162,9 +162,9 @@ serve: `--lista=ARQUIVO`, ou `--lista=-` pela entrada padrão.
 | --- | --- | --- |
 | Node | 22 | `.nvmrc`, `.node-version`, `engines` (`>=22 <23`), `Dockerfile`, `Dockerfile.console`, CI |
 | Postgres de PROD | 17.6 | Supabase |
-| Postgres do `compose.yaml` | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5@sha256:01a6a70e...`) | `compose.yaml` (`banco` e `papeis`) |
-| Postgres do CI | 17 com PostGIS 3.5, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
-| PostGIS | 3.5, na imagem acima | CI e `compose.yaml` (PGlite não o traz). HML e PROD: ver a tabela da seção "PostGIS no provedor" |
+| Postgres do `compose.yaml` | 17 com PostGIS 3.6 (`postgis/postgis:17-3.6@sha256:5cf98659...`) | `compose.yaml` (`banco` e `papeis`) |
+| Postgres do CI | 17 com PostGIS 3.6, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
+| PostGIS | 3.6, na imagem acima | CI e `compose.yaml` (PGlite não o traz). HML e PROD: ver a tabela da seção "PostGIS no provedor" |
 | PGlite | Postgres 16 em WebAssembly | testes de unidade e painel local |
 
 A diferença de major entre o PGlite (16) e o 17.6 de PROD é um risco conhecido e
@@ -172,7 +172,7 @@ declarado em `docs/COLOCAR-DE-PE.md`. O CI e o `compose.yaml` já estão no majo
 
 ### PostGIS no CI e no ambiente local (V2-F01-E21)
 
-- **Imagem por digest.** `postgis/postgis:17-3.5@sha256:01a6a70e...` (o digest
+- **Imagem por digest.** `postgis/postgis:17-3.6@sha256:5cf98659...` (o digest
   inteiro está no `compose.yaml`) é o índice multiarquitetura da tag, conferido
   no registro em 2026-10-24. É imagem de comunidade: o digest fixo impede que uma
   tag movida entre sem revisão. Subir a versão é trocar tag e digest juntos no
@@ -234,7 +234,7 @@ de papel, de objeto e contagens (nunca a URL, o usuário ou a senha). Sem banco,
 
 | Ambiente | Versão | Como foi obtida |
 | --- | --- | --- |
-| CI e `compose.yaml` | 3.5 (imagem por digest) | `postgis_lib_version()` no teste espacial |
+| CI e `compose.yaml` | 3.6 (imagem por digest) | `postgis_lib_version()` no teste espacial |
 | HML | A PREENCHER (CP-44) | saída de `postgis.sql` em HML |
 | PROD | não instalada até a F32 | `--extensoes --ambiente=prod` informa a versão disponível |
 

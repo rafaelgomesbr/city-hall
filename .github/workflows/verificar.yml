@@ -1028,14 +1028,16 @@ jobs:
     services:
       postgres:
         # O major de produção (17.6): o CI deixou de provar a partida contra um
-        # major mais velho que o que roda (V2-F01-E08). Com PostGIS 3.5 desde a
+        # major mais velho que o que roda (V2-F01-E08). Com PostGIS desde a
         # V2-F01-E21 (decisão D-16): a imagem é a mesma do `compose.yaml`, FIXADA
         # POR DIGEST do índice multiarquitetura do registro, conferido em
-        # 2026-10-24 para a tag 17-3.5. Imagem de comunidade: o digest fixo impede
+        # 2026-10-26 para a tag 17-3.6 (a 17-3.5 vem do Debian 11, sem suporte, e o
+        # Trivy reprovou 45 HIGH e CRITICAL corrigíveis nela; a 17-3.6 vem do Debian
+        # 13). Imagem de comunidade: o digest fixo impede
         # que uma tag movida entre no CI sem revisão, e a E20 a varre. Subir a
         # versão é trocar tag e digest juntos, aqui, no job `imagens` e no
         # `compose.yaml` (o `smoke-das-imagens.test.mjs` cobra os três).
-        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+        image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1253,7 +1255,7 @@ jobs:
       postgres:
         # Mesma imagem do `implantavel` (PostGIS 17 por digest, V2-F01-E21), para
         # a imagem da API ser provada contra o banco que a F32 vai exigir.
-        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+        image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1326,7 +1328,7 @@ jobs:
           # A imagem comunitária do banco (PostGIS, por digest) também é varrida, com a
           # MESMA régua e a mesma porta de exceção (.trivyignore.yaml) das nossas duas:
           # CVE corrigível nela passa a reprovar. Mesmo digest dos serviços do job.
-          postgis="postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6"
+          postgis="postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64"
           docker pull --quiet "$postgis" > /dev/null
           falhou=0
           for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:$postgis"; do

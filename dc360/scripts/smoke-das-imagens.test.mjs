@@ -26,7 +26,7 @@ const RAIZ = new URL("../../", import.meta.url);
 const ler = (relativo) => readFileSync(new URL(relativo, RAIZ), "utf8");
 const IMAGEM = "dc360-api:ci";
 const IMAGEM_POSTGIS =
-  "postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6";
+  "postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64";
 const POSTGIS_17_POR_DIGEST = IMAGEM_POSTGIS.replace(/[./]/g, "\\$&");
 const VERSAO = "0.1.0";
 const COMMIT = "f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c";

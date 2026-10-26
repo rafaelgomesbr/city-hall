@@ -135,7 +135,7 @@ jobs:
           # A imagem comunitária do banco (PostGIS, por digest) também é varrida, com a
           # MESMA régua e a mesma porta de exceção (.trivyignore.yaml) das nossas duas:
           # CVE corrigível nela passa a reprovar. Mesmo digest dos serviços do verificar.yml.
-          postgis="postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6"
+          postgis="postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64"
           docker pull --quiet "$postgis" > /dev/null
           falhou=0
           for par in "api:dc360-api:ci" "console:dc360-console:ci" "postgis:$postgis"; do
