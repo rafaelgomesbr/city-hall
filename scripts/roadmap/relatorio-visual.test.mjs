@@ -160,6 +160,53 @@ test("linha do tempo traz os marcos do arquivo e o 'a seguir' do editorial", () 
   assert.match(html, /Antes da V2: teste\./);
 });
 
+test("linha do tempo enxuta: com visaoGeral no editorial, o histórico completo não aparece", () => {
+  const visaoGeral = [{ data: "13 a 25/10", iso: "2026-10-25", titulo: "Validação, 11 rodadas", texto: "24 das 25 etapas validadas.", tipo: "ok" }];
+  const { html } = montar({ editorial: { ...EDITORIAL, visaoGeral } });
+  assert.match(html, /Validação, 11 rodadas/);
+  assert.match(html, /class="ok"/);
+  assert.match(html, /class="prox"/);
+  assert.doesNotMatch(html, /Início da fase 1\./);
+  assert.equal((html.match(/<li class="/g) ?? []).length, 2);
+});
+
+test("a visão geral também passa pela conferência de texto", () => {
+  const p = conferirTextos({ editorial: { visaoGeral: [{ titulo: "x", texto: "Fase pronta — sim." }] }, linha: { marcos: [] }, concluidas: 0 });
+  assert.equal(p.length >= 1, true);
+  assert.match(p[0], /editorial\.visaoGeral\[0\]\.texto/);
+});
+
+test("a visão geral REAL da página de progresso é curta e passa na conferência", () => {
+  const editorial = JSON.parse(readFileSync(join(RAIZ, "docs", "relatorios-v2", "semanais", "progresso", "editorial.json"), "utf8"));
+  const linha = JSON.parse(readFileSync(join(RAIZ, "docs", "relatorios-v2", "semanais", "linha-do-tempo.json"), "utf8"));
+  assert.ok(editorial.visaoGeral.length >= 3 && editorial.visaoGeral.length <= 6, "a linha do tempo da página precisa ser uma visão geral");
+  assert.deepEqual(conferirTextos({ editorial, linha, concluidas: 0 }), []);
+});
+
+test("o link para a página de decisões só aparece quando pedido", () => {
+  assert.doesNotMatch(montar().html, /href="\/progresso\/decisoes"/);
+  assert.match(montar({ linkDasDecisoes: "/progresso/decisoes" }).html, /<p class="mais"><a href="\/progresso\/decisoes">Ver todas as decisões/);
+});
+
+test("rótulos das barras concordam com o número (1 validada, 2 validadas)", () => {
+  const { html } = montar();
+  assert.match(html, /2 validadas</);
+  assert.match(html, /✓ 1 validada</);
+  assert.match(html, /1 implementada, aguarda validação</);
+  assert.match(html, /1 reprovada ou bloqueada</);
+  assert.match(html, /3 ainda não começaram</);
+  assert.doesNotMatch(html, /\b1 (implementadas|validadas|reprovadas|ainda não começaram)/);
+});
+
+test("o relatório traz o glossário de siglas quando ele é passado", () => {
+  assert.doesNotMatch(montar().html, /Siglas e termos/);
+  const glossario = { destaque: [], completo: [{ sigla: "G00", nome: "Gate", texto: "Aprova a fase." }] };
+  const { html } = montar({ glossario });
+  assert.ok(html.includes('<h2 id="h-gloss">Siglas e termos</h2>'));
+  assert.ok(html.includes("<dt>G00<small>Gate</small></dt>"));
+  assert.doesNotMatch(html, /class="siglas"/);
+});
+
 test("o HTML do texto editorial é escapado", () => {
   const { html } = montar({ editorial: { ...EDITORIAL, lead: 'Aberto <script>alert(1)</script>. Nenhuma concluída.' } });
   assert.doesNotMatch(html, /<script>alert/);

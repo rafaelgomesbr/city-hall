@@ -1,0 +1,733 @@
+{
+  "nota": "Resumo visual de docs/roadmap-v2/pendencias-humanas.md, para a página /progresso/decisoes. Se os dois divergirem, vale o pendencias-humanas.md. Cada código aberto lá (seções A a D) precisa estar aqui: o teste confere. Sem travessão, sem recomendação inventada: só entra em 'recomendada' o que o próprio documento recomenda.",
+  "posicao": "25/10/2026, depois da rodada 11 da validação da F00",
+  "titulo": "O que só uma pessoa pode resolver",
+  "lead": "Cada cartão mostra a situação de hoje, a pergunta e o que acontece em cada resposta. Nada aqui impede o trabalho de seguir: o que espera por você está separado do que só espera ser conferido.",
+  "grupos": [
+    {
+      "id": "agora",
+      "titulo": "Peças do gate G00, para decidir agora",
+      "texto": "O gatekeeper recomendou aprovar o G00. Estas três decisões fecham a fase 0 e liberam a fase 1."
+    },
+    {
+      "id": "prazo",
+      "titulo": "Têm risco ou prazo definido",
+      "texto": "Não travam o G00, mas existe um momento a partir do qual deixam de poder esperar."
+    },
+    {
+      "id": "pode-esperar",
+      "titulo": "Precisam de resposta, mas podem esperar",
+      "texto": "O documento registra que não bloqueiam nenhuma etapa. Cada uma só precisa de um sim, um não ou uma data."
+    }
+  ],
+  "caminho": {
+    "titulo": "O caminho até a fase 1",
+    "passos": [
+      {
+        "rotulo": "Hoje",
+        "texto": "24 das 25 etapas da fase 0 aprovadas; a E09 aceita por decisão sua",
+        "estado": "feito"
+      },
+      {
+        "rotulo": "H44",
+        "texto": "Decidir o tipo de merge que a master aceita",
+        "estado": "voce"
+      },
+      {
+        "rotulo": "H09",
+        "texto": "Aprovar o G00 e fazer o merge em master",
+        "estado": "voce"
+      },
+      {
+        "rotulo": "Conferir",
+        "texto": "Primeiro Verificar em master fica verde",
+        "estado": "depois"
+      },
+      {
+        "rotulo": "GATE.md",
+        "texto": "Registro do gate escrito",
+        "estado": "depois"
+      },
+      {
+        "rotulo": "Fase 1",
+        "texto": "Fundação de engenharia e ambientes",
+        "estado": "depois"
+      }
+    ],
+    "fora": "Em paralelo, sem travar este caminho: H84 (status da E09), H33 (chave do Firebase), H01 e H30 (saída a campo, antes de qualquer demonstração) e H04 (antes do piloto)."
+  },
+  "decisoes": [
+    {
+      "codigo": "H44",
+      "grupo": "agora",
+      "etapa": "F01-E01 e G00",
+      "titulo": "Que tipo de merge a master vai aceitar?",
+      "hoje": "A regra de proteção da master, escrita na F01, aceita só squash. O combinado do G00 é commit de merge, nunca squash.",
+      "pergunta": "Em que ordem fazer o merge da F00 e ligar a regra de proteção?",
+      "opcoes": [
+        {
+          "rotulo": "Merge da F00 primeiro, regra depois",
+          "efeito": "Trocar \"só squash\" por \"commit de merge\" no arquivo da regra e só então importá-la no GitHub. Os códigos de commit citados no STATUS continuam existindo.",
+          "recomendada": true
+        },
+        {
+          "rotulo": "Ligar a regra como está",
+          "efeito": "Com squash, os códigos de commit citados no STATUS somem da master e o check \"Ferramentas do roadmap e estado gerado\" passa a reprovar."
+        }
+      ],
+      "tambem": "Decidir a lista final dos 9 checks obrigatórios e provar que o push direto na master é recusado.",
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G01/V2-F01-E01/RESUMO.md (no ramo v2/f01)",
+      "curto": "Tipo de merge da master"
+    },
+    {
+      "codigo": "H09",
+      "grupo": "agora",
+      "etapa": "G00",
+      "titulo": "Aprovar o gate G00 e fazer o merge em master?",
+      "hoje": "O gatekeeper recomendou aprovar na rodada 10 (25/10) e a rodada 11, só mecânica, confirmou: nada de produto mudou.",
+      "pergunta": "Aprova o G00 e faz o merge, com commit de merge?",
+      "opcoes": [
+        {
+          "rotulo": "Aprovar e fazer o merge",
+          "efeito": "Depois do merge: conferir que o primeiro Verificar em master fica verde (o último lá é de 17/09 e falhou) e escrever o GATE.md. A fase 1 passa a ter base aprovada.",
+          "recomendada": true
+        },
+        {
+          "rotulo": "Não aprovar agora",
+          "efeito": "A fase 0 segue aberta e a fase 1 continua sem base aprovada."
+        }
+      ],
+      "tambem": "Decida a H44 antes, porque ela define o tipo de merge.",
+      "quem": "Rafael",
+      "ler": "docs/relatorios-v2/aprovacao/ROTEIRO-G00.md, parte 3",
+      "curto": "Aprovar o gate G00"
+    },
+    {
+      "codigo": "H84",
+      "grupo": "agora",
+      "etapa": "E09 e G00",
+      "titulo": "A política ganha um status para \"aceita por decisão\"?",
+      "hoje": "Você aceitou a E09 sem validador (H36). Mas o status VALIDADA exige o PASS de um validador, e o gerar-estado recusa o contrário. Por isso a E09 aparece como IMPLEMENTADA no STATUS.",
+      "pergunta": "Fica assim ou a política ganha um status próprio?",
+      "opcoes": [
+        {
+          "rotulo": "Deixar como está",
+          "efeito": "A E09 segue IMPLEMENTADA no STATUS e a aceitação fica registrada à parte."
+        },
+        {
+          "rotulo": "Criar um status próprio (por exemplo, ACEITA)",
+          "efeito": "A política e o gerar-estado passam a reconhecer a aceitação por decisão. O STATUS mostra a E09 como aceita."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/validacao/98879db/G00-recomendacao.md, item 0",
+      "curto": "Status da E09"
+    },
+    {
+      "codigo": "H33",
+      "grupo": "prazo",
+      "etapa": "E16 e E19",
+      "titulo": "Restringir a chave do Firebase no Google Cloud",
+      "hoje": "O repositório é público desde 20/10. A chave de API do aplicativo de campo (google-services.json, também no histórico) ficou pública. Ela já vai dentro do aplicativo instalado.",
+      "pergunta": "Restringe a chave ao aplicativo Android?",
+      "opcoes": [
+        {
+          "rotulo": "Restringir ao pacote do aplicativo e às APIs que ele usa",
+          "efeito": "No console do Google Cloud: APIs e serviços, Credenciais. Outra pessoa não consegue gastar a cota com essa chave.",
+          "recomendada": true
+        },
+        {
+          "rotulo": "Deixar sem restrição",
+          "efeito": "Se a chave estiver sem restrição, outra pessoa pode usar e gastar a cota."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "dc360/apps/campo/google-services.json",
+      "curto": "Chave do Firebase"
+    },
+    {
+      "codigo": "H01",
+      "grupo": "prazo",
+      "etapa": "E24 (CP-02)",
+      "titulo": "A saída a campo vai ser feita no aplicativo do agente?",
+      "hoje": "A premissa D-25 diz que sim, mas o aplicativo ainda não faz isso. Até você decidir, nenhuma demonstração a município pode mostrar a saída a campo como funcionando.",
+      "pergunta": "Confirma ou reverte a D-25?",
+      "opcoes": [
+        {
+          "rotulo": "Confirmar",
+          "efeito": "A saída a campo entra no aplicativo, e as frases do painel e da apresentação passam a ser verdade."
+        },
+        {
+          "rotulo": "Reverter",
+          "efeito": "A saída fica só no painel, e a frase do painel e a apresentação mudam para não prometer o aplicativo."
+        }
+      ],
+      "quem": "Rafael e Alyson",
+      "ler": "docs/evidencias-v2/CP-02/decisao.md",
+      "curto": "Saída a campo no app"
+    },
+    {
+      "codigo": "H30",
+      "grupo": "prazo",
+      "etapa": "E24",
+      "titulo": "A frase do painel sobre a saída a campo continua?",
+      "hoje": "O painel diz \"Declarar a saída é um passo do aplicativo do agente\". O aplicativo ainda não faz esse passo.",
+      "pergunta": "Mantém a frase ou troca?",
+      "opcoes": [
+        {
+          "rotulo": "Manter a frase",
+          "efeito": "Só é verdade depois que a saída a campo entrar no aplicativo (resposta Confirmar na H01)."
+        },
+        {
+          "rotulo": "Trocar a frase",
+          "efeito": "É o caminho se a H01 for revertida: a frase deixa de prometer o aplicativo."
+        }
+      ],
+      "tambem": "Depende da H01. Decida as duas juntas.",
+      "quem": "Rafael e Alyson",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E24/VEREDITO.md, rodada 4",
+      "curto": "Frase da saída a campo"
+    },
+    {
+      "codigo": "H04",
+      "grupo": "prazo",
+      "etapa": "E06",
+      "titulo": "Quem pode anexar foto a uma ocorrência, e quanto cada pessoa pode reservar?",
+      "hoje": "Duas lacunas. Um agente reserva, com o próprio acesso, o teto inteiro de envios do município em segundos e trava o envio de foto dos colegas por até 30 dias (sem perda de dado, mas para a operação). E não está decidido se o agente de uma equipe pode anexar foto avulsa à ocorrência de outra equipe.",
+      "pergunta": "Quais são as duas regras?",
+      "opcoes": [
+        {
+          "rotulo": "Definir se uma equipe pode anexar foto à ocorrência de outra",
+          "efeito": "Define quem pode anexar foto avulsa ao dossiê de uma ocorrência de outra equipe."
+        },
+        {
+          "rotulo": "Definir o teto de reservas de envio por pessoa",
+          "efeito": "Um limite por pessoa impede que um agente trave o envio dos colegas."
+        }
+      ],
+      "tambem": "A correção entra antes do piloto; a regra é sua.",
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E06/VEREDITO.md, achados",
+      "curto": "Fotos entre equipes",
+      "multipla": true
+    },
+    {
+      "codigo": "H24",
+      "grupo": "prazo",
+      "etapa": "E19",
+      "titulo": "Confirmar a subida dos pacotes do Expo?",
+      "hoje": "Em 14/10 cinco pacotes do Expo subiram por premissa, porque o expo-doctor tinha voltado a 20 de 21. Em 18/10 a deriva voltou e a correção 5 subiu mais dois pelo mesmo tratamento.",
+      "pergunta": "Confirma, e essa deriva passa a ser tratada sempre assim?",
+      "opcoes": [
+        {
+          "rotulo": "Confirmar",
+          "efeito": "Os pacotes ficam como estão. Vale decidir se a deriva do Expo, que volta a cada patch, será sempre tratada assim."
+        },
+        {
+          "rotulo": "Reverter",
+          "efeito": "Comando: git revert 0e00875. O expo-doctor volta a 20 de 21."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E19/correcao-4/RESUMO.md",
+      "curto": "Pacotes do Expo"
+    },
+    {
+      "codigo": "H37",
+      "grupo": "prazo",
+      "etapa": "E19",
+      "titulo": "Confirmar a migração do zod 3 para o zod 4?",
+      "hoje": "O zod 3.25.76 tem um alerta de segurança de severidade alta e reprovava a auditoria. O orquestrador migrou para a versão 4 em vez de abrir uma exceção. A rodada 9 comparou 130 mil casos: nenhuma validação ficou mais frouxa, só mais estritas.",
+      "pergunta": "Confirma a migração?",
+      "opcoes": [
+        {
+          "rotulo": "Confirmar",
+          "efeito": "Fica uma exceção nova e estreita: o zod 3 que a ferramenta de build do Expo carrega (não vai ao telefone), dono Rafael, prazo 05/01/2027. Veja a H79."
+        },
+        {
+          "rotulo": "Não confirmar",
+          "efeito": "Sem a migração, o zod 3 reprova a auditoria de pacotes, que precisa fechar em zero."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E19/VEREDITO.md, rodadas 8 e 9",
+      "curto": "Migração do zod"
+    },
+    {
+      "codigo": "H43",
+      "grupo": "pode-esperar",
+      "etapa": "E22",
+      "titulo": "Ler uma ocorrência de município suspenso deve gravar o registro de consulta?",
+      "hoje": "O código grava em ocorrencia_consultas, mas o documento diz que não grava.",
+      "pergunta": "Muda o código ou muda a frase?",
+      "opcoes": [
+        {
+          "rotulo": "Mudar o documento",
+          "efeito": "A frase passa a dizer que a leitura é registrada. O código não muda."
+        },
+        {
+          "rotulo": "Mudar o código",
+          "efeito": "A leitura por município suspenso deixa de gravar. O documento já está certo."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E22/VEREDITO.md, rodada 8",
+      "curto": "Registro de consulta"
+    },
+    {
+      "codigo": "H02",
+      "grupo": "pode-esperar",
+      "etapa": "E10 (CP-19)",
+      "titulo": "Que provedor de e-mail liga a recuperação de senha em produção?",
+      "hoje": "Adiado por você para a fase 2 (D6). Até lá, a produção fica com a recuperação desligada (RECUPERACAO_ATIVA=nao).",
+      "pergunta": "Qual provedor, domínio e contrato, e onde o dado fica guardado?",
+      "opcoes": [
+        {
+          "rotulo": "Decidir na fase 2",
+          "efeito": "É o combinado de hoje. A recuperação segue desligada em produção."
+        },
+        {
+          "rotulo": "Decidir antes",
+          "efeito": "Provedor, domínio, residência do dado e contrato definidos; o jurídico revisa o contrato."
+        }
+      ],
+      "quem": "Rafael, e jurídico no contrato",
+      "ler": "STATUS.md, seção 7, linha CP-19",
+      "curto": "E-mail de recuperação"
+    },
+    {
+      "codigo": "H06",
+      "grupo": "pode-esperar",
+      "etapa": "E10",
+      "titulo": "Como o administrador único recupera a senha enquanto a recuperação está desligada?",
+      "hoje": "O administrador único de um município não tem como recuperar a senha enquanto a recuperação está desligada em produção.",
+      "pergunta": "Aceita assim até o CP-19 ou quer um caminho de suporte?",
+      "opcoes": [
+        {
+          "rotulo": "Aceitar até o CP-19",
+          "efeito": "Sem mudança. A pessoa fica sem caminho de recuperação até a recuperação ser ligada."
+        },
+        {
+          "rotulo": "Criar um caminho de suporte",
+          "efeito": "Alguém do suporte consegue restaurar o acesso do administrador único."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E10/validacao/4b96ea7/qa.md",
+      "curto": "Senha do administrador"
+    },
+    {
+      "codigo": "H05",
+      "grupo": "pode-esperar",
+      "etapa": "E09",
+      "titulo": "A tecla Esc deve fechar a janela da senha temporária?",
+      "hoje": "Clicar fora da janela não fecha, mas Esc fecha. Quem fecha sem copiar perde a senha.",
+      "pergunta": "Esc fecha ou não?",
+      "opcoes": [
+        {
+          "rotulo": "Esc continua fechando",
+          "efeito": "Como hoje: quem fecha sem copiar perde a senha temporária."
+        },
+        {
+          "rotulo": "Esc não fecha",
+          "efeito": "A janela só fecha pelo botão \"Já anotei a senha\"."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E09/VEREDITO.md",
+      "curto": "Tecla Esc na senha"
+    },
+    {
+      "codigo": "H26",
+      "grupo": "pode-esperar",
+      "etapa": "E09",
+      "titulo": "Corrigir agora o aviso que cobre o botão da senha temporária?",
+      "hoje": "Numa tela de 320 px, o aviso \"Sessões encerradas\" cobre por cerca de 6 segundos o botão \"Já anotei a senha\". Tocar no aviso aciona o botão escondido e fecha a janela, e a senha temporária se perde.",
+      "pergunta": "Corrige já ou deixa para a F10?",
+      "opcoes": [
+        {
+          "rotulo": "Corrigir já",
+          "efeito": "Dois validadores trataram como \"corrige antes de crescer\"."
+        },
+        {
+          "rotulo": "Deixar para a F10",
+          "efeito": "O defeito segue até a F10."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E09/VEREDITO.md, rodada 3",
+      "curto": "Aviso cobre o botão"
+    },
+    {
+      "codigo": "H35",
+      "grupo": "pode-esperar",
+      "etapa": "E09",
+      "titulo": "A partir de que altura de janela o topo e o pé deixam de ser fixos?",
+      "hoje": "Na correção 6b, o limite desceu de 360 para 340 px, para o Android deitado (640x360 e 740x360) manter a navegação fixa.",
+      "pergunta": "Mantém 340 px, volta para 360 ou sobe para cerca de 400?",
+      "opcoes": [
+        {
+          "rotulo": "340 px (hoje)",
+          "efeito": "O Android deitado mantém a navegação fixa. Entre 341 e cerca de 390 px de altura, a frase de erro do Relato fica sob a barra do pé."
+        },
+        {
+          "rotulo": "360 px",
+          "efeito": "A faixa em que a frase fica escondida cai para 341 a 360 px."
+        },
+        {
+          "rotulo": "Cerca de 400 px",
+          "efeito": "Cobre tudo, ao custo de a navegação do pé rolar no Android deitado."
+        }
+      ],
+      "tambem": "Não trava nada.",
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E09/correcao-6b/RESUMO.md",
+      "curto": "Altura do topo fixo"
+    },
+    {
+      "codigo": "H07",
+      "grupo": "pode-esperar",
+      "etapa": "E11",
+      "titulo": "Município suspenso pode baixar o próprio pacote de saída?",
+      "hoje": "Hoje não pode: toda escrita confere a suspensão. É justamente o município em litígio que mais quer sair.",
+      "pergunta": "Mantém assim?",
+      "opcoes": [
+        {
+          "rotulo": "Manter",
+          "efeito": "Município suspenso não baixa o pacote de saída."
+        },
+        {
+          "rotulo": "Abrir uma exceção para o pacote de saída",
+          "efeito": "O município suspenso consegue levar os próprios dados embora."
+        }
+      ],
+      "quem": "Rafael, com o jurídico",
+      "ler": "STATUS.md, seção 11, \"Achado novo da E11, município suspenso\"",
+      "curto": "Município suspenso"
+    },
+    {
+      "codigo": "H08",
+      "grupo": "pode-esperar",
+      "etapa": "E13",
+      "titulo": "Como fica a barra de navegação de onze itens no celular?",
+      "hoje": "A barra continua rolando na horizontal no celular.",
+      "pergunta": "Qual desenho?",
+      "opcoes": [
+        {
+          "rotulo": "Menu \"Mais\"",
+          "efeito": "Os itens menos usados vão para dentro de um menu."
+        },
+        {
+          "rotulo": "Abas",
+          "efeito": "A navegação é reorganizada em abas."
+        },
+        {
+          "rotulo": "Deixar para a F10",
+          "efeito": "A barra segue rolando na horizontal até lá."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E13/VEREDITO.md, achados",
+      "curto": "Menu no celular"
+    },
+    {
+      "codigo": "H29",
+      "grupo": "pode-esperar",
+      "etapa": "E04",
+      "titulo": "Consertar agora a escrita que termina depois de a conta ser desativada?",
+      "hoje": "Uma escrita que já estava em andamento conclui até cerca de 223 ms depois de a conta ser desativada (8 de 8 no validador). Não quebra o critério escrito da E04, mas é da mesma família do defeito da E07.",
+      "pergunta": "Conserta agora ou na F03-E03?",
+      "opcoes": [
+        {
+          "rotulo": "Agora",
+          "efeito": "Entra como correção da fase 0."
+        },
+        {
+          "rotulo": "Na F03-E03",
+          "efeito": "O defeito segue, de até cerca de 223 ms, até lá."
+        }
+      ],
+      "quem": "Rafael",
+      "ler": "docs/evidencias-v2/G00/V2-F00-E04/VEREDITO.md, rodada 4",
+      "curto": "Escrita após desativar"
+    },
+    {
+      "codigo": "H23",
+      "grupo": "pode-esperar",
+      "etapa": "E09, E10 e E15",
+      "titulo": "Prazos e bases legais de dados pessoais",
+      "hoje": "Falta definir por quanto tempo se guarda o IP e o user-agent das sessões, qual a base legal do e-mail de recuperação e do dado de coleta, e escrever o aviso de privacidade.",
+      "pergunta": "O que o jurídico e o encarregado de dados (DPO) definem?",
+      "opcoes": [
+        {
+          "rotulo": "Definir com o jurídico e o DPO",
+          "efeito": "Prazo de retenção, base legal e aviso de privacidade ficam fixados (CP-10 e CP-11)."
+        }
+      ],
+      "quem": "Rafael, com o jurídico e o DPO",
+      "ler": "STATUS.md, CP-10 e CP-11",
+      "curto": "Dados pessoais e LGPD",
+      "multipla": true
+    }
+  ],
+  "conferencias": {
+    "titulo": "O que só precisa ser conferido",
+    "lead": "Aqui não há o que escolher. Alguém precisa fazer, olhar ou ler, e dizer o resultado pelo código (por exemplo, \"H18 feito\" ou \"H19 reprovo, porque ...\"). Nenhuma trava o trabalho.",
+    "tipos": [
+      {
+        "id": "olhar",
+        "titulo": "Olhar telas e ler frases",
+        "texto": "Texto de produto e aparência. As frases foram aprovadas em 13/10 sem leitura individual, e ler continua sendo seu. Se uma frase mudar, entra como correção."
+      },
+      {
+        "id": "aparelho",
+        "titulo": "No aparelho",
+        "texto": "O que o emulador Android não prova: iPhone, câmera real, Android físico."
+      },
+      {
+        "id": "maquina",
+        "titulo": "Em outra máquina ou por outra pessoa",
+        "texto": "Reproduzir do zero, ler documentos, testar em Windows de cliente."
+      },
+      {
+        "id": "externo",
+        "titulo": "Leitor de tela e produção",
+        "texto": "A política não deixa um agente substituir um leitor de tela nem acessar a produção."
+      }
+    ],
+    "itens": [
+      {
+        "codigo": "H10",
+        "tipo": "olhar",
+        "etapa": "E05",
+        "fazer": "Ler as três frases de sessão na entrada: conta desativada, sessão encerrada e papel alterado.",
+        "esperado": "Cada frase diz o que fazer.",
+        "reprova": "A frase não diz o que fazer, ou mistura \"desativada\" com \"expirou\".",
+        "ler": "docs/evidencias-v2/G00/validacao/4b96ea7/navegador/ e V2-F00-E05/capturas/",
+        "curto": "Frases de sessão"
+      },
+      {
+        "codigo": "H11",
+        "tipo": "olhar",
+        "etapa": "E09",
+        "fazer": "Ler a frase da senha única, as janelas de redefinir e encerrar sessões e a tela Minha conta.",
+        "esperado": "Frases claras e botões dentro das janelas.",
+        "reprova": "Botão fora da janela ou frase confusa.",
+        "ler": "mesma pasta de capturas da H10",
+        "curto": "Frases da senha única"
+      },
+      {
+        "codigo": "H12",
+        "tipo": "olhar",
+        "etapa": "E10",
+        "fazer": "Ler as telas \"Esqueceu a senha?\" e de redefinir.",
+        "esperado": "A mesma frase para e-mail que existe e para e-mail que não existe.",
+        "reprova": "A frase é diferente nos dois casos.",
+        "ler": "mesma pasta de capturas da H10",
+        "curto": "Esqueceu a senha"
+      },
+      {
+        "codigo": "H13",
+        "tipo": "olhar",
+        "etapa": "E11",
+        "fazer": "Ver o botão \"Baixar pacote de saída\", o estado \"Gerando\" e a recusa.",
+        "esperado": "O botão responde e a recusa mostra uma saída.",
+        "reprova": "Dá erro 404, o botão fica sem retorno ou a frase de erro não dá saída.",
+        "ler": "V2-F00-E11/capturas/ e pasta do navegador",
+        "curto": "Pacote de saída"
+      },
+      {
+        "codigo": "H14",
+        "tipo": "olhar",
+        "etapa": "E13",
+        "fazer": "Digitar só o domínio, entrar e cair na tela do seu papel; ler as seis frases de confirmação.",
+        "esperado": "Cai na tela do papel e os avisos aparecem inteiros.",
+        "reprova": "Aparece \"Esta página não existe\" ou o aviso fica por cima da barra.",
+        "ler": "pasta do navegador, capturas E13-*",
+        "curto": "Frases de confirmação"
+      },
+      {
+        "codigo": "H15",
+        "tipo": "olhar",
+        "etapa": "E14",
+        "fazer": "Ler as frases finais da sessão encerrada no aplicativo (\"Toque em Entrar de novo\", \"Nada é apagado\").",
+        "esperado": "A frase é clara.",
+        "reprova": "Frase confusa.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E14/",
+        "curto": "Sessão encerrada no app"
+      },
+      {
+        "codigo": "H16",
+        "tipo": "olhar",
+        "etapa": "E06 e E16",
+        "fazer": "Ler as frases novas da pausa por senha provisória e as 12 frases que trocaram a promessa de segundo plano.",
+        "esperado": "Nenhuma frase promete envio com o aplicativo fechado.",
+        "reprova": "Alguma frase promete envio com o aplicativo fechado.",
+        "ler": "V2-F00-E06/correcao-1/RESUMO.md e V2-F00-E16/correcao-1/RESUMO.md",
+        "curto": "Envio em segundo plano"
+      },
+      {
+        "codigo": "H17",
+        "tipo": "olhar",
+        "etapa": "E24",
+        "fazer": "Ler a apresentação ajustada antes de qualquer demonstração.",
+        "esperado": "A apresentação não promete a saída a campo funcionando.",
+        "reprova": "Promete a saída a campo como funcionando.",
+        "ler": "docs/apresentacao-produto-alyson.html e dc360/docs/apresentacao/2026-09-15-para-o-alyson.html",
+        "curto": "Apresentação ao Alyson"
+      },
+      {
+        "codigo": "H34",
+        "tipo": "olhar",
+        "etapa": "E05, E08, E09, E10, E11, E13 e E24",
+        "fazer": "Olhar as capturas da rodada 7 que os validadores separaram para você.",
+        "esperado": "Texto inteiro, nenhum campo escondido, frases bem escritas.",
+        "reprova": "Texto cortado, campo escondido atrás do topo ou do pé, frase mal escrita.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-Enn/validacao/fd17ff4/capturas/",
+        "curto": "Capturas da rodada 7"
+      },
+      {
+        "codigo": "H81",
+        "tipo": "olhar",
+        "etapa": "E09",
+        "fazer": "Olhar as duas capturas da contrapartida da correção 7: em janela baixa, título e parte do texto saem por cima da parte visível do painel, sem pista de rolagem.",
+        "esperado": "Você aprova o desenho ou pede outro (DV-34).",
+        "reprova": "O título some sem pista e a pessoa não entende o que confirma.",
+        "ler": "G00/V2-F00-E09/validacao/dda7557/capturas/ux-06 e ux-07",
+        "curto": "Janela baixa"
+      },
+      {
+        "codigo": "H82",
+        "tipo": "olhar",
+        "etapa": "E09",
+        "fazer": "Fazer o fluxo no painel e conferir a frase da senha única e as confirmações. Atenção à frase \"agora\" de Usuários, que promete mais do que a API faz na leitura (DV-35).",
+        "esperado": "As frases dizem o que realmente acontece.",
+        "reprova": "A frase promete algo que não acontece, ou o botão fica fora da janela.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E09/VEREDITO.md, rodada 9",
+        "curto": "Fluxo do painel"
+      },
+      {
+        "codigo": "H42",
+        "tipo": "olhar",
+        "etapa": "E22",
+        "fazer": "Ler a tabela de documentação antes e depois.",
+        "esperado": "Nada ficou prometido sem existir.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E22/VEREDITO.md, rodada 8",
+        "curto": "Tabela de documentação"
+      },
+      {
+        "codigo": "H18",
+        "tipo": "aparelho",
+        "etapa": "E16",
+        "fazer": "Em um iPhone e em um Android real: tirar foto na vistoria; abrir o teclado e tocar \"Tirar foto\" no primeiro toque; negar a câmera e tocar \"Abrir os ajustes do aparelho\"; ver o obturador acima da barra do sistema. Foto do aparelho para a pasta da etapa.",
+        "esperado": "A foto entra na vistoria, o primeiro toque age, os Ajustes abrem e nada fica coberto.",
+        "reprova": "Foto recusada, toque perdido ou botão sob a barra.",
+        "curto": "Foto na vistoria"
+      },
+      {
+        "codigo": "H19",
+        "tipo": "aparelho",
+        "etapa": "E15",
+        "fazer": "Começar uma vistoria com foto e assinatura e tocar \"Sair da conta\"; derrubar a sessão pelo painel e tocar \"Entrar de novo\" dentro da vistoria; concluir com GPS bom e ler \"Precisão de 1 metro\".",
+        "esperado": "O diálogo conta o que se apaga e \"Entrar de novo\" preserva tudo.",
+        "reprova": "Qualquer caminho apaga o rascunho sem avisar.",
+        "curto": "Sair da conta na vistoria"
+      },
+      {
+        "codigo": "H20",
+        "tipo": "aparelho",
+        "etapa": "E06",
+        "fazer": "Fazer a coleta sem sinal, voltar o sinal e, pelo painel, redefinir a senha do agente antes de a fila subir.",
+        "esperado": "A fila pausa com frase clara, a faixa de cima diz que está pausada e a coleta sobe uma vez depois de definir a senha.",
+        "reprova": "Aparece \"Tudo sincronizado\" com a coleta parada, ou a coleta some ou duplica.",
+        "curto": "Coleta sem sinal"
+      },
+      {
+        "codigo": "H39",
+        "tipo": "aparelho",
+        "etapa": "E09",
+        "fazer": "Ver, no Safari de um iPhone real e no Android real, a confirmação de \"Encerrar minhas outras sessões\" em Minha conta e as janelas de confirmação de Usuários; ouvir o fluxo de Minha conta com o VoiceOver.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E09/correcao-7/RESUMO.md, limitações",
+        "curto": "Safari e VoiceOver"
+      },
+      {
+        "codigo": "H80",
+        "tipo": "aparelho",
+        "etapa": "E19",
+        "fazer": "Gerar um binário nativo novo do aplicativo de campo (eas build) antes da próxima entrega aos agentes. A correção 10 subiu cinco pacotes do Expo e trocou o zod do aplicativo para a linha 4; nenhum binário foi gerado ainda.",
+        "esperado": "O build nativo funciona e o Metro empacota o aplicativo com o zod 4.",
+        "reprova": "O build nativo falha, ou o Metro não empacota o aplicativo com o zod 4.",
+        "ler": "dc360/apps/campo/LEIA-ME.md e correcao-10/RESUMO.md",
+        "curto": "Build nativo do app"
+      },
+      {
+        "codigo": "H38",
+        "tipo": "maquina",
+        "etapa": "E01",
+        "fazer": "Uma segunda pessoa, ou você noutra máquina, segue o COMO-REPRODUZIR.md do zero.",
+        "esperado": "O passo 14 (npm run auditar) sai com código 0.",
+        "reprova": "O passo 14 sai vermelho (DV-06).",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E01/VEREDITO.md, rodada 8",
+        "curto": "Reproduzir do zero"
+      },
+      {
+        "codigo": "H40",
+        "tipo": "maquina",
+        "etapa": "E18",
+        "fazer": "Ver o upload de evidência da seção 13 do E2E acontecer no navegador.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E18/VEREDITO.md, rodada 8",
+        "curto": "Upload de evidência"
+      },
+      {
+        "codigo": "H41",
+        "tipo": "maquina",
+        "etapa": "E21",
+        "fazer": "Rodar o npm run verificar inteiro numa máquina Windows de cliente. O CI já provou os três casos e os scripts em Windows Server, mas não o comando inteiro nem o Windows 11 de cliente.",
+        "esperado": "O comando fecha verde.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E21/VEREDITO.md, rodada 8",
+        "curto": "Windows de cliente"
+      },
+      {
+        "codigo": "H79",
+        "tipo": "maquina",
+        "etapa": "E19",
+        "fazer": "Ler a lista de exceções do aplicativo de campo (5 pacotes e 7 alertas, com dono e prazo 05/01/2027) e confirmar que o zod 3 do @expo/cli é tratado como o node-forge e o shell-quote: ferramenta de build, não vai ao telefone. Faz par com a H37.",
+        "ler": "dc360/scripts/auditar-excecoes.mjs",
+        "curto": "Lista de exceções"
+      },
+      {
+        "codigo": "H83",
+        "tipo": "maquina",
+        "etapa": "E19",
+        "fazer": "Na máquina em que o aplicativo de campo vai rodar, executar npm ci em dc360/apps/campo antes de rodar o aplicativo ou o expo-doctor. A instalação local pode estar desatualizada em relação ao lockfile; não é defeito do repositório.",
+        "esperado": "As versões instaladas batem com o lockfile (expo 57.0.31, zod 4.6.7).",
+        "reprova": "O aplicativo ou o expo-doctor falham por pacote desatualizado.",
+        "ler": "docs/evidencias-v2/G00/V2-F00-E19/validacao/dda7557/engenharia-entrega.md, achado 4",
+        "curto": "Instalar pacotes do app"
+      },
+      {
+        "codigo": "H21",
+        "tipo": "externo",
+        "etapa": "E05, E09, E10, E11, E13 e E16",
+        "fazer": "Ouvir com leitor de tela real as frases, janelas, avisos e tarjas: NVDA ou VoiceOver no painel, TalkBack e VoiceOver no aplicativo. Idealmente uma pessoa com deficiência visual (CP-32).",
+        "curto": "Leitor de tela"
+      },
+      {
+        "codigo": "H22",
+        "tipo": "externo",
+        "etapa": "E25",
+        "fazer": "Restaurar um backup a partir da produção Supabase com o esquema atual. O restore do CI e do banco local já está provado em Postgres 17.11 e 18.3. Exige acesso à produção (CP-07).",
+        "curto": "Restore da produção"
+      },
+      {
+        "codigo": "H27",
+        "tipo": "externo",
+        "etapa": "E25",
+        "fazer": "Uma segunda pessoa segue o dc360/docs/RESTORE-DO-BANCO.md (versão 2) do zero, em máquina limpa, de preferência um Windows com Git Bash e o PostgreSQL 17 do instalador padrão. O roteiro já foi seguido por agente em clones limpos, mas falta quem não conhece o sistema.",
+        "ler": "dc360/docs/RESTORE-DO-BANCO.md",
+        "curto": "Restore por outra pessoa"
+      }
+    ]
+  }
+}

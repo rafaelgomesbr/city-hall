@@ -85,6 +85,13 @@
       "titulo": "Rafael aprova as regras novas de validação",
       "texto": "Achado que só existe com código hostil no repositório vira dívida com prazo; a validação passa a olhar só o que mudou.",
       "tipo": "marco"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "Fase 0: 24 de 25 etapas validadas, G00 recomendado",
+      "texto": "Rodada 10: E16, E19 e E22 aprovadas; a E09 foi aceita por decisão do Rafael. A rodada 11 confirmou que nada de produto mudou e o gatekeeper recomenda aprovar o gate.",
+      "tipo": "ok"
     }
   ]
 }

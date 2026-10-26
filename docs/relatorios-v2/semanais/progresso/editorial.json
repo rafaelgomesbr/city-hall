@@ -1,9 +1,39 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "A F00 passou por sete rodadas de validação independente desde 13/10. Na rodada 7, de 20/10, 21 das 25 etapas foram aprovadas. A correção das quatro restantes já está no ramo da fase, e a validação ganhou regras para terminar.",
+  "lead": "A fase 0 passou por 11 rodadas de validação independente desde 13/10. Em 25/10, 24 das 25 etapas estavam validadas e a E09 foi aceita por decisão do Rafael. O gatekeeper recomenda aprovar o gate G00; falta a decisão do Rafael.",
+  "visaoGeral": [
+    {
+      "data": "02/10",
+      "iso": "2026-10-02",
+      "titulo": "Plano da V2: 36 fases e 618 etapas",
+      "texto": "Regra de ferro: nada avança sem prova, com testes e capturas de tela.",
+      "tipo": "marco"
+    },
+    {
+      "data": "07/10",
+      "iso": "2026-10-07",
+      "titulo": "Fase 0, base confiável: 25 etapas implementadas",
+      "texto": "Segurança de contas, fila do campo, testes e documentação.",
+      "tipo": "marco"
+    },
+    {
+      "data": "13 a 25/10",
+      "iso": "2026-10-25",
+      "titulo": "Validação independente, 11 rodadas",
+      "texto": "24 das 25 etapas validadas por um revisor que não escreveu o código; a E09 foi aceita por decisão do Rafael.",
+      "tipo": "ok"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "Gate G00 recomendado",
+      "texto": "O gatekeeper recomenda aprovar a fase 0. Falta a decisão do Rafael e o merge em master.",
+      "tipo": "warn"
+    }
+  ],
   "aSeguir": {
-    "titulo": "Rodada 8 da validação, gate G00 e fase 1",
-    "texto": "A rodada 8 já segue as regras novas: valida só o que mudou e usa o CI, em Linux e em Windows, como prova. A fase 1 pode começar num ramo próprio quando restarem até 3 etapas abertas na F00."
+    "titulo": "Aprovação do G00 e fase 1",
+    "texto": "Com o G00 aprovado e o merge feito, começa a fase 1: fundação de engenharia e ambientes, com 22 etapas."
   },
   "imagens": [
     {
@@ -22,7 +52,7 @@
   "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
   "validacao": {
     "titulo": "O que a validação achou",
-    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para 3 na rodada 7. A correção dessas três já foi implementada e espera a rodada 8.",
+    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: 12 etapas reprovadas na rodada 2, nenhuma reprovada em aberto depois da rodada 10. Alguns dos achados que viraram correção:",
     "achados": [
       {
         "titulo": "Códigos de erro:",
@@ -49,22 +79,22 @@
   "decisoes": [
     {
       "quem": "Rafael",
-      "titulo": "Proposta de aceleração",
-      "texto": "Aprovada em 20/10: achado que só existe com código hostil no repositório vira dívida, e não reprova a etapa."
+      "titulo": "H44, tipo de merge da master",
+      "texto": "Decidir antes de ligar a proteção da master: commit de merge, como combinado no G00, e não squash."
     },
     {
       "quem": "Rafael",
-      "titulo": "Gate G00",
-      "texto": "Aprovar a fase 1 quando o gatekeeper recomendar, depois da rodada 8."
+      "titulo": "H09, gate G00",
+      "texto": "Aprovar o G00 e fazer o merge em master. O gatekeeper recomendou em 25/10."
     },
     {
       "quem": "Rafael",
-      "titulo": "Chave do Firebase",
+      "titulo": "H33, chave do Firebase",
       "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório agora é público."
     },
     {
       "quem": "Rafael e Alyson",
-      "titulo": "Saída a campo",
+      "titulo": "H01, saída a campo",
       "texto": "Confirmar que será implementada no aplicativo, antes de qualquer nova demonstração."
     },
     {

@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "rewrites": [
-    { "source": "/progresso", "destination": "/progresso/index.html" }
+    { "source": "/progresso", "destination": "/progresso/index.html" },
+    { "source": "/progresso/decisoes", "destination": "/progresso/decisoes/index.html" }
   ],
   "headers": [
     {

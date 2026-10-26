@@ -1,0 +1,36 @@
+# Página de progresso da V2 no Fly (https://defesa-civil-progresso.fly.dev/progresso), protegida por senha.
+#
+# Deploy, em primeiro plano (o jeito de rotina é o script, que gera a página e publica):
+#   node scripts/roadmap/publicar-progresso.mjs
+# ou, com a página já gerada (--sem-deploy), desta pasta: flyctl deploy --ha=false
+#
+# Segredos (só no Fly, nunca em arquivo ou commit), por arquivo para o shell não mexer no valor:
+#   fly secrets import -a defesa-civil-progresso < segredos-progresso.env
+#   PROGRESSO_SENHA=...   PROGRESSO_SEGREDO=... (aleatório, assina o cookie de sessão)
+app = "defesa-civil-progresso"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Consulta interna de poucas pessoas: pode hibernar (a primeira abertura leva alguns segundos).
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/saude"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

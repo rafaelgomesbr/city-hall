@@ -1,0 +1,127 @@
+{
+  "nota": "Glossário das siglas das páginas /progresso e /progresso/decisoes. Em português simples, para quem não acompanha o dia a dia. Sem travessão. 'destaque' aparece aberto no topo da página de decisões; 'completo' é a lista inteira.",
+  "destaque": [
+    {
+      "sigla": "H44, H09…",
+      "nome": "Pendência humana",
+      "texto": "Algo que só uma pessoa resolve. O número é só a ordem em que foi registrada: H44 não é mais importante que H09."
+    },
+    {
+      "sigla": "F00, F01…",
+      "nome": "Fase",
+      "texto": "A V2 tem 36 fases. A F00 (fase 0) é a base confiável: consertar o que estava quebrado. A F01 (fase 1) é a fundação de engenharia e ambientes."
+    },
+    {
+      "sigla": "E09, E16…",
+      "nome": "Etapa",
+      "texto": "Um pedaço de trabalho dentro de uma fase. \"E09\" é a etapa 9 da fase 0, as telas de usuários e sessões do painel."
+    },
+    {
+      "sigla": "G00",
+      "nome": "Gate (portão)",
+      "texto": "A aprovação que fecha uma fase e libera a seguinte. O G00 fecha a fase 0 e só o Rafael aprova."
+    }
+  ],
+  "completo": [
+    {
+      "sigla": "V2",
+      "nome": "Segunda versão do produto",
+      "texto": "O plano completo: 36 fases e 618 etapas, cada uma só avança com prova (testes e capturas de tela)."
+    },
+    {
+      "sigla": "Gate (G00, G01…)",
+      "nome": "Portão de aprovação",
+      "texto": "Cada fase termina num gate. Quem aprova é o Rafael, depois de o gatekeeper recomendar."
+    },
+    {
+      "sigla": "Gatekeeper",
+      "nome": "Guardião do gate",
+      "texto": "O revisor que confere se a fase pode fechar e recomenda aprovar ou não. Ele recomenda; quem decide é o Rafael."
+    },
+    {
+      "sigla": "Validação independente",
+      "nome": "Revisor que não escreveu o código",
+      "texto": "Alguém diferente de quem implementou tenta quebrar cada etapa. Cada passada é uma rodada."
+    },
+    {
+      "sigla": "PASS",
+      "nome": "Aprovado pelo revisor",
+      "texto": "O revisor não achou defeito que impeça a etapa. O contrário é reprovada."
+    },
+    {
+      "sigla": "Validada com pendência humana",
+      "nome": "Aprovada, falta uma conferência humana",
+      "texto": "O revisor aprovou, mas ainda falta uma pessoa olhar algo que um programa não confere (uma frase, um aparelho)."
+    },
+    {
+      "sigla": "CI",
+      "nome": "Verificação automática na nuvem",
+      "texto": "Roda todos os testes a cada commit, em Linux e em Windows. Verde passou, vermelho falhou."
+    },
+    {
+      "sigla": "Commit e SHA",
+      "nome": "Registro de uma mudança no código",
+      "texto": "Cada mudança tem um código curto (por exemplo, 98879db) que a identifica. Sumir da master significa perder esse código."
+    },
+    {
+      "sigla": "Master",
+      "nome": "Ramo principal do código",
+      "texto": "O que está \"valendo\". As fases são feitas em ramos próprios (v2/f00) e só entram na master quando o gate é aprovado."
+    },
+    {
+      "sigla": "Merge e squash",
+      "nome": "Juntar o ramo na master",
+      "texto": "Commit de merge junta mantendo todo o histórico e os códigos dos commits. Squash funde tudo num commit só, e os códigos antigos somem."
+    },
+    {
+      "sigla": "Ruleset",
+      "nome": "Regra de proteção do GitHub",
+      "texto": "Impede, por exemplo, mandar código direto para a master sem passar pelas verificações."
+    },
+    {
+      "sigla": "CP-02, CP-19…",
+      "nome": "Ponto de verificação do plano",
+      "texto": "Um item do plano que depende de uma pessoa ou de terceiros. Exemplos: CP-19, recuperação de senha por e-mail; CP-02, saída a campo."
+    },
+    {
+      "sigla": "D-25, D6…",
+      "nome": "Decisão registrada",
+      "texto": "Uma decisão sua já anotada no plano. A D-25 é a premissa de que a saída a campo será feita no aplicativo."
+    },
+    {
+      "sigla": "DV-34, DV-46…",
+      "nome": "Dívida técnica",
+      "texto": "Um defeito ou limitação conhecida, anotada com dono e prazo, que não impede a etapa mas precisa ser paga depois."
+    },
+    {
+      "sigla": "Saída a campo",
+      "nome": "Declarar que o agente saiu para a ocorrência",
+      "texto": "Passo do atendimento: o agente avisa que está a caminho. Hoje o aplicativo ainda não faz isso."
+    },
+    {
+      "sigla": "Aplicativo de campo",
+      "nome": "App do agente",
+      "texto": "O aplicativo do celular usado pelos agentes na rua (vistoria, fotos, assinatura)."
+    },
+    {
+      "sigla": "Painel e console",
+      "nome": "Telas web",
+      "texto": "O painel é a tela da coordenação do município. O console é a tela do fornecedor, com visão de todos os municípios."
+    },
+    {
+      "sigla": "Expo e zod",
+      "nome": "Peças do aplicativo",
+      "texto": "Expo é a base que monta o aplicativo de celular. Zod é a biblioteca que confere se os dados estão no formato certo."
+    },
+    {
+      "sigla": "DPO e LGPD",
+      "nome": "Proteção de dados",
+      "texto": "LGPD é a lei de proteção de dados pessoais. DPO é o encarregado de dados, a pessoa responsável por esse tema."
+    },
+    {
+      "sigla": "Emulador",
+      "nome": "Celular simulado no computador",
+      "texto": "Usado para testar o aplicativo sem um aparelho. Não prova tudo, por isso algumas conferências pedem aparelho de verdade."
+    }
+  ]
+}

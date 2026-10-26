@@ -152,10 +152,13 @@ function secaoTopo({ coleta, contagens, editorial, anoRef }) {
 </header>`;
 }
 
+/** "1 validada", "24 validadas": o rótulo concorda com o número. */
+const rotuloDoSegmento = (s) => (s.n === 1 ? s.um : s.rotulo);
+
 function barra(segmentos, rotulo) {
   const itens = segmentos.filter((s) => s.n > 0);
   return `<div class="barra" role="img" aria-label="${esc(rotulo)}">${itens.map((s) => `<i class="${s.cls}" style="width:${pct(s.n, segmentos.reduce((t, x) => t + x.n, 0))}%"></i>`).join("")}</div>
-    <div class="legenda">${itens.map((s) => `<span><i class="${s.cls}"></i>${s.n} ${esc(s.rotulo)}</span>`).join("")}</div>`;
+    <div class="legenda">${itens.map((s) => `<span><i class="${s.cls}"></i>${s.n} ${esc(rotuloDoSegmento(s))}</span>`).join("")}</div>`;
 }
 
 function secaoProgresso({ coleta, contagens }) {
@@ -163,31 +166,35 @@ function secaoProgresso({ coleta, contagens }) {
   const daFase = Object.entries(coleta.statusPorEtapa).filter(([id]) => id.startsWith(`V2-${faseAtual}-`)).map(([, s]) => s);
   const cf = contarStatus(Object.fromEntries(daFase.map((s, i) => [i, s])));
   const seg = (c) => [
-    { n: c.validadas, cls: "seg-ok", rotulo: "validadas" },
-    { n: c.aguardam, cls: "seg-warn", rotulo: "implementadas, aguardam validação" },
-    { n: c.problema, cls: "seg-bad", rotulo: "reprovadas ou bloqueadas" },
-    { n: c.pendentes, cls: "seg-idle", rotulo: "ainda não começaram" },
+    { n: c.validadas, cls: "seg-ok", rotulo: "validadas", um: "validada" },
+    { n: c.aguardam, cls: "seg-warn", rotulo: "implementadas, aguardam validação", um: "implementada, aguarda validação" },
+    { n: c.problema, cls: "seg-bad", rotulo: "reprovadas ou bloqueadas", um: "reprovada ou bloqueada" },
+    { n: c.pendentes, cls: "seg-idle", rotulo: "ainda não começaram", um: "ainda não começou" },
   ];
   const nota = cf.comPendenciaHumana > 0 ? ` (${cf.comPendenciaHumana} esperam uma conferência humana)` : "";
   return `<section class="sec" aria-labelledby="h-prog">
   <h2 id="h-prog">Quanto já andamos</h2>
   <div class="card prog">
     <h3>O plano inteiro <em>${contagens.total} etapas</em></h3>
-    ${barra(seg(contagens), `Das ${contagens.total} etapas: ${seg(contagens).filter((s) => s.n > 0).map((s) => `${s.n} ${s.rotulo}`).join(", ")}`)}
+    ${barra(seg(contagens), `Das ${contagens.total} etapas: ${seg(contagens).filter((s) => s.n > 0).map((s) => `${s.n} ${rotuloDoSegmento(s)}`).join(", ")}`)}
   </div>
   <div class="card prog">
     <h3>Só a fase atual, ${esc(coleta.fase.nome)} <em>${daFase.length} etapas</em></h3>
-    ${barra(seg(cf), `Fase atual: ${seg(cf).filter((s) => s.n > 0).map((s) => `${s.n} ${s.rotulo}`).join(", ")}`)}
+    ${barra(seg(cf), `Fase atual: ${seg(cf).filter((s) => s.n > 0).map((s) => `${s.n} ${rotuloDoSegmento(s)}`).join(", ")}`)}
     ${nota ? `<p class="nota">${esc(`${cf.validadas} validadas${nota}`)}</p>` : ""}
   </div>
 </section>`;
 }
 
-function secaoLinhaDoTempo({ linha, editorial, coleta }) {
-  const marcos = [...linha.marcos].sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0));
+/**
+ * A linha do tempo da página é uma visão geral: poucos marcos de fase e de validação, sem cada decisão nem
+ * cada rodada. Ela vem de `editorial.visaoGeral` (texto vivo, reescrito toda semana). Sem esse campo, cai no
+ * histórico completo de `linha-do-tempo.json`, que continua sendo o registro de tudo.
+ */
+function secaoLinhaDoTempo({ linha, editorial }) {
+  const marcos = [...(editorial.visaoGeral ?? linha.marcos)].sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0));
   const itens = marcos.map((m) => `<li class="${esc(m.tipo ?? "marco")}"><span class="d">${esc(m.data)}</span><span class="t"><b>${esc(m.titulo)}</b><span>${esc(m.texto)}</span></span></li>`);
   if (editorial.aSeguir) itens.push(`<li class="prox"><span class="d">A seguir</span><span class="t"><b>${esc(editorial.aSeguir.titulo)}</b><span>${esc(editorial.aSeguir.texto)}</span></span></li>`);
-  void coleta;
   return `<section class="sec" aria-labelledby="h-tl">
   <h2 id="h-tl">Linha do tempo</h2>
   ${linha.antes ? `<p class="antes">${esc(linha.antes)}</p>` : ""}
@@ -228,14 +235,14 @@ function secaoValidacao({ coleta, editorial }) {
     .join("");
   const cont = contarStatus(Object.fromEntries(etapas.map((e) => [e.id, e.status])));
   const legenda = [
-    [cont.validadas - cont.comPendenciaHumana, "background:var(--ok-soft);border:2px solid var(--ok)", "✓", "validadas"],
-    [cont.comPendenciaHumana, "border:2px dashed var(--ok)", "✓", "validadas, falta conferência humana"],
-    [cont.aguardam, "background:var(--warn-soft);border:2px solid var(--warn)", "↻", "implementadas, aguardam validação"],
-    [cont.problema, "background:var(--bad-soft);border:2px solid var(--bad)", "!", "reprovadas ou bloqueadas"],
-    [cont.pendentes, "border:2px solid var(--line)", "·", "ainda não começaram"],
+    [cont.validadas - cont.comPendenciaHumana, "background:var(--ok-soft);border:2px solid var(--ok)", "✓", "validadas", "validada"],
+    [cont.comPendenciaHumana, "border:2px dashed var(--ok)", "✓", "validadas, falta conferência humana", "validada, falta conferência humana"],
+    [cont.aguardam, "background:var(--warn-soft);border:2px solid var(--warn)", "↻", "implementadas, aguardam validação", "implementada, aguarda validação"],
+    [cont.problema, "background:var(--bad-soft);border:2px solid var(--bad)", "!", "reprovadas ou bloqueadas", "reprovada ou bloqueada"],
+    [cont.pendentes, "border:2px solid var(--line)", "·", "ainda não começaram", "ainda não começou"],
   ]
     .filter(([n]) => n > 0)
-    .map(([n, estilo, g, t]) => `<span><i style="${estilo}"></i>${g} ${n} ${t}</span>`)
+    .map(([n, estilo, g, t, um]) => `<span><i style="${estilo}"></i>${g} ${n} ${n === 1 ? um : t}</span>`)
     .join("\n        ");
   const val = editorial.validacao ?? {};
   const achados = (val.achados ?? [])
@@ -458,23 +465,41 @@ function secaoPrazo({ est, blocos, anoRef }) {
 </section>`;
 }
 
-function secaoDecisoes({ editorial }) {
+function secaoDecisoes({ editorial, linkDasDecisoes }) {
   const itens = editorial.decisoes ?? [];
   if (itens.length === 0) return "";
+  const mais = linkDasDecisoes ? `\n  <p class="mais"><a href="${esc(linkDasDecisoes)}">${esc(editorial.textoDoLinkDasDecisoes ?? "Ver todas as decisões e conferências pendentes, cada uma com diagrama")} →</a></p>` : "";
   return `<section class="sec" aria-labelledby="h-dec">
   <h2 id="h-dec">O que depende de decisão</h2>
   <div class="decidir">
     ${itens.map((d) => `<div class="card dec"><span class="quem">${esc(d.quem)}</span><b>${esc(d.titulo)}</b><span>${esc(d.texto)}</span></div>`).join("\n    ")}
-  </div>
+  </div>${mais}
+</section>`;
+}
+
+/**
+ * Glossário das siglas (F00, E09, G00, H44...). Em `destaque` ficam as 4 que mais confundem, mostradas abertas
+ * quando `mostrarDestaque`; `completo` vai sempre dentro de um bloco que abre e fecha.
+ */
+export function secaoGlossario({ glossario, mostrarDestaque = false, titulo = "Como ler as siglas" }) {
+  if (!glossario) return "";
+  const cartoes = mostrarDestaque
+    ? `<div class="siglas">${(glossario.destaque ?? []).map((g) => `<div class="card sigla"><b class="cod-g">${esc(g.sigla)}</b><span class="nome-g">${esc(g.nome)}</span><span>${esc(g.texto)}</span></div>`).join("")}</div>`
+    : "";
+  const lista = (glossario.completo ?? []).map((g) => `<dt>${esc(g.sigla)}<small>${esc(g.nome)}</small></dt><dd>${esc(g.texto)}</dd>`).join("");
+  return `<section class="sec" aria-labelledby="h-gloss">
+  <h2 id="h-gloss">${esc(titulo)}</h2>
+  ${cartoes}
+  <details class="det"><summary><span>Glossário completo</span><span class="fs"><span>${(glossario.completo ?? []).length} termos</span></span></summary><div class="conteudo"><dl class="glossario">${lista}</dl></div></details>
 </section>`;
 }
 
 /* ---------- Montagem ---------- */
 
-export function montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, raiz = RAIZ, resolverImagem = (arquivo) => dataUri(arquivo, raiz), linkDeSaida = null }) {
+export function montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, raiz = RAIZ, resolverImagem = (arquivo) => dataUri(arquivo, raiz), linkDeSaida = null, linkDasDecisoes = null, glossario = null }) {
   const contagens = contarStatus(coleta.statusPorEtapa);
   const anoRef = Number(coleta.periodo.ate.slice(0, 4));
-  const problemas = conferirTextos({ editorial, linha, concluidas: contagens.concluidas });
+  const problemas = conferirTextos({ editorial: { ...editorial, glossario }, linha, concluidas: contagens.concluidas });
   const [a, m, d] = coleta.periodo.ate.split("-");
   const rodape = `<p class="rodape">Fonte: estado do projeto no repositório em ${d}/${m}/${a} (commit ${esc(coleta.base.shaCurto)}, ramo ${esc(coleta.base.ramo)}). "Concluída" só vale para etapa validada e com as conferências humanas feitas. A estimativa de prazo foi recalculada nesta data e muda a cada semana.${linkDeSaida ? ` <a class="sair" href="${esc(linkDeSaida)}">Sair</a>` : ""}</p>`;
   const partes = [
@@ -485,7 +510,8 @@ export function montarRelatorio({ coleta, estimativa, editorial, linha, blocos, 
     secaoValidacao({ coleta, editorial }),
     secaoBlocos({ coleta, blocos }),
     secaoPrazo({ est: estimativa, blocos, anoRef }),
-    secaoDecisoes({ editorial }),
+    secaoDecisoes({ editorial, linkDasDecisoes }),
+    secaoGlossario({ glossario, titulo: "Siglas e termos" }),
     rodape,
   ].filter(Boolean);
   const html = `<title>Defesa Civil 360 V2</title>
@@ -523,6 +549,8 @@ function principal(argv) {
     else if (a === "--completo") op.completo = true;
     else if (a === "--sem-indexar") op.semIndexar = true;
     else if (a === "--link-de-saida") op.linkDeSaida = args[++i];
+    else if (a === "--link-das-decisoes") op.linkDasDecisoes = args[++i];
+    else if (a === "--glossario") op.glossario = args[++i];
     else if (a === "--imagens-externas") op.prefixoDasImagens = args[++i];
     else if (a === "--pasta-de-imagens") op.pastaDasImagens = args[++i];
     else {
@@ -558,7 +586,7 @@ function principal(argv) {
       return `${op.prefixoDasImagens.replace(/\/$/, "")}/${nome}`;
     };
   }
-  const r = montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, ...(resolverImagem ? { resolverImagem } : {}), linkDeSaida: op.linkDeSaida ?? null });
+  const r = montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, ...(resolverImagem ? { resolverImagem } : {}), linkDeSaida: op.linkDeSaida ?? null, linkDasDecisoes: op.linkDasDecisoes ?? null, glossario: op.glossario ? ler(op.glossario) : null });
   if (r.problemas.length) {
     console.error(`O texto não passa na conferência (${r.problemas.length} problema(s)):`);
     for (const p of r.problemas) console.error(`  - ${p}`);

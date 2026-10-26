@@ -13,14 +13,23 @@ test("diasAntes volta o número de dias, atravessando mês e ano", () => {
   assert.equal(diasAntes("2027-01-03", 7), "2026-12-27");
 });
 
-test("os três comandos rodam na ordem coleta, estimativa e página, com os caminhos do site", () => {
+test("os comandos rodam na ordem coleta, estimativa, página e decisões, com os caminhos do site", () => {
   const raiz = join("/", "repo");
   const cmds = comandosDeGeracao({ hoje: "2026-10-13", raiz });
-  assert.deepEqual(cmds.map((c) => c.rotulo), ["coleta", "estimativa", "página"]);
+  assert.deepEqual(cmds.map((c) => c.rotulo), ["coleta", "estimativa", "página", "decisões"]);
   const c = caminhos(raiz);
+  const decisoes = cmds[3].args;
+  assert.ok(decisoes.includes(c.decisoes));
+  assert.ok(decisoes.includes(c.glossario));
+  assert.ok(cmds[2].args.includes(c.glossario));
+  assert.ok(decisoes.includes(c.paginaDeDecisoes));
+  assert.ok(decisoes.includes("--sem-indexar"));
+  assert.equal(decisoes[decisoes.indexOf("--link-do-relatorio") + 1], "/progresso");
+  assert.match(c.paginaDeDecisoes.replaceAll("\\", "/"), /site\/progresso\/decisoes\/index\.html$/);
   const pagina = cmds[2].args;
   assert.ok(pagina.includes(c.pagina));
   assert.ok(pagina.includes("--sem-indexar"));
+  assert.equal(pagina[pagina.indexOf("--link-das-decisoes") + 1], "/progresso/decisoes");
   assert.equal(pagina[pagina.indexOf("--link-de-saida") + 1], "/progresso/sair");
   assert.equal(pagina[pagina.indexOf("--imagens-externas") + 1], "/progresso/img");
   assert.equal(pagina[pagina.indexOf("--pasta-de-imagens") + 1], c.imagens);
