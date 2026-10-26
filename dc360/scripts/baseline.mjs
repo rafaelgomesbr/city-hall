@@ -858,6 +858,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E09": { total: 9, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 1C (DV-01 e DV-03): `apps/api/test/guarda-de-codigos-de-erro.test.ts` ganhou 18 casos (9 do retrato dos cabeçalhos, 2 de tempo linear e 7 da contagem de chaves `erro`). O console ganhou 18 no mesmo arquivo de teste (número do próprio passo teste-console, 339 para 357).
   "V2-F02-E03-parte-1C": { total: 18, falhas: 0, puladas: 0 },
+  // V2-F02-E03, parte 2C (API): `apps/api/test/catalogo-de-erros.test.ts` e novo, com 27 casos (a varredura nos dois sentidos, o compilador recusando código fora do catálogo, o tratador que lança fora do catálogo em qualquer status, a forma do corpo, `frameworkErrors` e o isolamento do PATCH de órgão), e `guarda-de-codigos-de-erro.test.ts` ganhou 2 (o desvio não restaura os cabeçalhos do corpo trocado). O console ganhou os mesmos 2 no mesmo arquivo de teste (número do próprio passo teste-console).
+  "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -906,6 +908,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E19-correcao-11": { total: 12, falhas: 0 },
   // V2-F02-E03 (parte do shared, 1D): `catalogo-de-erros.test.ts` (26 casos: forma de cada entrada, acesso e entrada dentro do catálogo, reservados, cobertura dos códigos literais de `apps/api/src` nos dois sentidos, `erroDaApiSchema`, funções do cliente e tabela gerada), `varredura-de-esquemas.test.ts` (17 casos: DV-20 e DV-37, comportamento do Zod 4 preso e varredura de todos os esquemas exportados e do texto do produto) e 5 casos de item de lista ausente em `mensagens-em-portugues.test.ts` (DV-44). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
   "V2-F02-E03": { total: 48, falhas: 0 },
+  // V2-F02-E03, parte 2C (DV-47): `mensagens-em-portugues.test.ts` ganha 4 casos (união discriminada sem o discriminador, com ele desconhecido, e `numeroDoTexto` ausente, não numérico e com default). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
+  "V2-F02-E03-parte-2C": { total: 4, falhas: 0 },
   // V2-F02-E09: `packages/shared/test/fuso.test.ts` e novo, com 115 casos (a virada do dia, um minuto antes e na meia-noite local, nas 27 unidades da federação, com o processo em UTC e em Pacific/Auckland; a janela de 03:30Z; o mapa de UF e o fuso padrão).
   "V2-F02-E09": { total: 115, falhas: 0 },
 };
@@ -1170,7 +1174,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 377, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09 + 18 da parte 1C da V2-F02-E03 + 20 da V2-F02-E02 (19 em v1-e-mensagens.test.ts e 1 de paridade em superficie.test.ts)
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 379, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09 + 18 da parte 1C da V2-F02-E03 + 2 da parte 2C da V2-F02-E03 + 20 da V2-F02-E02 (19 em v1-e-mensagens.test.ts e 1 de paridade em superficie.test.ts)
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

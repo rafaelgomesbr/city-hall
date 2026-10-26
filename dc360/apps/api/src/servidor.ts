@@ -1,8 +1,15 @@
-import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
+import {
+  PostoInsuficiente,
+  SemPermissao,
+  exigirPermissao,
+  ehCodigoDeErro,
+  type Acao,
+  type CodigoDeErro,
+} from "@dc360/shared";
 // Antes das rotas, de propósito: a guarda copia as primitivas que usa na carga do módulo.
 import {
   CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
@@ -172,6 +179,15 @@ export type Dependencias = {
    */
   modoDaGuarda?: ModoDaGuarda;
   /**
+   * Se o tratador de erros LANÇA quando um erro de domínio traz um código fora
+   * do catálogo (`packages/shared/src/erros.ts`, V2-F02-E03). Sem isto: ligado
+   * em `NODE_ENV=test`, desligado fora dele (o cliente recebe o código como
+   * veio; o tipo de `RegraDeNegocio` já recusou a maioria em compilação). Só o
+   * teste da guarda de acesso passa `false`, porque planta de propósito
+   * códigos fora do catálogo para provar que a guarda os pega.
+   */
+  conferirCatalogoDeErros?: boolean;
+  /**
    * Para onde vai o erro inesperado (500). Sem isto: o log em nível `error`, que
    * é o único destino até o CP-06 decidir a ferramenta de erro. O teste passa um
    * coletor para afirmar o que sairia para um terceiro.
@@ -292,7 +308,7 @@ export const CAMINHOS_REDIGIDOS = [
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
-    push, modoDaGuarda, reportador: reportadorInjetado, limitePorMinuto = 300,
+    push, modoDaGuarda, conferirCatalogoDeErros, reportador: reportadorInjetado, limitePorMinuto = 300,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -400,6 +416,42 @@ export async function construirServidor(
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
+    /*
+      OS ERROS QUE O PRÓPRIO FASTIFY ESCREVE ANTES DE QUALQUER ROTA (DV-36,
+      V2-F02-E03): endereço malformado (`FST_ERR_BAD_URL`, 400), parâmetro de
+      rota acima de 100 caracteres (`FST_ERR_MAX_PARAM_LENGTH`, 414) e erro de
+      restrição assíncrona. Sem isto saíam em inglês, sem os cabeçalhos de
+      segurança, no formato do Fastify, e ecoando o caminho pedido. Aqui saem
+      na forma do catálogo, sem eco do caminho. Os hooks de rota não rodam
+      nesta fase, então os cabeçalhos que importam são postos à mão.
+    */
+    frameworkErrors: (erro, req, enviada) => {
+      // O tipo do Fastify aqui trava `send` num corpo `never`; o objeto é a resposta de sempre.
+      const resposta = enviada as unknown as FastifyReply;
+      const comum = {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+        "x-request-id": req.id,
+      };
+      // 400 é o endereço malformado, 414 o parâmetro longo demais, e o resto a restrição assíncrona (500).
+      if (erro.statusCode === 400) {
+        void resposta.code(400).headers(comum).send({
+          erro: "url_invalida",
+          mensagem: "O endereço do pedido não é válido. Confira o endereço e tente de novo.",
+        });
+      } else if (erro.statusCode === 414) {
+        void resposta.code(414).headers(comum).send({
+          erro: "parametro_longo_demais",
+          mensagem: "Um dos valores do endereço é longo demais. Confira o endereço e tente de novo.",
+        });
+      } else {
+        void resposta.code(500).headers(comum).send({
+          erro: "erro_interno",
+          mensagem: "Erro inesperado. Se precisar de ajuda, informe o código de suporte.",
+          requisicao: req.id,
+        });
+      }
+    },
   });
 
   /*
@@ -618,6 +670,21 @@ export async function construirServidor(
    * banco costuma conter nome de tabela, de coluna e de restrição, que é
    * exatamente o mapa que um atacante quer.
    */
+  const lancarSeForaDoCatalogo = conferirCatalogoDeErros ?? config.NODE_ENV === "test";
+  /*
+    Em teste, um código que não é do catálogo derruba o pedido com a causa
+    escrita, em qualquer status. O tipo de `RegraDeNegocio` recusa o literal em
+    compilação; isto pega o que chegou por variável, por `as` ou por JavaScript.
+  */
+  function conferirCodigoDoCatalogo(codigo: unknown): void {
+    if (lancarSeForaDoCatalogo && !ehCodigoDeErro(codigo)) {
+      throw new TypeError(
+        `Código de erro fora do catálogo: ${JSON.stringify(codigo)}. `
+        + "Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente.",
+      );
+    }
+  }
+
   app.setErrorHandler((erro, req, resposta) => {
     if (erro instanceof NaoAutenticado) {
       return resposta.code(401).send({ erro: "nao_autenticado", mensagem: erro.message });
@@ -670,10 +737,12 @@ export async function construirServidor(
       return resposta.code(403).send({ erro: "posto_insuficiente", mensagem: erro.message });
     }
     if (erro instanceof FalhaAutenticacao) {
+      conferirCodigoDoCatalogo(erro.codigo);
       const status = erro.codigo === "bloqueado" ? 429 : 401;
       return resposta.code(status).send({ erro: erro.codigo, mensagem: erro.message });
     }
     if (erro instanceof RegraDeNegocio) {
+      conferirCodigoDoCatalogo(erro.codigo);
       return resposta.code(erro.status).send({
         erro: erro.codigo,
         mensagem: erro.message,
@@ -1076,7 +1145,13 @@ export class TrocaDeSenhaObrigatoria extends Error {
 
 /** Erro previsto de domínio: o cliente pode entender e corrigir. */
 export class RegraDeNegocio extends Error {
-  readonly codigo: string;
+  /**
+   * Um código do catálogo (`packages/shared/src/erros.ts`, V2-F02-E03). O tipo
+   * recusa em compilação qualquer texto fora dele; em `NODE_ENV=test` o
+   * `setErrorHandler` confere também em execução, para o código que chegou por
+   * variável ou por `as`. Nenhum código muda de nome ao entrar no catálogo.
+   */
+  readonly codigo: CodigoDeErro;
   readonly status: number;
   /**
    * Os campos recusados, no formato do 422 de validação (`campo` pontuado como
@@ -1088,7 +1163,7 @@ export class RegraDeNegocio extends Error {
    */
   readonly campos?: ReadonlyArray<{ campo: string; mensagem: string }>;
   constructor(
-    codigo: string,
+    codigo: CodigoDeErro,
     mensagem: string,
     status = 409,
     campos?: ReadonlyArray<{ campo: string; mensagem: string }>,

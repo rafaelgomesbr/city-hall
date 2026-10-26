@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   ROTULO_MOTIVO_DE_DEVOLUCAO,
+  type CodigoDeErro,
   capturaPlausivel,
   chaveDeStorage, devolucaoDeTarefaSchema, envelopeSincronizacaoSchema,
   transicaoPermitida,
@@ -166,7 +167,7 @@ function datasImplausiveisDaColeta(
  * vistoria" (tirar a foto de novo, ou removê-la da coleta) em vez de só
  * "tentar de novo", que repetiria a mesma recusa para sempre.
  */
-function recusarFoto(codigo: string, indice: number, mensagem: string): RegraDeNegocio {
+function recusarFoto(codigo: CodigoDeErro, indice: number, mensagem: string): RegraDeNegocio {
   return new RegraDeNegocio(codigo, mensagem, 409, [
     { campo: `vistoria.fotos.${indice}`, mensagem },
   ]);

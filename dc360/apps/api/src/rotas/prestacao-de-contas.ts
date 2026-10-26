@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   PAPEIS, POSTO, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_STATUS,
-  ROTULO_TIPO_COBRADE, dataHoraNoFuso, dataNoFuso, fusoDoEstado, montarCsv,
+  ROTULO_TIPO_COBRADE, dataHoraNoFuso, dataNoFuso, fusoDoEstado, montarCsv, numeroDoTexto,
   type CanalEntrada, type Papel, type Severidade, type StatusOcorrencia,
   type TipoDeEntrada,
 } from "@dc360/shared";
@@ -34,8 +34,8 @@ const filtroTrilhaSchema = z.object({
   papel: z.enum(PAPEIS).optional(),
   tipo: z.string().max(60).optional(),
   protocolo: z.string().max(20).optional(),
-  pagina: z.coerce.number().int().min(1).default(1),
-  porPagina: z.coerce.number().int().min(1).max(200).default(50),
+  pagina: numeroDoTexto(z.number().int().min(1)).default(1),
+  porPagina: numeroDoTexto(z.number().int().min(1).max(200)).default(50),
 });
 
 const filtroExportacaoSchema = z.object({
