@@ -395,3 +395,31 @@ export function tipoEscolhidoNaTriagem(valor: string): TipoCobrade | undefined {
   if (valor === SEM_CLASSIFICAR || valor === TIPO_A_CLASSIFICAR) return undefined;
   return TIPOS_COBRADE.find((t) => t === valor);
 }
+
+/** O que a geração da chave precisa do navegador (e o que um teste pode trocar). */
+export type MotorDeAleatorios =
+  Pick<Crypto, "getRandomValues"> & Partial<Pick<Crypto, "randomUUID">>;
+
+/**
+ * A chave de criação do chamado (V2-F02-E07): um UUID v4 novo, gerado quando o
+ * formulário ABRE e guardado enquanto ele existir. O reenvio (toque duplo,
+ * resposta perdida, nova tentativa depois de um erro de rede) manda a MESMA
+ * chave, e a API devolve o chamado que já nasceu em vez de abrir outro e
+ * queimar mais um número do protocolo. Chamado diferente é formulário
+ * diferente: abrir a tela de novo gera chave nova.
+ *
+ * `crypto.randomUUID` só existe em contexto seguro (https ou localhost); o
+ * plantão pode abrir o painel por um endereço interno em http. O plano B usa
+ * `getRandomValues`, que existe em qualquer contexto, e monta o v4 à mão.
+ */
+export function novaChaveDeCriacao(
+  motor: MotorDeAleatorios | null = globalThis.crypto ?? null,
+): string {
+  if (motor?.randomUUID) return motor.randomUUID();
+  if (!motor) throw new Error("Este navegador não tem gerador de números aleatórios.");
+  const b = motor.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}

@@ -862,6 +862,10 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-2D": { total: 24, falhas: 0, puladas: 0 },
   // V2-F02-E04, correção 1: `apps/api/test/openapi.test.ts` ganhou 4 casos (a fusão das formas com e sem barra final provada pelo handler, a lista congelada de pendentes por igualdade) e `apps/api/test/openapi-regras.test.ts` é novo, com 10 casos (as regras `refine` anotadas em `x-regras-adicionais`, o guarda que reprova esquema refinado sem anotação, o corpo opcional com `required: false`).
   "V2-F02-E04-correcao-1": { total: 14, falhas: 0, puladas: 0 },
+  // V2-F02-E07: `apps/api/test/chave-de-criacao.test.ts` e novo, com 16 casos (a mesma chave devolve o mesmo id e protocolo e a sequencia avanca uma vez, o corpo diferente nao altera o chamado, sem chave sao dois chamados, chave nao uuid e 422, sem credencial e 401, a mesma chave em A e em B cria um chamado em cada, a corrida que cai no 23505 com a transacao voltando inteira, e a chave de foto: mesma ocorrencia devolve a mesma evidencia, outra ocorrencia e 409 chave_ja_usada_em_outro_registro, o indice do banco tambem recusa, A e B gravam uma cada e a ocorrencia de outro municipio segue 404).
+  "V2-F02-E07": { total: 16, falhas: 0, puladas: 0 },
+  // V2-F02-E07, correcao 1: `apps/api/test/chave-de-criacao.test.ts` ganha 3 casos liquidos (o caso do municipio B virou dois, chave usada em B e depois a mesma em A sem 409 e sem ver nada de B, e o 404 do agente de A na ocorrencia de B; mais dois da corrida da foto, em que o segundo INSERT cai no indice: outra ocorrencia vira 409 e a mesma ocorrencia devolve a evidencia existente).
+  "V2-F02-E07-correcao-1": { total: 3, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -912,6 +916,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F02-E03": { total: 48, falhas: 0 },
   // V2-F02-E09: `packages/shared/test/fuso.test.ts` e novo, com 115 casos (a virada do dia, um minuto antes e na meia-noite local, nas 27 unidades da federação, com o processo em UTC e em Pacific/Auckland; a janela de 03:30Z; o mapa de UF e o fuso padrão).
   "V2-F02-E09": { total: 115, falhas: 0 },
+  // V2-F02-E07: `packages/shared/test/chave-de-criacao.test.ts` e novo, com 4 casos (a chave e opcional, aceita uuid, recusa o que nao e uuid com o caminho do campo, e o codigo saiu da reserva para o catalogo emitido), e `catalogo-de-erros.test.ts` ganha 1 (a saida da reserva), alem de duas assercoes trocadas no lugar.
+  "V2-F02-E07": { total: 5, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -961,6 +967,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
   // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
   "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
+  // V2-F02-E07: `apps/web/test/chave-de-criacao.test.ts` e novo, com 6 casos (a chave e um uuid v4 que o esquema aceita, cada chamada e uma chave nova, o plano B sem `crypto.randomUUID`, a falha em portugues sem gerador, e a leitura da tela: a chave nasce uma vez na abertura do formulario e viaja no corpo de todo envio).
+  "V2-F02-E07": { total: 6, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -1038,6 +1046,17 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     nem pulo novos.
   */
   "V2-F01-E18-correcao-revisao-1": { total: 10, falhas: 0, puladas: 0 },
+  /*
+    V2-F02-E07: `db/test/chave-de-criacao-migracao.test.ts` e novo, com 9 casos
+    (a 052 sobre dado antigo sem violar nada, a coluna e os dois indices unicos
+    parciais, a mesma chave duas vezes no municipio e 23505, em dois municipios
+    e aceita, chave nula repete, o indice da evidencia sozinho, o da 004 junto, e
+    aplicar, desfazer e reaplicar deixando o esquema identico com a RLS
+    forcada). `migracoes-regras.test.ts` e `desfazer-migracao.test.ts` trocaram
+    nomes e uma fatia no lugar (a 052 de mentira virou 053; "a ultima das 51"
+    passou a olhar so as 51), sem caso novo.
+  */
+  "V2-F02-E07": { total: 9, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

@@ -118,6 +118,15 @@ export const aberturaOcorrenciaSchema = z.object({
   descricao: z.string().min(1, "Descreva o que foi relatado").max(4000),
   /** Preenchido quando o operador decide vincular a um chamado anterior. */
   vinculadaA: uuidSchema.optional(),
+  /**
+   * Chave de criação (V2-F02-E07): um UUID que o CLIENTE gera ao abrir o
+   * formulário e reaproveita no reenvio. Repetir o pedido com a mesma chave
+   * devolve o chamado já criado (mesmo `id` e `protocolo`) em vez de abrir um
+   * segundo e queimar outro número do protocolo. Opcional e aditivo: quem não
+   * a manda se comporta como antes. Não é segredo nem autoridade, e vale só
+   * dentro do município do token.
+   */
+  chaveDeCriacao: uuidSchema.optional(),
 }).refine(
   (v) => v.tipo !== TIPO_A_CLASSIFICAR || (v.tipoDescricao?.trim().length ?? 0) >= 10,
   {

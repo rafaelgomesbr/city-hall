@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { chaveDeStorage, pedidoDeEvidenciaSchema } from "@dc360/shared";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import {
   ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar, type Identidade,
 } from "../servidor.js";
@@ -65,6 +65,22 @@ const confirmacaoSchema = z.object({
 type EvidenciaPendente = {
   id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
 };
+
+/** Os dois índices únicos de idempotência da evidência (004 e 052). */
+const INDICES_DA_CHAVE_DE_EVIDENCIA = [
+  "evidencias_idempotencia",
+  "evidencias_idempotencia_por_ocorrencia",
+];
+
+/** A violação de unicidade da chave da foto, e só ela (pelo nome do índice). */
+function ehConflitoDaChaveDeEvidencia(erro: unknown): boolean {
+  const e = erro as { code?: string; constraint?: string; message?: string };
+  if (e?.code !== "23505") return false;
+  return INDICES_DA_CHAVE_DE_EVIDENCIA.some(
+    (nome) =>
+      e.constraint === nome || new RegExp(`"${nome}"`).test(String(e.message ?? "")),
+  );
+}
 
 /**
  * A recusa de quem não é o autor da coleta a que a foto pertence.
@@ -251,7 +267,7 @@ export async function rotasEvidencias(
       throw autorDivergente();
     }
 
-    const resultado = await banco.comTenant(quem.organizacaoId, async (c) => {
+    const autorizarNaTransacao = async (c: Consulta) => {
       /*
         Já autorizada antes: devolve a MESMA linha. Uma URL pré-assinada vence
         em minutos, então reemitir é esperado; criar outra evidência não é.
@@ -295,6 +311,27 @@ export async function rotasEvidencias(
           */
           if (achada.anexada_por !== null && achada.anexada_por !== quem.usuarioId) {
             throw autorDivergente();
+          }
+          /*
+            A CHAVE É DE OUTRA OCORRÊNCIA (V2-F02-E07). A busca acima é por
+            chave, e esta ramificação devolvia a evidência da PRIMEIRA
+            ocorrência a quem pedia autorização para a SEGUNDA: a foto de um
+            chamado entrava, na tela e no laudo, como se fosse do outro. Chave
+            de foto é um UUID por arquivo, gerado no aparelho com a captura, de
+            modo que reaparecer em outra ocorrência é cliente errado ou chave
+            reaproveitada, e repetir o pedido nunca dá certo: 409, categoria
+            `permanente`. Depois da conferência do autor (que não pode virar
+            oráculo de existência para quem não é dono da chave) e antes de
+            qualquer escrita. Chave de OUTRO município nem chega aqui: a RLS a
+            esconde, e ela cai no fluxo normal de criação.
+          */
+          if (achada.ocorrencia_id.toLowerCase() !== dados.ocorrenciaId.toLowerCase()) {
+            throw new RegraDeNegocio(
+              "chave_ja_usada_em_outro_registro",
+              "Essa chave de envio já foi usada em outra ocorrência. Gere uma chave nova "
+              + "para esta fotografia.",
+              409,
+            );
           }
           /*
             RESSUSCITA a autorização que a varredura de órfão deu por perdida.
@@ -457,7 +494,27 @@ export async function rotasEvidencias(
         evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false, uso,
         pendente: null as EvidenciaPendente | null,
       };
-    });
+    };
+
+    /*
+      A CORRIDA DA CHAVE. Dois pedidos concorrentes com a mesma chave passam os
+      dois pela consulta de cima sem achar nada, e o segundo INSERT cai no
+      índice único (23505): sem este tratamento a rota respondia 500
+      `erro_interno` no lugar do 409 da etapa. A transação do INSERT já voltou
+      inteira, então a rota REPETE a transação uma vez: agora a consulta acha a
+      linha do vencedor, e a resposta é a de sempre (mesma ocorrência: a mesma
+      evidência; outra ocorrência: 409 `chave_ja_usada_em_outro_registro`; outro
+      autor: `autor_divergente`). Só a violação dos índices de idempotência da
+      evidência é tratada, pelo nome da constraint; qualquer outro 23505 sobe. A
+      repetição é dentro do município do token, como a primeira.
+    */
+    let resultado: Awaited<ReturnType<typeof autorizarNaTransacao>>;
+    try {
+      resultado = await banco.comTenant(quem.organizacaoId, autorizarNaTransacao);
+    } catch (erro) {
+      if (!dados.idempotencyKey || !ehConflitoDaChaveDeEvidencia(erro)) throw erro;
+      resultado = await banco.comTenant(quem.organizacaoId, autorizarNaTransacao);
+    }
 
     /*
       O arquivo já está lá: a resposta sai SEM autorização de escrita.

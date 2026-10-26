@@ -12,7 +12,7 @@ import {
 import { lerLocalizacaoColada } from "./coordenada-colada";
 import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
-import { descricaoDoTipoNaAbertura } from "./ocorrencia-regras";
+import { descricaoDoTipoNaAbertura, novaChaveDeCriacao } from "./ocorrencia-regras";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Cartao, ErrosDoServidor, formatarDataHora,
@@ -37,6 +37,15 @@ export function NovaOcorrencia() {
   useTitulo("Registrar ocorrência");
   const sessao = useSessaoObrigatoria();
   const navegar = useNavigate();
+
+  /*
+    A chave de criação nasce com o formulário e fica até ele fechar (V2-F02-E07).
+    Tudo que reenvia este chamado (o segundo clique, a nova tentativa depois de
+    um erro de rede, a confirmação depois da lista de duplicidades) leva a
+    MESMA chave, e a API devolve o chamado que já nasceu em vez de abrir outro
+    e gastar mais um número do protocolo. Abrir a tela de novo gera chave nova.
+  */
+  const [chaveDeCriacao] = useState(() => novaChaveDeCriacao());
 
   const [tipo, setTipo] = useState<TipoDeEntrada>("deslizamento");
   /*
@@ -121,6 +130,7 @@ export function NovaOcorrencia() {
       */
       tipoDescricao: descricaoDoTipoNaAbertura(tipo, tipoDescricao),
       descricao: descricao.trim(),
+      chaveDeCriacao,
     };
   }
 

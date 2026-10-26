@@ -1,0 +1,72 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a23ce9ef525bc6ac6/dc360/apps/api
+
+ ❯ test/chave-de-criacao.test.ts (19 tests | 2 failed) 6340ms
+   ✓ criação do chamado com chave > a mesma chave duas vezes devolve o MESMO id e protocolo, e a sequência avança uma vez 80ms
+   ✓ criação do chamado com chave > o reenvio com o corpo diferente ainda devolve o chamado original, sem alterá-lo 39ms
+   ✓ criação do chamado com chave > sem chave, dois pedidos são dois chamados distintos (o comportamento de sempre) 43ms
+   ✓ criação do chamado com chave > chaves diferentes são chamados diferentes 39ms
+   ✓ criação do chamado com chave > chave que não é uuid: 422 com o campo, e nada é criado nem consumido 52ms
+   ✓ criação do chamado com chave > sem credencial, a chave não abre nada: 401, e o chamado de quem tem credencial segue intacto 30ms
+   ✓ isolamento entre municípios > a mesma chave em A e em B cria um chamado em cada, sem 404 nem 409 cruzado 72ms
+   ✓ isolamento entre municípios > a chave de A não deixa B ler o chamado de A: B só vê o que B criou 38ms
+   ✓ isolamento entre municípios > a sequência de cada município anda sozinha: a chave de A não gasta número de B 19ms
+   ✓ a corrida: o segundo pedido perde no índice único e a transação inteira volta > cai no 23505, volta a transação (protocolo não consumido), relê e devolve 200 com o mesmo chamado 43ms
+   ✓ a corrida: o segundo pedido perde no índice único e a transação inteira volta > sem chave a conferência nem acontece: nada é interceptado e o pedido cria normalmente 16ms
+   ✓ evidência: a chave de foto presa à ocorrência > a mesma chave na MESMA ocorrência devolve a mesma evidência (o comportamento que fica) 92ms
+   ✓ evidência: a chave de foto presa à ocorrência > a mesma chave em OUTRA ocorrência: 409 chave_ja_usada_em_outro_registro, e nada é gravado 170ms
+   ✓ evidência: a chave de foto presa à ocorrência > o índice do banco também recusa a mesma chave em outra ocorrência, mesmo fora da rota 122ms
+   ✓ evidência: a chave de foto presa à ocorrência > isolamento: a mesma chave de foto em A e em B grava uma em cada, sem 409 cruzado 136ms
+   ✓ evidência: a chave de foto presa à ocorrência > chave JÁ USADA em B e depois a mesma em A: A grava a sua, sem 409 e sem ver nada de B 139ms
+   ✓ evidência: a chave de foto presa à ocorrência > com a chave já usada em B, o agente de A que aponta para a ocorrência de B segue em 404 80ms
+   × evidência: a chave de foto presa à ocorrência > a corrida da foto: dois pedidos passam pela consulta e o segundo INSERT cai no índice > outra ocorrência: 409 chave_ja_usada_em_outro_registro, e não 500 224ms
+     → {"erro":"erro_interno","mensagem":"Erro inesperado. Se precisar de ajuda, informe o código de suporte.","requisicao":"a6a6565a-4e71-4fe8-9861-1e7d80d281e0"}: expected 500 to be 409 // Object.is equality
+   × evidência: a chave de foto presa à ocorrência > a corrida da foto: dois pedidos passam pela consulta e o segundo INSERT cai no índice > mesma ocorrência: devolve o registro existente, como hoje (201 com a mesma evidência) 98ms
+     → {"erro":"erro_interno","mensagem":"Erro inesperado. Se precisar de ajuda, informe o código de suporte.","requisicao":"74e251d4-b94a-4496-a8f7-a9106f2b4e3d"}: expected 500 to be 201 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/chave-de-criacao.test.ts > evidência: a chave de foto presa à ocorrência > a corrida da foto: dois pedidos passam pela consulta e o segundo INSERT cai no índice > outra ocorrência: 409 chave_ja_usada_em_outro_registro, e não 500
+AssertionError: {"erro":"erro_interno","mensagem":"Erro inesperado. Se precisar de ajuda, informe o código de suporte.","requisicao":"a6a6565a-4e71-4fe8-9861-1e7d80d281e0"}: expected 500 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 500
+
+ ❯ test/chave-de-criacao.test.ts:521:52
+    519|       expect(cego.cegou(), "a consulta prévia precisa ter passado em b…
+    520| 
+    521|       expect(perdedora.statusCode, perdedora.body).toBe(409);
+       |                                                    ^
+    522|       expect(perdedora.json().erro).toBe("chave_ja_usada_em_outro_regi…
+    523|       const linhas = await linhasDaChave(chave);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/chave-de-criacao.test.ts > evidência: a chave de foto presa à ocorrência > a corrida da foto: dois pedidos passam pela consulta e o segundo INSERT cai no índice > mesma ocorrência: devolve o registro existente, como hoje (201 com a mesma evidência)
+AssertionError: {"erro":"erro_interno","mensagem":"Erro inesperado. Se precisar de ajuda, informe o código de suporte.","requisicao":"74e251d4-b94a-4496-a8f7-a9106f2b4e3d"}: expected 500 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 500
+
+ ❯ test/chave-de-criacao.test.ts:538:52
+    536|       expect(cego.cegou()).toBe(true);
+    537| 
+    538|       expect(perdedora.statusCode, perdedora.body).toBe(201);
+       |                                                    ^
+    539|       expect(perdedora.json().evidenciaId).toBe(ok.json().evidenciaId);
+    540|       expect(await linhasDaChave(chave)).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 17 passed (19)
+   Start at  23:30:17
+   Duration  9.78s (transform 674ms, setup 674ms, collect 2.21s, tests 6.34s, environment 0ms, prepare 205ms)
+

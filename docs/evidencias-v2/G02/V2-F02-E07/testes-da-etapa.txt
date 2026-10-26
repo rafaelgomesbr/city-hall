@@ -1,0 +1,53 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a23ce9ef525bc6ac6/dc360/apps/api
+
+ ✓ test/chave-de-criacao.test.ts (16 tests) 46423ms
+   ✓ criação do chamado com chave > chave que não é uuid: 422 com o campo, e nada é criado nem consumido  333ms
+   ✓ isolamento entre municípios > a mesma chave em A e em B cria um chamado em cada, sem 404 nem 409 cruzado  2215ms
+   ✓ isolamento entre municípios > a chave de A não deixa B ler o chamado de A: B só vê o que B criou  576ms
+   ✓ a corrida: o segundo pedido perde no índice único e a transação inteira volta > cai no 23505, volta a transação (protocolo não consumido), relê e devolve 200 com o mesmo chamado  617ms
+   ✓ evidência: a chave de foto presa à ocorrência > a mesma chave na MESMA ocorrência devolve a mesma evidência (o comportamento que fica)  1095ms
+   ✓ evidência: a chave de foto presa à ocorrência > a mesma chave em OUTRA ocorrência: 409 chave_ja_usada_em_outro_registro, e nada é gravado  1064ms
+   ✓ evidência: a chave de foto presa à ocorrência > o índice do banco também recusa a mesma chave em outra ocorrência, mesmo fora da rota  1455ms
+   ✓ evidência: a chave de foto presa à ocorrência > isolamento: a mesma chave de foto em A e em B grava uma em cada, sem 409 cruzado  1933ms
+   ✓ evidência: a chave de foto presa à ocorrência > a ocorrência de outro município continua 404, mesmo com chave já usada lá  933ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  22:57:58
+   Duration  55.32s (transform 2.75s, setup 1.37s, collect 5.39s, tests 46.42s, environment 0ms, prepare 520ms)
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a23ce9ef525bc6ac6/dc360/db
+
+ ✓ test/migracoes-regras.test.ts (19 tests) 123ms
+ ✓ test/chave-de-criacao-migracao.test.ts (9 tests) 24013ms
+   ✓ os índices da 052, com a base inteira > evidência: o índice da 052 SOZINHO recusa repetir (município, ocorrência, chave) e aceita outra ocorrência  8144ms
+   ✓ a volta da 052 > aplicar, desfazer e reaplicar: colunas, índices, RLS e funções idênticos  8144ms
+
+ Test Files  2 passed (2)
+      Tests  28 passed (28)
+   Start at  22:59:00
+   Duration  25.15s (transform 268ms, setup 0ms, collect 665ms, tests 24.14s, environment 1ms, prepare 490ms)
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a23ce9ef525bc6ac6/dc360/apps/web
+
+ ✓ test/chave-de-criacao.test.ts (6 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  22:59:39
+   Duration  1.28s (transform 169ms, setup 0ms, collect 691ms, tests 9ms, environment 0ms, prepare 217ms)
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a23ce9ef525bc6ac6/dc360/packages/shared
+
+ ✓ test/chave-de-criacao.test.ts (4 tests) 9ms
+ ✓ test/catalogo-de-erros.test.ts (27 tests) 46ms
+
+ Test Files  2 passed (2)
+      Tests  31 passed (31)
+   Start at  22:59:44
+   Duration  1.26s (transform 272ms, setup 0ms, collect 1.19s, tests 55ms, environment 0ms, prepare 469ms)
+

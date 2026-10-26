@@ -144,10 +144,10 @@ describe("positivos: desfaz só a última, e o ciclo deixa o esquema idêntico",
 });
 
 describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () => {
-  it("uma 052 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato", async () => {
+  it("uma 053 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato", async () => {
     const reais = carregarMigracoes();
     const PROVA: Migracao = {
-      versao: "052_prova_do_desfazer.sql",
+      versao: "053_prova_do_desfazer.sql",
       sql: `
         CREATE TABLE prova_e18 (
           id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -160,7 +160,7 @@ describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () =>
       `,
     };
     const VOLTA: Desfazer = {
-      versao: "052_prova_do_desfazer.sql",
+      versao: "053_prova_do_desfazer.sql",
       sql: "DROP TABLE prova_e18;",
     };
 
@@ -172,7 +172,7 @@ describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () =>
     expect(JSON.stringify(com["rls"])).toContain("prova_e18");
 
     const r = await desfazerUltimaMigracao(bd, [...reais, PROVA], [VOLTA], DEV);
-    expect(r.desfeita).toBe("052_prova_do_desfazer.sql");
+    expect(r.desfeita).toBe("053_prova_do_desfazer.sql");
     expect(await fotografia()).toEqual(antes);
 
     await aplicarMigracoes(bd, [...reais, PROVA]);
@@ -180,7 +180,10 @@ describe("com as migrações de verdade: o isolamento sobrevive ao ciclo", () =>
   }, 120_000);
 
   it("a última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada", async () => {
-    const reais = carregarMigracoes();
+    // As 51 isentas: da 052 em diante cada migração traz o seu desfazer (a 052
+    // é provada no teste de baixo e em `chave-de-criacao-migracao.test.ts`).
+    const reais = carregarMigracoes().slice(0, 51);
+    expect(reais.at(-1)?.versao).toBe("051_link_de_recuperacao_morre_com_a_credencial.sql");
     await aplicarMigracoes(bd, reais);
     const antes = await fotografia();
 

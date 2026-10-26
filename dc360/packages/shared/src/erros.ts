@@ -303,6 +303,12 @@ export const CODIGOS_DE_ERRO = {
     categoria: "corrigir",
     titulo: "Fotografia de outro agente",
   },
+  /* V2-F02-E07: vale para a chave da foto; o padrão para os próximos criadores. */
+  chave_ja_usada_em_outro_registro: {
+    status: 409,
+    categoria: "permanente",
+    titulo: "Chave de idempotência já usada em outro registro",
+  },
 
   /* ---- Autoria e relógio do aparelho ---- */
   autor_divergente: {
@@ -479,12 +485,6 @@ export type CodigoDeErro = keyof typeof CODIGOS_DE_ERRO;
  * no mesmo commit.
  */
 export const CODIGOS_RESERVADOS = {
-  /** V2-F02-E07: a chave de idempotência já pertence a outro registro. */
-  chave_ja_usada_em_outro_registro: {
-    status: 409,
-    categoria: "permanente",
-    titulo: "Chave de idempotência já usada em outro registro",
-  },
   /** V2-F02-E08: o aplicativo está abaixo da versão mínima aceita (426). */
   versao_do_aplicativo_antiga: {
     status: 426,

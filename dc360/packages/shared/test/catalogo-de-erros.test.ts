@@ -54,9 +54,11 @@ describe("a forma de cada entrada do catálogo", () => {
 
   it("o código é minúsculo, com sublinhado, e o catálogo tem o tamanho esperado", () => {
     for (const [codigo] of entradas) expect(codigo, codigo).toMatch(/^[a-z][a-z_0-9]{1,63}$/);
-    /* 92 códigos em 2026-10-25 (levantamento de `apps/api/src`). Subir é normal;
-       cair significa que alguém tirou código que clientes instalados leem. */
-    expect(entradas.length).toBeGreaterThanOrEqual(92);
+    /* 93 códigos (92 do levantamento de `apps/api/src` de 2026-10-25, mais
+       `chave_ja_usada_em_outro_registro`, que a V2-F02-E07 passou a emitir).
+       Subir é normal; cair significa que alguém tirou código que clientes
+       instalados leem. */
+    expect(entradas.length).toBeGreaterThanOrEqual(93);
   });
 
   it("status é inteiro de 400 a 599, categoria é uma das cinco e o título não tem travessão", () => {
@@ -145,11 +147,16 @@ describe("o catálogo de acesso e o da entrada estão dentro deste, sem divergir
 });
 
 describe("a lista reservada", () => {
-  it("traz os códigos que as etapas seguintes emitirão, e nenhum está na lista emitida", () => {
-    expect(CODIGOS_RESERVADOS.chave_ja_usada_em_outro_registro).toMatchObject({
+  it("a chave de idempotência já usada saiu da reserva: a V2-F02-E07 a emite (409, permanente)", () => {
+    expect(ehCodigoReservado("chave_ja_usada_em_outro_registro")).toBe(false);
+    expect(CODIGOS_DE_ERRO.chave_ja_usada_em_outro_registro).toMatchObject({
       status: 409,
       categoria: "permanente",
     });
+    expect(categoriaDoCodigo("chave_ja_usada_em_outro_registro")).toBe("permanente");
+  });
+
+  it("traz os códigos que as etapas seguintes emitirão, e nenhum está na lista emitida", () => {
     expect(CODIGOS_RESERVADOS.versao_do_aplicativo_antiga).toMatchObject({
       status: 426,
       categoria: "permanente",
@@ -162,7 +169,6 @@ describe("a lista reservada", () => {
 
   it("reservado tem categoria (o cliente já sabe o que fazer antes de o servidor emitir)", () => {
     expect(categoriaDoCodigo("versao_do_aplicativo_antiga")).toBe("permanente");
-    expect(categoriaDoCodigo("chave_ja_usada_em_outro_registro")).toBe("permanente");
   });
 });
 
