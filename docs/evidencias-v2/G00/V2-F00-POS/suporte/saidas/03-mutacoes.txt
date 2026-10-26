@@ -1,0 +1,136 @@
+# Mutacoes: cada linha tira UMA conferencia; o esperado e a suite VERMELHA
+
+## Linha de base, sem mutacao
+codigo de saida 0
+Tests  11 passed (11)
+
+## M01 sem a conferencia do dono do console
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > operador comum não restaura, e sem operador no contexto ninguém restaura 30ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > operador comum não restaura, e sem operador no contexto ninguém restaura
+
+## M02 sem o municipio na busca da conta (e no UPDATE)
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > administrador de OUTRO município: recusa como conta inexistente, e nada muda nos dois 38ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > administrador de OUTRO município: recusa como conta inexistente, e nada muda nos dois
+
+## M03 sem a conferencia do papel administrador
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > conta de outro papel no mesmo município: recusa, e não diz o papel 17ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > conta de outro papel no mesmo município: recusa, e não diz o papel
+
+## M04 sem a conferencia de conta ativa
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > administrador desativado: recusa, e reativado passa 35ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > administrador desativado: recusa, e reativado passa
+
+## M05 sem a conferencia do motivo na funcao
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > sem motivo, com motivo curto ou com a senha em texto claro, recusa e não escreve 23ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > sem motivo, com motivo curto ou com a senha em texto claro, recusa e não escreve
+
+## M06 sem encerrar as sessoes
+codigo de saida 1
+× O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha 54ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha
+
+## M07 validade diferente da do painel (720 h)
+codigo de saida 1
+× O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha 39ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha
+
+## M08 sem a recusa de municipio suspenso
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > município suspenso, eliminado ou inexistente: recusa 22ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > município suspenso, eliminado ou inexistente: recusa
+
+## M09 sem o teto de 3 em 24 h
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > o teto: três por município em 24 horas, e o vizinho não divide o teto 57ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > o teto: três por município em 24 horas, e o vizinho não divide o teto
+
+## M10 o hash vai para a trilha
+codigo de saida 1
+× O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha 87ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > O caminho feliz > senha provisória de 72 h, sessões da pessoa encerradas, trilha e registro sem a senha
+
+## M11 a funcao fica executavel por PUBLIC
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > operador comum não restaura, e sem operador no contexto ninguém restaura 40ms
+× O registro do console é append-only e só o dono lê > a forma da função no catálogo: definidora, caminho fixo, RLS desligada por dentro, só o console executa 7ms
+Tests  2 failed | 9 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > operador comum não restaura, e sem operador no contexto ninguém restaura
+FAIL  test/restauracao-de-acesso.test.ts > O registro do console é append-only e só o dono lê > a forma da função no catálogo: definidora, caminho fixo, RLS desligada por dentro, só o console executa
+
+## M12 o registro do console fica legivel por qualquer operador
+codigo de saida 1
+× O registro do console é append-only e só o dono lê > o dono lê, o operador comum lê zero linhas, e o papel de aplicação não lê 35ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > O registro do console é append-only e só o dono lê > o dono lê, o operador comum lê zero linhas, e o papel de aplicação não lê
+
+## M13 sem a recusa de senha em texto claro
+codigo de saida 1
+× As recusas, cada uma com o caso-irmão que passa > sem motivo, com motivo curto ou com a senha em texto claro, recusa e não escreve 28ms
+Tests  1 failed | 10 passed (11)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restauracao-de-acesso.test.ts > As recusas, cada uma com o caso-irmão que passa > sem motivo, com motivo curto ou com a senha em texto claro, recusa e não escreve
+
+## Linha de base da rota, sem mutacao
+codigo de saida 0
+Tests  9 passed (9)
+
+## R01 a rota nao confere o codigo novo do aplicativo
+codigo de saida 1
+× Quem pode, e com que prova > senha errada ou código já usado: 401, e nada muda 2992ms
+× Qual conta: só o administrador ativo do município indicado > administrador de OUTRO município: a mesma recusa de conta que não existe, e nada muda 2233ms
+× O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log 1802ms
+× O caminho feliz > o registro aparece para o dono e não para o operador 20ms
+Tests  4 failed | 5 passed (9)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restaurar-acesso.test.ts > Quem pode, e com que prova > senha errada ou código já usado: 401, e nada muda
+FAIL  test/restaurar-acesso.test.ts > Qual conta: só o administrador ativo do município indicado > administrador de OUTRO município: a mesma recusa de conta que não existe, e nada muda
+FAIL  test/restaurar-acesso.test.ts > O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log
+FAIL  test/restaurar-acesso.test.ts > O caminho feliz > o registro aparece para o dono e não para o operador
+
+## R02 a rota nao confere a senha de quem clica
+codigo de saida 1
+× Quem pode, e com que prova > senha errada ou código já usado: 401, e nada muda 783ms
+× Qual conta: só o administrador ativo do município indicado > administrador de OUTRO município: a mesma recusa de conta que não existe, e nada muda 1450ms
+× O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log 1182ms
+× O caminho feliz > o registro aparece para o dono e não para o operador 17ms
+Tests  4 failed | 5 passed (9)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restaurar-acesso.test.ts > Quem pode, e com que prova > senha errada ou código já usado: 401, e nada muda
+FAIL  test/restaurar-acesso.test.ts > Qual conta: só o administrador ativo do município indicado > administrador de OUTRO município: a mesma recusa de conta que não existe, e nada muda
+FAIL  test/restaurar-acesso.test.ts > O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log
+FAIL  test/restaurar-acesso.test.ts > O caminho feliz > o registro aparece para o dono e não para o operador
+
+## R03 a senha temporaria vai para o log
+codigo de saida 1
+× O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log 1669ms
+Tests  1 failed | 8 passed (9)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  test/restaurar-acesso.test.ts > O caminho feliz > senha temporária uma vez, provisória de 72 h, sessões caídas, trilha e registro, sem a senha no log
+
