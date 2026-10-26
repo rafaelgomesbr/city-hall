@@ -92,6 +92,34 @@
       "titulo": "Fase 0: 24 de 25 etapas validadas, G00 recomendado",
       "texto": "Rodada 10: E16, E19 e E22 aprovadas; a E09 foi aceita por decisão do Rafael. A rodada 11 confirmou que nada de produto mudou e o gatekeeper recomenda aprovar o gate.",
       "tipo": "ok"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Rafael aprova o G00, e a fase 0 vai para a master",
+      "texto": "Decisões H09 e H44. Merge por commit de merge (02e9c26e) e primeiro Verificar em master verde.",
+      "tipo": "ok"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Master trazida pelos quatro ramos",
+      "texto": "Da master para o v2/f01, e daí para o v2/f02, o v2/f03 e o v2/f04.",
+      "tipo": "marco"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Fase 1 em validação independente",
+      "texto": "22 etapas implementadas, sem veredito ainda. O job de imagens do CI fica vermelho por causa do PostGIS (H106).",
+      "tipo": "warn"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Fases 3 e 4 avançam em ramos próprios",
+      "texto": "Fase 3 com o portão de isolamento estendido (parte 0G) e a junção do lote 1 em andamento; fase 4 com o lote 0 juntado.",
+      "tipo": "marco"
     }
   ]
 }

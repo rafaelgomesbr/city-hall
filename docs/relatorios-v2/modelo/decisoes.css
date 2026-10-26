@@ -133,3 +133,19 @@
 
 .barra-resp { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; margin: 0 -16px; background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(0,0,0,.08); font-size: .9rem; }
 .barra-resp a { font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
+
+/* caminho: etapa em andamento (glifo e texto, nunca só cor) */
+.passo.andamento { border-color: var(--warn); background: var(--warn-soft); }
+.passo.andamento .marca-passo, .passo.andamento em { color: var(--warn); }
+.passo.andamento span { color: var(--fg); }
+
+/* já decididas: registro, sem campo para responder */
+.decididas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.decidida { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); scroll-margin-top: 16px; }
+.decidida .cod { flex: 0 0 auto; margin-top: 2px; }
+.decidida > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: .9rem; line-height: 1.4; }
+.decidida p { margin: 0; color: var(--muted); }
+.decidida p em { font-style: normal; font-weight: 600; color: var(--fg); }
+.decidida .et { margin-left: 4px; }
+.decidida.adiada, .decidida.delegada { border-style: dashed; }
+@media (max-width: 860px) { .decididas { grid-template-columns: minmax(0, 1fr); } }

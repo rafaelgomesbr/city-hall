@@ -21,7 +21,13 @@ const LETRAS = "ABCDEFGH";
 const ESTADOS_DO_CAMINHO = {
   feito: { glifo: "✓", rotulo: "feito" },
   voce: { glifo: "●", rotulo: "sua decisão" },
+  andamento: { glifo: "◐", rotulo: "em andamento" },
   depois: { glifo: "○", rotulo: "depois" },
+};
+const ESTADOS_DE_DECIDIDA = {
+  decidida: "decidida",
+  adiada: "adiada",
+  delegada: "delegada ao assistente",
 };
 
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
@@ -29,6 +35,11 @@ const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 /** Códigos que o resumo cobre (decisões e conferências). */
 export function codigosCobertos(dados) {
   return [...dados.decisoes.map((d) => d.codigo), ...dados.conferencias.itens.map((i) => i.codigo)];
+}
+
+/** Códigos que já foram respondidos e aparecem só como registro, sem cartão para responder. */
+export function codigosDecididos(dados) {
+  return (dados.decididas ?? []).map((d) => d.codigo);
 }
 
 /** Problemas na estrutura do resumo (códigos repetidos, grupo ou tipo inexistente, decisão sem opção). */
@@ -46,6 +57,13 @@ export function conferirEstrutura(dados) {
     if (d.opcoes?.length > LETRAS.length) problemas.push(`${d.codigo}: opções demais`);
     for (const campo of ["etapa", "curto", "titulo", "hoje", "pergunta", "quem"]) if (!d[campo]) problemas.push(`${d.codigo}: falta "${campo}"`);
   }
+  const jaDecididos = new Set();
+  for (const d of dados.decididas ?? []) {
+    if (jaDecididos.has(d.codigo)) problemas.push(`${d.codigo}: código repetido nas decididas`);
+    jaDecididos.add(d.codigo);
+    if (!ESTADOS_DE_DECIDIDA[d.estado]) problemas.push(`${d.codigo}: estado "${d.estado}" não existe nas decididas`);
+    for (const campo of ["etapa", "curto", "resposta"]) if (!d[campo]) problemas.push(`${d.codigo}: falta "${campo}" nas decididas`);
+  }
   const tipos = new Set(dados.conferencias.tipos.map((t) => t.id));
   for (const i of dados.conferencias.itens) {
     if (!tipos.has(i.tipo)) problemas.push(`${i.codigo}: tipo "${i.tipo}" não existe`);
@@ -62,18 +80,20 @@ export function conferirEstrutura(dados) {
 export function diferencasComPendencias({ dados, markdown }) {
   const abertos = new Set();
   const resolvidos = new Set();
-  let secao = "";
+  let situacao = "";
   for (const linha of markdown.split(/\r?\n/)) {
-    const titulo = /^## ([A-Z])\./.exec(linha);
-    if (titulo) secao = titulo[1];
+    // "## A." a "## D." e as seções por fase ("## F01.", "## F02." ...) são pendências abertas; "## F." é a lista de resolvidos.
+    const titulo = /^## ([A-Z])(\d*)\./.exec(linha);
+    if (titulo) situacao = titulo[2] !== "" || "ABCD".includes(titulo[1]) ? "aberta" : titulo[1] === "F" ? "resolvida" : "";
     const codigo = /^\| (H\d+) \|/.exec(linha)?.[1];
     if (!codigo) continue;
-    if ("ABCD".includes(secao)) abertos.add(codigo);
-    else if (secao === "F") resolvidos.add(codigo);
+    if (situacao === "aberta") abertos.add(codigo);
+    else if (situacao === "resolvida") resolvidos.add(codigo);
   }
   const cobertos = new Set(codigosCobertos(dados));
+  const registrados = new Set([...cobertos, ...codigosDecididos(dados)]);
   return {
-    faltam: [...abertos].filter((c) => !cobertos.has(c)),
+    faltam: [...abertos].filter((c) => !registrados.has(c)),
     resolvidas: [...cobertos].filter((c) => !abertos.has(c)),
     resolvidasNoDocumento: [...cobertos].filter((c) => resolvidos.has(c)),
   };
@@ -143,6 +163,24 @@ function cartaoConferencia(i) {
   </article>`;
 }
 
+function secaoDecididas(dados) {
+  const lista = dados.decididas ?? [];
+  if (lista.length === 0) return "";
+  const cab = dados.decididasSecao ?? { titulo: "Já decididas", lead: "" };
+  const linhas = lista
+    .map(
+      (d) => `<li class="decidida ${esc(d.estado)}" id="decidida-${esc(d.codigo)}"><span class="cod">${esc(d.codigo)}</span><div><b>${esc(d.curto)}</b> <span class="et">${esc(d.etapa)} · ${esc(ESTADOS_DE_DECIDIDA[d.estado] ?? d.estado)}</span><p><em>Resposta:</em> ${esc(d.resposta)}</p>${d.depois ? `<p class="depois"><em>O que acontece agora:</em> ${esc(d.depois)}</p>` : ""}</div></li>`,
+    )
+    .join("\n    ");
+  return `<section class="sec" aria-labelledby="h-decididas">
+  <h2 id="h-decididas">${esc(cab.titulo)} <span class="contagem">${plural(lista.length, "item", "itens")}</span></h2>
+  ${cab.lead ? `<p class="lead">${esc(cab.lead)}</p>` : ""}
+  <ul class="decididas">
+    ${linhas}
+  </ul>
+</section>`;
+}
+
 function secaoRelatorio() {
   return `<section class="sec" id="relatorio" aria-labelledby="h-relatorio">
   <h2 id="h-relatorio">Gerar o relatório das suas respostas</h2>
@@ -192,8 +230,8 @@ function indice(dados) {
 
 export function montarDecisoes({ dados, css, script = null, glossario = null, linkDoRelatorio = null, linkDeSaida = null }) {
   const problemas = [...conferirEstrutura(dados), ...conferirTextos({ editorial: { ...dados, glossario }, linha: { marcos: [] }, concluidas: 0 })];
-  const pecasDoG00 = dados.decisoes.filter((d) => d.grupo === "agora").length;
-  const comPrazo = dados.decisoes.filter((d) => d.grupo === "prazo").length;
+  const paraAgora = dados.decisoes.filter((d) => d.grupo === "agora").length;
+  const jaDecididas = (dados.decididas ?? []).length;
   const topo = `<header class="top">
   <div class="marca"><div class="brasao" aria-hidden="true">DC</div> Defesa Civil 360</div>
   <p class="eyebrow">Pendências humanas · posição em ${esc(dados.posicao)}</p>
@@ -202,8 +240,8 @@ export function montarDecisoes({ dados, css, script = null, glossario = null, li
   ${linkDoRelatorio ? `<p><a class="voltar" href="${esc(linkDoRelatorio)}">← Voltar ao relatório de progresso</a></p>` : ""}
   <div class="kpis">
     <div class="card kpi acc"><b>${dados.decisoes.length}</b><span>decisões a tomar</span></div>
-    <div class="card kpi"><b>${pecasDoG00}</b><span>fecham o gate G00</span></div>
-    <div class="card kpi"><b>${comPrazo}</b><span>com risco ou prazo definido</span></div>
+    <div class="card kpi"><b>${paraAgora}</b><span>para decidir agora</span></div>
+    <div class="card kpi"><b>${jaDecididas}</b><span>já decididas</span></div>
     <div class="card kpi"><b>${dados.conferencias.itens.length}</b><span>conferências a fazer</span></div>
   </div>
   ${indice(dados)}
@@ -241,7 +279,7 @@ export function montarDecisoes({ dados, css, script = null, glossario = null, li
   ${tipos}
 </section>`;
   const rodape = `<p class="rodape">Fonte: docs/roadmap-v2/pendencias-humanas.md, na posição de ${esc(dados.posicao)}. Se esta página e o documento divergirem, vale o documento. Quando resolver um item, diga o código no chat (por exemplo, "H18 feito"); quem registra é o assistente.${linkDeSaida ? ` <a class="sair" href="${esc(linkDeSaida)}">Sair</a>` : ""}</p>`;
-  const partes = [topo, secaoGlossario({ glossario, mostrarDestaque: true }), secaoCaminho(dados.caminho), grupos, secaoConf, secaoRelatorio(), rodape, barraDeResposta()].filter(Boolean);
+  const partes = [topo, secaoGlossario({ glossario, mostrarDestaque: true }), secaoCaminho(dados.caminho), grupos, secaoConf, secaoDecididas(dados), secaoRelatorio(), rodape, barraDeResposta()].filter(Boolean);
   const html = `<title>Defesa Civil 360, decisões pendentes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

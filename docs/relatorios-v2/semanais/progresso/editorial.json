@@ -1,6 +1,6 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "A fase 0 passou por 11 rodadas de validação independente desde 13/10. Em 25/10, 24 das 25 etapas estavam validadas e a E09 foi aceita por decisão do Rafael. O gatekeeper recomenda aprovar o gate G00; falta a decisão do Rafael.",
+  "lead": "Em 26/10 o Rafael aprovou o G00 e a fase 0 entrou na master (02e9c26e). A master foi trazida pelos quatro ramos da V2: a fase 1 está em validação independente, sem veredito ainda, e as fases 2, 3 e 4 seguem em paralelo nos seus ramos.",
   "visaoGeral": [
     {
       "data": "02/10",
@@ -24,16 +24,30 @@
       "tipo": "ok"
     },
     {
-      "data": "25/10",
-      "iso": "2026-10-25",
-      "titulo": "Gate G00 recomendado",
-      "texto": "O gatekeeper recomenda aprovar a fase 0. Falta a decisão do Rafael e o merge em master.",
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "G00 aprovado, fase 0 na master",
+      "texto": "O gatekeeper recomendou em 25/10 e Rafael aprovou o gate e o merge por commit de merge (02e9c26e). O primeiro Verificar em master ficou verde.",
+      "tipo": "ok"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Fase 1 em validação, master nos quatro ramos",
+      "texto": "A master entrou no v2/f01 e daí nos ramos das fases 2 a 4. A fase 1 tem 22 etapas implementadas; o CI do candidato passa em tudo, menos no job de imagens (H106), e a validação independente começou, sem veredito ainda.",
       "tipo": "warn"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Fases 3 e 4 avançam",
+      "texto": "Fase 3: parte 0G do portão de isolamento com candidato e correção, e junção do lote 1 em andamento. Fase 4: lote 0 juntado (andaime, máquina de estados, dossiê e competência).",
+      "tipo": "marco"
     }
   ],
   "aSeguir": {
-    "titulo": "Aprovação do G00 e fase 1",
-    "texto": "Com o G00 aprovado e o merge feito, começa a fase 1: fundação de engenharia e ambientes, com 22 etapas."
+    "titulo": "Validação da fase 1 e decisão da H106",
+    "texto": "O gatekeeper valida a fase 1 numa sessão nova. O G01 depende desse veredito e da decisão da H106 (a imagem do PostGIS no CI). As fases 2, 3 e 4 seguem em paralelo, e as ADRs 0009 e 0010 esperam o seu aceite."
   },
   "imagens": [
     {
@@ -79,23 +93,18 @@
   "decisoes": [
     {
       "quem": "Rafael",
-      "titulo": "H44, tipo de merge da master",
-      "texto": "Decidir antes de ligar a proteção da master: commit de merge, como combinado no G00, e não squash."
+      "titulo": "H106, imagem do PostGIS no CI",
+      "texto": "Escolher como o job de imagens deixa de ficar vermelho: perdoar com prazo, escanear só para relatório ou trocar por uma imagem própria."
     },
     {
       "quem": "Rafael",
-      "titulo": "H09, gate G00",
-      "texto": "Aprovar o G00 e fazer o merge em master. O gatekeeper recomendou em 25/10."
+      "titulo": "H97 e H133, aceite das ADRs 0009 e 0010",
+      "texto": "Sem o aceite, a primeira etapa das fases 3 e 4 não fecha. A ADR 0010 depende da 0009."
     },
     {
       "quem": "Rafael",
-      "titulo": "H33, chave do Firebase",
-      "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório agora é público."
-    },
-    {
-      "quem": "Rafael e Alyson",
-      "titulo": "H01, saída a campo",
-      "texto": "Confirmar que será implementada no aplicativo, antes de qualquer nova demonstração."
+      "titulo": "Demais decisões",
+      "texto": "Há decisões com marco (antes do G03 e do G04, por exemplo) e outras que podem esperar, todas na página de decisões."
     },
     {
       "quem": "Rafael",

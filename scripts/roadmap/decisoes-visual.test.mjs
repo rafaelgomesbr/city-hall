@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RAIZ } from "./roadmap.mjs";
-import { codigosCobertos, conferirEstrutura, diferencasComPendencias, montarDecisoes } from "./decisoes-visual.mjs";
+import { codigosCobertos, codigosDecididos, conferirEstrutura, diferencasComPendencias, montarDecisoes } from "./decisoes-visual.mjs";
 
 const DADOS = {
   posicao: "25/10/2026",
@@ -117,7 +117,8 @@ test("tipo de conferência sem item não gera seção, e o caminho marca o estad
 test("os contadores do topo saem dos dados", () => {
   const { html } = montar();
   assert.match(html, /<b>2<\/b><span>decisões a tomar/);
-  assert.match(html, /<b>1<\/b><span>fecham o gate G00/);
+  assert.match(html, /<b>1<\/b><span>para decidir agora/);
+  assert.match(html, /<b>0<\/b><span>já decididas/);
   assert.match(html, /<b>2<\/b><span>conferências a fazer/);
 });
 
@@ -173,16 +174,72 @@ test("diferenças com pendencias-humanas.md: abertos sem cartão e cartões de i
   assert.deepEqual(d.resolvidasNoDocumento, ["H21"]);
 });
 
-test("decisoes.json REAL: estrutura em ordem, texto aprovado na conferência e opções sem inventar recomendação", () => {
-  const dados = JSON.parse(readFileSync(join(RAIZ, "docs", "relatorios-v2", "semanais", "progresso", "decisoes.json"), "utf8"));
-  const glossario = JSON.parse(readFileSync(join(RAIZ, "docs", "relatorios-v2", "semanais", "progresso", "glossario.json"), "utf8"));
+test("decididas: viram registro sem campo de resposta, contam no topo e cobrem o código aberto no documento", () => {
+  const dados = structuredClone(DADOS);
+  dados.decididasSecao = { titulo: "Já decididas", lead: "Registro." };
+  dados.decididas = [
+    { codigo: "H44", curto: "Tipo de merge", etapa: "G00", estado: "decidida", resposta: "A: merge primeiro.", depois: "Feito." },
+    { codigo: "H02", curto: "E-mail", etapa: "E10", estado: "adiada", resposta: "Fica para depois." },
+  ];
+  assert.deepEqual(conferirEstrutura(dados), []);
+  assert.deepEqual(codigosDecididos(dados), ["H44", "H02"]);
+  const { html, problemas } = montarDecisoes({ dados, css: "" });
+  assert.deepEqual(problemas, []);
+  assert.match(html, /<b>2<\/b><span>já decididas/);
+  assert.match(html, /<li class="decidida decidida" id="decidida-H44">/);
+  assert.match(html, /<li class="decidida adiada" id="decidida-H02">/);
+  assert.match(html, /O que acontece agora:<\/em> Feito\./);
+  const secao = html.slice(html.indexOf('id="h-decididas"'), html.indexOf('id="relatorio"'));
+  assert.doesNotMatch(secao, /type="radio"|<textarea/);
+  const d = diferencasComPendencias({ dados, markdown: ["## A. Decisões", "| H44 | G00 | tipo de merge |", "| H02 | E10 | e-mail |", "| H07 | E11 | novo |"].join("\n") });
+  assert.deepEqual(d.faltam, ["H07"]);
+  const ruim = structuredClone(dados);
+  ruim.decididas[1].codigo = "H44";
+  ruim.decididas[1].estado = "inventado";
+  delete ruim.decididas[0].resposta;
+  const p = conferirEstrutura(ruim);
+  assert.ok(p.some((x) => /H44: código repetido nas decididas/.test(x)));
+  assert.ok(p.some((x) => /estado "inventado"/.test(x)));
+  assert.ok(p.some((x) => /H44: falta "resposta"/.test(x)));
+});
+
+test("pendências por fase (## F01., ## F02.) contam como abertas; só '## F.' é a lista de resolvidos", () => {
+  const md = ["## A. Decisões", "| H09 | G00 | aprovar |", "## F01. Pendências da F01", "### F01.1. Decisões", "| H45 | E10 | domínio |", "## F. Resolvidos", "| H36 | E09 | resolvida |"].join("\n");
+  const d = diferencasComPendencias({ dados: DADOS, markdown: md });
+  assert.deepEqual(d.faltam, ["H45"]);
+  assert.deepEqual(d.resolvidasNoDocumento, []);
+});
+
+const REAL = join(RAIZ, "docs", "relatorios-v2", "semanais", "progresso");
+const lerReal = (nome) => JSON.parse(readFileSync(join(REAL, nome), "utf8"));
+
+test("decisoes.json REAL: estrutura em ordem, texto aprovado na conferência e o grupo 'agora' é o que trava fase ou CI", () => {
+  const dados = lerReal("decisoes.json");
+  const glossario = lerReal("glossario.json");
   const { problemas, html } = montarDecisoes({ dados, css: "", glossario });
   assert.deepEqual(problemas, []);
   assert.ok(glossario.completo.length >= 15 && glossario.destaque.length === 4);
   assert.ok(dados.decisoes.length >= 10);
   assert.ok(dados.conferencias.itens.length >= 10);
-  // Só H44, H09 e H33 têm recomendação escrita no pendencias-humanas.md ou no roteiro do G00.
-  const recomendadas = dados.decisoes.filter((d) => d.opcoes.some((o) => o.recomendada)).map((d) => d.codigo);
-  assert.deepEqual(recomendadas.sort(), ["H09", "H33", "H44"]);
-  assert.match(html, /id="H44"/);
+  assert.deepEqual(dados.decisoes.filter((d) => d.grupo === "agora").map((d) => d.codigo), ["H106", "H97", "H133"]);
+  // Decididas em 26/10 não voltam como cartão para responder.
+  const cartoes = new Set(codigosCobertos(dados));
+  for (const c of ["H09", "H44", "H84", "H33", "H01", "H30", "H24", "H37", "H43", "H06", "H05", "H26", "H35", "H07", "H08", "H29", "H23", "H10", "H11", "H12", "H15", "H16", "H82"]) {
+    assert.ok(!cartoes.has(c), `${c} foi decidida em 26/10 e não pode ter cartão`);
+    assert.ok(codigosDecididos(dados).includes(c), `${c} precisa constar em Já decididas`);
+  }
+  assert.match(html, /id="H106"/);
+  assert.match(html, /id="decidida-H09"/);
+});
+
+test("decisoes.json REAL: só carrega recomendação onde pendencias-humanas.md recomenda, e cobre todo código aberto lá", () => {
+  const dados = lerReal("decisoes.json");
+  const md = readFileSync(join(RAIZ, "docs", "roadmap-v2", "pendencias-humanas.md"), "utf8");
+  const linhaDe = (codigo) => md.split(/\r?\n/).find((l) => l.startsWith(`| ${codigo} |`)) ?? "";
+  for (const d of dados.decisoes.filter((x) => x.opcoes.some((o) => o.recomendada))) {
+    assert.match(linhaDe(d.codigo), /Recomenda/i, `${d.codigo} marca uma opção como recomendada, mas o documento não recomenda`);
+  }
+  const dif = diferencasComPendencias({ dados, markdown: md });
+  assert.deepEqual(dif.faltam, [], "código aberto em pendencias-humanas.md sem cartão, conferência ou registro");
+  assert.deepEqual(dif.resolvidas, [], "cartão de item que não está mais aberto no documento");
 });
