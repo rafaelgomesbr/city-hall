@@ -116,7 +116,7 @@ export function cancelarEliminacao(
 }
 
 /* ======================================================================
-   Restaurar o acesso do administrador (migração 055, decisão H06 B)
+   Restaurar o acesso do administrador (migração 054, decisão H06 B)
    ====================================================================== */
 
 /**
@@ -209,7 +209,7 @@ export type RestauracaoRegistrada = {
  * de novo. Pedido de restauração repetido em poucos dias é sinal de alguém
  * tentando pelo telefone o que não conseguiu antes.
  *
- * A policy da 055 só deixa o DONO ler; um operador comum recebe lista vazia
+ * A policy da 054 só deixa o DONO ler; um operador comum recebe lista vazia
  * do banco mesmo que uma rota esqueça o gancho.
  */
 export async function restauracoesDoMunicipio(

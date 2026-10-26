@@ -160,7 +160,7 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       (`console_operadores`) e o que ele executa são funções concedidas por
       nome: a de cadastrar prefeitura (036), as quatro de suspender,
       reativar, agendar e cancelar a eliminação (038) e a de restaurar o
-      acesso do administrador de um município (055, decisão H06 B).
+      acesso do administrador de um município (054, decisão H06 B).
 
       Este caso guarda o tamanho dessa abertura pela lista de rotas, que é a
       parte que uma revisão de diff deixa passar. DELETE continua em ZERO, e

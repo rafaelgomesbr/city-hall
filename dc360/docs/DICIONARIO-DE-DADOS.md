@@ -340,7 +340,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 ## As tabelas do fornecedor: `console_operadores`, `eliminacoes_de_municipio`, `console_codigos_de_recuperacao` e `restauracoes_de_acesso`
 
 As duas primeiras entraram na migração 038, a terceira na 039 e a quarta na
-055, e **são do fornecedor**: só o papel do console (`dc360_console`) as
+054, e **são do fornecedor**: só o papel do console (`dc360_console`) as
 alcança. Nenhum município as lê, e o papel de aplicação não tem um privilégio
 sequer nelas. Nenhuma das quatro sai no pacote de saída de município. A quarta
 carrega o município a que se refere e sai junto com ele na eliminação (ver
@@ -480,7 +480,7 @@ desfecho seria "senha redefinida" com a senha velha no lugar.
 ### `restauracoes_de_acesso`
 
 O registro do console das restaurações de acesso de administrador (migração
-055, decisão H06 B de 26/10/2026). Enquanto a recuperação por email estiver
+054, decisão H06 B de 26/10/2026). Enquanto a recuperação por email estiver
 desligada, o administrador único que perde a senha recebe uma senha temporária
 pelo dono do console, depois da verificação de identidade de
 `docs/IMPLANTACAO.md`, seção 6.5. Uma linha por restauração.

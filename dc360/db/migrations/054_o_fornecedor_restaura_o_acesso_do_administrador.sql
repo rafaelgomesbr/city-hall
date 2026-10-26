@@ -1,5 +1,5 @@
 -- =====================================================================
--- 055: o fornecedor restaura o acesso do administrador de um municipio
+-- 054: o fornecedor restaura o acesso do administrador de um municipio
 --      (decisao H06 B do Rafael, 26/10/2026).
 --
 -- O PROBLEMA
@@ -152,7 +152,7 @@ CREATE INDEX restauracoes_de_acesso_org_data_idx
   ON restauracoes_de_acesso (organizacao_id, registrado_em DESC);
 
 COMMENT ON TABLE restauracoes_de_acesso IS
-  'O registro do console das restauracoes de acesso de administrador (migracao 055, decisao H06 B). Uma linha por ato: municipio, operador do fornecedor, motivo, sessoes encerradas e prazo da senha provisoria. Nunca a senha nem o hash. So a funcao console_restaurar_acesso_do_administrador escreve; so o dono do console le; ninguem altera nem apaga, a nao ser a eliminacao do municipio.';
+  'O registro do console das restauracoes de acesso de administrador (migracao 054, decisao H06 B). Uma linha por ato: municipio, operador do fornecedor, motivo, sessoes encerradas e prazo da senha provisoria. Nunca a senha nem o hash. So a funcao console_restaurar_acesso_do_administrador escreve; so o dono do console le; ninguem altera nem apaga, a nao ser a eliminacao do municipio.';
 
 ALTER TABLE restauracoes_de_acesso ENABLE ROW LEVEL SECURITY;
 ALTER TABLE restauracoes_de_acesso FORCE ROW LEVEL SECURITY;

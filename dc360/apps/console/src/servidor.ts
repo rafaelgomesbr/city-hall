@@ -56,7 +56,7 @@ import {
  *   - As quatro ações perigosas por município executam as funções
  *     `console_*_municipio` (migração 038), que recusam quem não é dono.
  *   - Restaurar o acesso do administrador de um município executa
- *     `console_restaurar_acesso_do_administrador` (migração 055, decisão
+ *     `console_restaurar_acesso_do_administrador` (migração 054, decisão
  *     H06 B), que recusa quem não é dono e confere no banco o município e o
  *     papel da conta.
  *   - A área de usuários e a troca de senha escrevem em `console_operadores`,
@@ -989,7 +989,7 @@ export async function construirConsole(
   );
 
   /* ======================================================================
-     Restaurar o acesso do administrador de um município (só o dono, 055)
+     Restaurar o acesso do administrador de um município (só o dono, 054)
      ====================================================================== */
 
   /**

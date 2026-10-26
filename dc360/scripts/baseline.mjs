@@ -689,7 +689,7 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
   */
   "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
   /*
-    V2-F00-POS, suporte (decisão H06 B, migração 055):
+    V2-F00-POS, suporte (decisão H06 B, migração 054):
     `restauracao-de-acesso.test.ts` é novo, com 11 casos (o caminho feliz; as
     recusas de operador comum, motivo, senha em texto claro, outro papel, outro
     município, conta desativada, município suspenso e o teto, cada uma com o

@@ -1,4 +1,4 @@
-"""Mutacoes da migracao 055 e da rota: cada uma tira UMA conferencia e roda os testes.
+"""Mutacoes da migracao 054 e da rota: cada uma tira UMA conferencia e roda os testes.
 
 Uso: python mutacoes.py <raiz dc360> <arquivo de saida>
 Restaura o arquivo original ao fim de cada mutacao, inclusive em erro.
@@ -10,7 +10,7 @@ import sys
 
 raiz = pathlib.Path(sys.argv[1])
 saida = pathlib.Path(sys.argv[2])
-migracao = raiz / "db" / "migrations" / "055_o_fornecedor_restaura_o_acesso_do_administrador.sql"
+migracao = raiz / "db" / "migrations" / "054_o_fornecedor_restaura_o_acesso_do_administrador.sql"
 servidor = raiz / "apps" / "console" / "src" / "servidor.ts"
 
 MUTACOES_DO_BANCO = [

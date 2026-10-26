@@ -1001,7 +1001,7 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
 </div>
 
 <!--
-  RESTAURAR O ACESSO DO ADMINISTRADOR (migração 055, decisão H06 B). Mesma
+  RESTAURAR O ACESSO DO ADMINISTRADOR (migração 054, decisão H06 B). Mesma
   régua do modal de eliminar: senha atual e código novo de quem clica, e o
   motivo escrito. O email é o que a pessoa DISSE ser o dela, digitado aqui:
   não há lista de administradores, porque o console não lê \`usuarios\` e uma
@@ -3135,7 +3135,7 @@ document.getElementById("forma-eliminar").addEventListener("submit", async funct
   await carregar();
 });
 
-/* ---------- O modal de restaurar o acesso do administrador (055) ---------- */
+/* ---------- O modal de restaurar o acesso do administrador (054) ---------- */
 
 var dialogoRestaurar = document.getElementById("dialogo-restaurar");
 var restaurarCartao = document.getElementById("restaurar-cartao");

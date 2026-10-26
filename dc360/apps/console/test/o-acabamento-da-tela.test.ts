@@ -396,7 +396,7 @@ describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
   }
 
   it("existem tres dialogos, e cada um tem a amarracao de acessibilidade inteira", () => {
-    /* O terceiro (055) é o de restaurar o acesso do administrador de um município. */
+    /* O terceiro (054) é o de restaurar o acesso do administrador de um município. */
     const lista = dialogos();
     expect(lista.length, "a pagina perdeu um dos tres dialogos").toBe(3);
     for (const d of lista) {

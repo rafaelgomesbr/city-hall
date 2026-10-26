@@ -276,7 +276,7 @@ describe("CA-06: isolamento entre organizações", () => {
     ["eliminacoes_de_municipio", { escreve: ["INSERT", "UPDATE"], guarda: "console_operador_e_dono", naLeitura: false }],
     ["console_codigos_de_recuperacao", { escreve: ["INSERT"], guarda: "console_operador_atual", naLeitura: true }],
     /*
-      O registro das restaurações de acesso de administrador (migração 055,
+      O registro das restaurações de acesso de administrador (migração 054,
       decisão H06 B). Carrega `organizacao_id` (sai junto quando o município é
       eliminado), mas a policy é do FORNECEDOR: nenhum município lê quem do
       fornecedor restaurou o quê. NENHUMA policy de escrita, e é isso que o
@@ -662,7 +662,7 @@ describe("Funções privilegiadas", () => {
       despacho nasce na aplicacao, pela porta estreita da 042" guarda a forma.
 
       Subiu de 27 para 28 em 26/10/2026, por
-      `console_restaurar_acesso_do_administrador` (migração 055, decisão H06 B
+      `console_restaurar_acesso_do_administrador` (migração 054, decisão H06 B
       do Rafael), pela razão de `provisionar_municipio` e das quatro da 038:
       quem chama não pode ter privilégio. Enquanto a recuperação por email
       está desligada, o administrador único que perde a senha não tem saída
@@ -3856,7 +3856,7 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     ["eliminacoes_de_municipio", new Set(["SELECT", "INSERT"])],
     ["console_codigos_de_recuperacao", new Set(["SELECT", "INSERT"])],
     /*
-      A QUINTA (migração 055): `restauracoes_de_acesso`, o registro do console
+      A QUINTA (migração 054): `restauracoes_de_acesso`, o registro do console
       das restaurações de acesso de administrador. SÓ SELECT, e a policy só
       deixa o DONO ler: a escrita é da função, e não há INSERT, UPDATE nem
       DELETE concedido, que é o que a faz append-only. Carrega o município, o
@@ -3921,7 +3921,7 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     "console_recuperacao_por_email()",
     "console_consumir_recuperacao()",
     /*
-      O caminho de suporte da migração 055 (H06 B): o dono do console grava
+      O caminho de suporte da migração 054 (H06 B): o dono do console grava
       senha provisória para o administrador ATIVO do município indicado e
       derruba as sessões dele. É a única função concedida ao console que
       escreve em `usuarios` de um município que já existe, e por isso a
@@ -4552,7 +4552,7 @@ describe("Metricas escritas pelo proprio municipio", () => {
         continue;
       }
       /*
-        A quarta do fornecedor (055): o registro das restaurações de acesso de
+        A quarta do fornecedor (054): o registro das restaurações de acesso de
         administrador. O email é do OPERADOR do fornecedor que agiu, e o
         motivo é escrito por ele; o id da conta restaurada, o nome e o email
         do administrador NÃO estão aqui (ficam na trilha do município). Lista
@@ -5135,7 +5135,7 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
       `eliminacoes_de_municipio`, cujo UPDATE e por coluna e nao aparece
       nesta visao do catalogo) e as duas da 039 (SELECT e INSERT em
       `console_codigos_de_recuperacao`). Nenhuma delas e tabela de municipio.
-      Onze desde a 055: SELECT em `restauracoes_de_acesso`, o registro do
+      Onze desde a 054: SELECT em `restauracoes_de_acesso`, o registro do
       console, cuja leitura so o dono alcanca pela policy e cuja escrita e so
       da funcao.
     */
@@ -5146,7 +5146,7 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
           WHERE table_schema = 'public' AND grantee = 'dc360_console'
           ORDER BY 1`,
       )).rows.map((l) => l.concessao),
-      "o console ganhou concessao de tabela alem das que a ADR 0008 e as migracoes 038, 039 e 055 nomeiam",
+      "o console ganhou concessao de tabela alem das que a ADR 0008 e as migracoes 038, 039 e 054 nomeiam",
     ).toEqual([
       "console_codigos_de_recuperacao:INSERT",
       "console_codigos_de_recuperacao:SELECT",

@@ -196,7 +196,7 @@ export const TABELAS_QUE_NAO_SAEM: Record<string, string> = {
     "livro do fornecedor: registro de que o município existiu e saiu, que fica conosco (seção 3 do plano de saída)",
   /*
     O registro do console das restaurações de acesso de administrador
-    (migração 055, decisão H06 B).
+    (migração 054, decisão H06 B).
 
     Não sai pela mesma razão do livro de eliminações: é do fornecedor, só o
     dono do console o lê, e o papel de aplicação que monta este pacote não tem

@@ -6,7 +6,7 @@ import { conferirSenha } from "../../api/src/auth/senha.js";
 import { DONO, cadastrarPrefeitura, codigoNovo, subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
 
 /**
- * Restaurar o acesso do administrador de um município (migração 055, decisão
+ * Restaurar o acesso do administrador de um município (migração 054, decisão
  * H06 B), num NAVEGADOR DE VERDADE, com a política de segurança de conteúdo
  * valendo. Mesmo desenho de `no-navegador.test.ts`: servidor de teste numa
  * porta de verdade, Chromium do Playwright, e qualquer erro de console, de

@@ -491,7 +491,7 @@ caminho é alguém que liga se passando pelo administrador. Então:
 8. **Feche o chamado** com a data e a hora da restauração, sem a senha.
 
 **O que o sistema faz, e quem decide é o banco** (função
-`console_restaurar_acesso_do_administrador`, migração 055):
+`console_restaurar_acesso_do_administrador`, migração 054):
 
 - grava a senha temporária como senha **provisória**, com a mesma validade da
   redefinição pelo painel (72 horas), zera o castigo de tentativas, e a

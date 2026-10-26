@@ -16,12 +16,14 @@ produção com a credencial de dono.
 
 ## O que mudou
 
-### Banco: migração 055 (`dc360/db/migrations/055_o_fornecedor_restaura_o_acesso_do_administrador.sql`)
+### Banco: migração 054 (`dc360/db/migrations/054_o_fornecedor_restaura_o_acesso_do_administrador.sql`)
 
 Aditiva: uma tabela nova, uma função nova e a recriação de uma função IMMUTABLE de lista
 (`CREATE OR REPLACE`, mesma assinatura) com um nome a mais. Nenhuma coluna, policy ou
-função existente muda de comportamento. Número 055 para não colidir com 052 a 054 do
-ramo `trab/f00pos-api`.
+função existente muda de comportamento. Nasceu como 055, para não colidir com o ramo
+`trab/f00pos-api`; depois do merge de `origin/v2/f00-pos` (que trouxe a 052 e a 053) foi
+renumerada para 054 com `git mv`, sem buraco na numeração. Ela não estava aplicada em
+lugar nenhum, então renumerar é seguro.
 
 - `console_restaurar_acesso_do_administrador(org, email, hash, motivo)`, SECURITY
   DEFINER, `search_path` fixo, `row_security = off`, EXECUTE só para `dc360_console`.
@@ -114,7 +116,7 @@ ramo `trab/f00pos-api`.
 
 ## Prova de que os testes mordem (`saidas/03-mutacoes.txt`, sonda em `sondas/mutacoes.py`)
 
-Cada mutação tira UMA conferência da migração 055 ou da rota, roda a suíte e restaura
+Cada mutação tira UMA conferência da migração 054 ou da rota, roda a suíte e restaura
 o arquivo. Linha de base verde (11 de 11 no banco, 9 de 9 na rota); TODAS as 16
 mutações deixam a suíte vermelha, no caso que nomeia a conferência:
 
@@ -180,8 +182,9 @@ eliminar), e o botão de agir fica abaixo da dobra a 1280x900 com o recado (capt
   fato.
 - A verificação de identidade é procedimento humano (`IMPLANTACAO.md` 6.5). O sistema
   garante o registro e o teto, não que a ligação de volta foi feita.
-- Conflitos esperados no merge com `trab/f00pos-api`: `scripts/baseline.mjs`,
-  `README.md`, `docs/RESTORE-DO-BANCO.md` (contagem de migrações: 52 aqui, 54 depois do
-  merge, com 054 vaga) e `INDEX.md` desta pasta. Nenhuma sobreposição de esquema: a 052
-  cria `vigencia_de_quem_escreve` (sem SECURITY DEFINER) e a 053 um índice.
+- O merge de `origin/v2/f00-pos` (`63041922`, com o ramo da API) teve conflito só de
+  contagem (`README.md`, `docs/COLOCAR-DE-PE.md`, `docs/RESTORE-DO-BANCO.md`), resolvido
+  somando as duas frentes; `baseline.mjs` e o `INDEX.md` desta pasta juntaram sem
+  conflito. Nenhuma sobreposição de esquema: a 052 cria `vigencia_de_quem_escreve` (sem
+  SECURITY DEFINER) e a 053 um índice.
 - Não aplicado em produção, não implantado.

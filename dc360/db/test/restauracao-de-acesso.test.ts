@@ -1,6 +1,6 @@
 /**
  * O FORNECEDOR RESTAURA O ACESSO DO ADMINISTRADOR DE UM MUNICÍPIO
- * (migração 055, decisão H06 B do Rafael, 26/10/2026).
+ * (migração 054, decisão H06 B do Rafael, 26/10/2026).
  *
  * Enquanto a recuperação por email estiver desligada em produção, o
  * administrador único que perde a senha não tem saída pelo painel. O caminho
@@ -54,7 +54,7 @@ const HASH_ANTIGO = hashDeTeste("senha-antiga");
 const HASH_NOVO = hashDeTeste("senha-temporaria");
 const ENVELOPE = "v1.vetor-de-teste.selo-de-teste.segredo-cifrado-de-teste";
 
-const DONO_ID = "aaaaaaaa-0000-4000-8000-000000000055";
+const DONO_ID = "aaaaaaaa-0000-4000-8000-000000000054";
 const EMAIL_DO_DONO = "dono@fornecedor.exemplo.com.br";
 let operadorId = "";
 

@@ -5,7 +5,7 @@ import { restaurarAcessoDoAdministrador } from "../src/municipios.js";
 
 /**
  * RESTAURAR O ACESSO DO ADMINISTRADOR DE UM MUNICÍPIO, pela rota do console
- * (migração 055, decisão H06 B do Rafael, 26/10/2026).
+ * (migração 054, decisão H06 B do Rafael, 26/10/2026).
  *
  * Enquanto a recuperação por email estiver desligada em produção, o
  * administrador único que perde a senha não tem saída pelo painel. O caminho
