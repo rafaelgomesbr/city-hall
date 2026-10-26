@@ -20,3 +20,9 @@
 | saidas/15-test-campo-aplicativo.txt | ee06f1740df2550829dd6ebc61675626e6b33a5dd7629a6961fc206aa0629883 |
 | saidas/16-web-versao-e-426.txt | c2841f2bea7c69cd333881ea2dc1d3b96cf76d4ceecd4b0babbf831b7ab12eeb |
 | saidas/17-mordida-web-base.txt | 6155441ef9c9da0c3d16e7e48b869f68a551baf71fc1e543710cd9257c5bc8e9 |
+| correcao-1/RESUMO.md | a6d3733beca6668f129cb112cdc233c7842ff6a219c4ec05ef51708130632966 |
+| correcao-1/saidas/01-item2-ANTES.txt | 4b2e6405acb17064fd172be39e3a65e8d4cabfed7a871f25dadd5df32f2a747a |
+| correcao-1/saidas/02-item2-DEPOIS-jest-do-app.txt | 708047c88d2e38d4723e7edf5d4e6f30e8ed81d0ca6df469797fbd35e87b170a |
+| correcao-1/saidas/03-item2-DEPOIS-casos-novos.txt | a78bea966d3a741f5e49d34c55de3ee28dd74a232a7446df7f569b1ff76f7cfc |
+| correcao-1/saidas/04-pacote-campo-vitest.txt | 970c23e26720a2598b533e05f905f6c693d24c2beaedce3ef348f0b6ec76370c |
+| correcao-1/saidas/05-typecheck-do-app.txt | 28d3b9e880a77975493dc7e359144c0295a4f694cfe0af4f928c22307bc5c320 |

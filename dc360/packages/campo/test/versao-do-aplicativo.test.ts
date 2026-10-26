@@ -372,3 +372,60 @@ describe("não regressão com o cabeçalho presente (tabela da parte 2B)", () =>
     },
   );
 });
+
+describe("depois do 426 o token é pedido sem renovação antecipada (correção 1)", () => {
+  it("o pedido seguinte a um 426 leva semRenovar; a primeira resposta que não é 426 desfaz", async () => {
+    const { transporte, obterToken } = montar([
+      resposta(426, RECUSA_426),
+      resposta(426, RECUSA_426),
+      resposta(201, { vistoriaId: "v" }),
+      resposta(201, { vistoriaId: "v" }),
+    ]);
+
+    await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaDeSessao);
+    await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaDeSessao);
+    await transporte.enviar(envelope());
+    await transporte.enviar(envelope());
+
+    expect(obterToken.mock.calls.map((c) => c[0])).toEqual([
+      undefined,
+      { semRenovar: true },
+      { semRenovar: true },
+      undefined,
+    ]);
+  });
+
+  it("falha de rede não diz nada sobre a versão: a suspensão continua", async () => {
+    const buscar = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(resposta(426, RECUSA_426))
+      .mockRejectedValueOnce(new TypeError("sem rede"))
+      .mockResolvedValueOnce(resposta(201, { vistoriaId: "v" }));
+    const obterToken = vi.fn<ObterToken>(async () => "token-atual");
+    const transporte = transporteHttp({ baseUrl: "https://api.exemplo/v1", obterToken, buscar });
+
+    await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaDeSessao);
+    await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaTemporaria);
+    await transporte.enviar(envelope());
+
+    expect(obterToken.mock.calls.map((c) => c[0])).toEqual([
+      undefined,
+      { semRenovar: true },
+      { semRenovar: true },
+    ]);
+  });
+
+  it("o PUT da URL assinada não mexe na suspensão", async () => {
+    const { transporte, obterToken } = montar([
+      resposta(426, RECUSA_426),
+      resposta(200),
+      resposta(201, { vistoriaId: "v" }),
+    ]);
+
+    await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaDeSessao);
+    await transporte.enviarBytes("https://arquivos.exemplo/foto?assinatura=x", {}, new Uint8Array([1]));
+    await transporte.enviar(envelope());
+
+    expect(obterToken.mock.calls[1]?.[0]).toEqual({ semRenovar: true });
+  });
+});

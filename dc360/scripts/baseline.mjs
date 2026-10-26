@@ -1146,6 +1146,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F02-E02-parte-2B": { total: 23, falhas: 0 },
   // V2-F02-E06, parte 3B: `versao-do-aplicativo.test.ts` é novo, com 19 casos (o cabeçalho `campo/<versão>` em todo pedido à API e nunca na URL assinada; o 426 pausa a fila com o item pendente, sem renovar, em qualquer rota e com qualquer corpo; a mesma coleta sobe depois; 401, 409, 5xx e 429 como na tabela da 2B).
   "V2-F02-E06-parte-3B": { total: 19, falhas: 0 },
+  // V2-F02-E06, parte 3B, correção 1 (revisão independente dos lotes 3 e 4): 3 casos novos em `versao-do-aplicativo.test.ts` (depois de um 426 o transporte pede o token com `semRenovar` e a primeira resposta que não é 426 desfaz; falha de rede não desfaz; o PUT da URL assinada não mexe).
+  "V2-F02-E06-parte-3B-correcao-1": { total: 3, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -1201,6 +1203,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F02-E02-parte-2B": { total: 13, falhas: 0 },
   // V2-F02-E06, parte 3B: `dados/versao-do-aplicativo.test.ts` é novo, com 8 casos (a versão do `expoConfig`, o cabeçalho em `api.ts`, `rota.ts`, `mapa.ts` e `historico-da-casa.ts`, a varredura de todo `fetch(` do aplicativo, o 426 fora da fila com a frase do servidor e as frases da pausa pelo 426). `faixa-de-sincronizacao.test.tsx` ganhou o estado novo no mapa de estados, sem caso novo.
   "V2-F02-E06-parte-3B": { total: 8, falhas: 0 },
+  // V2-F02-E06, parte 3B, correção 1: `dados/renovacao-com-versao-antiga.test.ts` é novo, com 3 casos (fila, transporte e obtentor de token REAIS, só a rede dublada: dois drenos depois do 426 com o token perto do vencimento fazem zero tentativas de renovação e o item sobe depois com a mesma chave; a primeira resposta que não é 426 devolve a renovação antecipada ao normal; token vencido durante a pausa ainda renova uma vez pelo 401) e 2 em `dados/token.test.ts` (`semRenovar` devolve o token sem tentar renovar, e nulo sem credenciais).
+  "V2-F02-E06-parte-3B-correcao-1": { total: 5, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

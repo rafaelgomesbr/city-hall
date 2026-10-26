@@ -12,8 +12,8 @@ build) valem lá, não aqui.
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 448 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 824 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2251 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 280 testes de unidade do motor de campo e 17 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2018 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 283 testes de unidade do motor de campo e 17 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2023 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 379 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -194,7 +194,11 @@ assinada não leva o cabeçalho. O painel manda `painel/desconhecido` só para
 observabilidade: nenhuma variável do Vite carrega hoje o número do build. Na
 fila, o 426 `versao_do_aplicativo_antiga` entra na classe de falha da conta
 desativada: a fila pausa, todo item fica guardado como `pendente`, nada vira
-bloqueado e o token não é renovado; a pausa fala pelas frases que já existiam
+bloqueado e, enquanto a última resposta da fila foi 426, o token é pedido SEM
+renovação antecipada (o 426 vem antes da autenticação; só o 401 renova, uma vez,
+e a primeira resposta que não seja 426 devolve a renovação ao normal; as
+chamadas do aplicativo fora da fila não têm essa suspensão e seguem o piso de um
+minuto entre tentativas); a pausa fala pelas frases que já existiam
 (faixa, aviso e cartão), sem tela nova (a tela "atualize o aplicativo" é da
 V2-F14-E08). No painel, o 426 chega como qualquer erro, com a frase do corpo.
 O cabeçalho é só aditivo e exige `x-app-version` nos cabeçalhos permitidos do
@@ -1839,11 +1843,11 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4616 testes em seis pacotes
+npm test                    # 4619 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 448 testes do banco
 npm run test:api            # 2251 testes da API
-npm run test --workspace @dc360/campo   # 280 testes do motor de campo
-npm run test:campo          # tipos e os 2018 testes do aplicativo de campo
+npm run test --workspace @dc360/campo   # 283 testes do motor de campo
+npm run test:campo          # tipos e os 2023 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
@@ -2471,7 +2475,7 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
   aparelho fica sem sinal (V2-F14-E12).
 
-  Essa última já tem 280 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 283 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
