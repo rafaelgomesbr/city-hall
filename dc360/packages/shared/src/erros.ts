@@ -500,6 +500,8 @@ export const CODIGOS_RESERVADOS = {
     fica NO INÍCIO da lista, longe das linhas `versao_do_aplicativo_*` que a F02
     move. Status e categoria são a proposta do roadmap; a etapa dona confirma ao
     emitir e então move a linha para `CODIGOS_DE_ERRO` no mesmo commit.
+    (`pessoa_em_varios_municipios` saiu da lista na junção do lote 0: a ADR 0009
+    corrigida eliminou esse 409.)
     Não entram aqui os códigos que a fase só reaproveita: `segundo_fator_desligado`
     (503, E11) e `usuario_repetido` (409, E09) já são emitidos.
   */
@@ -508,16 +510,6 @@ export const CODIGOS_RESERVADOS = {
     status: 409,
     categoria: "permanente",
     titulo: "Papel de servidor e usuario_orgao não se convertem",
-  },
-  /**
-   * V2-F03-E11 (reset do segundo fator) e V2-F03-E08 (redefinição de senha, decisão
-   * H-a): a pessoa tem conta ativa em outro município, e um município não mexe na
-   * credencial dela.
-   */
-  pessoa_em_varios_municipios: {
-    status: 409,
-    categoria: "permanente",
-    titulo: "Pessoa com conta ativa em mais de um município",
   },
   /**
    * V2-F03-E10: convite usado, vencido, reemitido ou aceito com a sessão de outra
