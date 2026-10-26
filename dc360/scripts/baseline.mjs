@@ -289,8 +289,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     de API além da exceção declarada, os cabeçalhos de segurança, e os casos
     sintéticos que provam que a regra morde). V2-F01-E12 acrescenta 2 casos ao
     `vercel-json.test.mjs` (11 no total): a `master` deixa de ser publicada.
+    A correção 1 da F01, parte B (achado 11) acrescenta 4 casos ao
+    `conferir-dominio.test.mjs` (24 no total): o preflight que não autoriza
+    PATCH, authorization ou content-type reprova, a orquestração com a API que
+    omite os dois cabeçalhos, o preflight pedindo o que o painel manda, e a
+    varredura do painel contra a lista do conferidor.
   */
-  "V2-F01-E10": 20,
+  "V2-F01-E10": 24,
   "V2-F01-E10-vercel-json": 11,
   /*
     V2-F01-E12: `scripts/conferir-saude-remota.test.mjs` é novo, com 7 casos. É a
