@@ -149,7 +149,7 @@ describe("ver o caminho, com a API do produto e nunca com o Google", () => {
 
     expect(chamada).toHaveBeenCalledTimes(1);
     const [url, opcoes] = chamada.mock.calls[0] as [string, { method: string; headers: Record<string, string>; body: string }];
-    expect(url).toBe("https://api.exemplo.test/rota");
+    expect(url).toBe("https://api.exemplo.test/v1/rota");
     expect(url).not.toMatch(/googleapis/);
     expect(opcoes.method).toBe("POST");
     expect(opcoes.headers["authorization"]).toBe("Bearer tok");

@@ -1,0 +1,29 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/codex-2b/dc360/apps/api
+
+ ✓ test/eliminacao-de-municipio.test.ts (18 tests) 59277ms
+   ✓ O relogio que elimina municipio > sem eliminacao agendada, a rodada nao toca em nada e nao faz barulho  3693ms
+   ✓ O relogio que elimina municipio > eliminacao agendada para o futuro NAO acontece: os sete dias sao de arrependimento  2074ms
+   ✓ O relogio que elimina municipio > eliminacao vencida: banco limpo, armazenamento purgado, linha da organizacao fechada, e o vizinho intacto  2830ms
+   ✓ O relogio que elimina municipio > o log diz o identificador e quantos objetos foram apagados, por organizacao  3919ms
+   ✓ O relogio que elimina municipio > listagem que falha no meio NAO conclui: a linha fica, e a proxima rodada termina o servico  3351ms
+   ✓ O relogio que elimina municipio > um eliminador novo (processo reiniciado) REDESCOBRE a purga pendente e termina o trabalho  3218ms
+   ✓ O relogio que elimina municipio > um apagar que falha NAO conclui, os outros objetos saem, e a proxima rodada termina  3871ms
+   ✓ O relogio que elimina municipio > a retomada reconfere no banco: organizacao concluida pela outra maquina sai da memoria sem purgar nada  3041ms
+   ✓ O relogio que elimina municipio > o relogio do resumo nao escreve metrica de municipio eliminado: senao a conclusao bate na chave estrangeira  2780ms
+   ✓ O relogio que elimina municipio > purga alem de uma pagina de listagem: mil e um objetos, todos apagados  8564ms
+   ✓ O relogio que elimina municipio > recusa purgar um prefixo que nao e o da propria organizacao  2974ms
+   ✓ O relogio que elimina municipio > com a trava tomada por outra maquina, a rodada desiste sem tocar em nada  6171ms
+   ✓ O relogio que elimina municipio > a trava tem numero proprio, distinto das outras rotinas  2621ms
+   ✓ O relogio que elimina municipio > uma falha inteira no banco solta a trava para a proxima rodada  2330ms
+   ✓ O relogio que elimina municipio > a partida da API liga o relogio SEM chave de ambiente, e nao apenas o declara  1862ms
+   ✓ A rota de saude diz se o relogio tem trabalho > sem nada agendado, diz zero  2233ms
+   ✓ A rota de saude diz se o relogio tem trabalho > conta as agendadas e as vencidas, sem nome nenhum  1817ms
+   ✓ A rota de saude diz se o relogio tem trabalho > a eliminacao vencida some da conta quando o relogio conclui  1923ms
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  23:26:17
+   Duration  63.53s (transform 1.12s, setup 675ms, collect 2.94s, tests 59.28s, environment 0ms, prepare 200ms)
+
+exit=0

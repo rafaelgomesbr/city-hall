@@ -1114,6 +1114,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E05-correcao-2": { total: 8, falhas: 0 },
   // V2-F00-E06, correção 3b: `pausa-velha.test.ts` (7 casos: a pausa cai quando a pessoa entra de novo).
   "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
+  // V2-F02-E02 e E03, parte 2B: `categorias-do-transporte.test.ts` é novo, com 23 casos (4 da base com /v1 e da URL assinada intacta, 19 da categoria do catálogo lida dentro do status, sem item perdido, sem laço de renovação e com a mesma chave na repetição).
+  "V2-F02-E02-parte-2B": { total: 23, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -1165,6 +1167,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
     motivo) e 3 em `fila-pausada-nao-promete-sinal.test.tsx` (devolução sem autor).
   */
   "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
+  // V2-F02-E02 e E03, parte 2B: `dados/api-v1-e-categorias.test.ts` é novo, com 12 casos (origem exibida e base com /v1, barra final sem //v1, URL assinada intacta, `ErroDaApi.categoria` pelo catálogo e a atualização ainda pelo 401), e 1 em `obter-fila-uma-so.test.ts` (a base do aplicativo chega à fila com /v1). Quatro testes existentes só trocaram o caminho esperado para /v1.
+  "V2-F02-E02-parte-2B": { total: 13, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

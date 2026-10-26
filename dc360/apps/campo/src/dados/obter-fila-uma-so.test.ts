@@ -49,6 +49,11 @@ jest.mock("expo-file-system", () => ({
   Directory: class { list() { return []; } },
 }));
 
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { expoConfig: { extra: { apiUrl: "https://api.exemplo.test/" } } },
+}));
+
 import type { Identidade } from "./api";
 
 const quem = { atual: null as Identidade | null };
@@ -68,6 +73,44 @@ function carregar(): Promise<typeof import("./fila")> {
 }
 
 describe("obterFila sob chamadas simultâneas", () => {
+  it("a base do aplicativo chega ao transporte da fila com /v1 e sem //v1", async () => {
+    const buscarOriginal = globalThis.fetch;
+    const identidadeAnterior = quem.atual;
+    try {
+      quem.atual = {
+        usuarioId: "agente-ana", nome: "Ana Ribeiro", organizacaoId: "serra-alta",
+        matricula: "123", papel: "agente_campo", organizacaoNome: "Defesa Civil",
+        municipio: "Serra Alta", uf: "SC",
+      };
+      const buscar = jest.fn(async () => ({
+        ok: false, status: 401, json: async () => ({ erro: "sessao_encerrada" }),
+      }));
+      globalThis.fetch = buscar as unknown as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { enderecoDaApi } = require("./api") as typeof import("./api");
+      const { obterFila } = await carregar();
+      const fila = await obterFila(enderecoDaApi(), async () => "token", () => quem.atual);
+      const instante = new Date().toISOString();
+      await fila.enfileirar({
+        idempotencyKey: "11111111-1111-4111-8111-111111111111",
+        ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", coletadaEm: instante,
+        vistoria: {
+          checklist: [], fotos: [], gpsPrecisaoMetros: null,
+          assinanteNome: "Moradora", assinaturaChave: "assinatura.png", coletadaEm: instante,
+        },
+      }, { protocolo: "000001/2026" });
+      const antes = await fila.itens();
+      expect(await fila.drenar()).toMatchObject({ paradaPor: "sessao_encerrada" });
+      expect(buscar).toHaveBeenCalledWith(
+        "https://api.exemplo.test/v1/sincronizacao/vistoria", expect.anything(),
+      );
+      expect(await fila.itens()).toEqual(antes);
+    } finally {
+      globalThis.fetch = buscarOriginal;
+      quem.atual = identidadeAnterior;
+    }
+  });
+
   it("quatro chamadas ao mesmo tempo devolvem a MESMA instância", async () => {
     const { obterFila } = await carregar();
 

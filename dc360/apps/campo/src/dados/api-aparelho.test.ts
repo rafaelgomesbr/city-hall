@@ -34,7 +34,7 @@ function corpoEnviado(): Record<string, unknown> {
 
 it("o binário do Xcode registra `teste`, o da loja registra `producao`", async () => {
   await registrarAparelho("token", "ios", "ficha-do-xcode", "teste");
-  expect(pedido?.url).toBe("https://api.exemplo.test/aparelhos");
+  expect(pedido?.url).toBe("https://api.exemplo.test/v1/aparelhos");
   expect(corpoEnviado()).toEqual({ plataforma: "ios", ficha: "ficha-do-xcode", ambiente: "teste" });
 
   await registrarAparelho("token", "ios", "ficha-da-loja", "producao");

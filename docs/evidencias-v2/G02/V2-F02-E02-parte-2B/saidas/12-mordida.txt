@@ -1,0 +1,81 @@
+# Prova de mordida: packages/campo/test/categorias-do-transporte.test.ts contra três versões de packages/campo/src/transporte.ts
+
+## 1. Versão final (este commit)
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > usa a base com /v1 e remove a barra final sem duplicar o prefixo 4ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > preserva o contrato baseUrl sem acrescentar /v1 ao chamador legado 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > envia os bytes à URL assinada exata, sem /v1 nem token da API 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > 403 do armazenamento continua temporário para a próxima tentativa pedir outra URL 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 de categoria renovar não gasta a renovação do token e recusa o dado como antes 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 autor_divergente (reentrar) bloqueia só o item, sem pausar a fila nem renovar 12ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de dado renova uma vez e pausa, sem bloquear nem apagar a coleta 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 tarefa_no_prazo (aguardar) bloqueia o item como antes, sem repetir sozinho 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de esperar renova uma vez e pausa, como todo 401 que não é reentrar 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 reentrar (sessao_encerrada) pausa sem gastar a renovação e mantém os dois itens 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 credenciais, também reentrar, pausa sem gastar a renovação rotativa 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 5xx com código de outra categoria continua temporário e mantém o item pendente 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 troca_de_senha_obrigatoria (reentrar) pausa e 403 acesso_suspenso (aguardar) adia 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente mantém o bloqueio sem apagar o item automaticamente 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente sem destino mantém o arquivamento existente com a coleta guardada 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar em 401 repete o mesmo pedido, com o mesmo corpo e a mesma chave, uma vez 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar sem token novo pausa sem bloquear ou perder nenhum item 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar recusado outra vez pausa sem laço e mantém todos os itens 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > servidor indisponível depois de renovar adia sem transformar a recusa em descarte 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 sem corpo mantém a renovação única e a pausa sem perda do comportamento anterior 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > código desconhecido usa o padrão do status sem bloquear indisponibilidade 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > conta desativada continua pausando em vez de recusar a coleta 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > a categoria que o servidor mande no corpo não governa a fila 0ms
+      Tests  23 passed (23)
+
+## 2. Versão do Codex (antes da revisão)
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > usa a base com /v1 e remove a barra final sem duplicar o prefixo 7ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > preserva o contrato baseUrl sem acrescentar /v1 ao chamador legado 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > envia os bytes à URL assinada exata, sem /v1 nem token da API 3ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > 403 do armazenamento continua temporário para a próxima tentativa pedir outra URL 3ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 de categoria renovar não gasta a renovação do token e recusa o dado como antes 22ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 autor_divergente (reentrar) bloqueia só o item, sem pausar a fila nem renovar 35ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de dado renova uma vez e pausa, sem bloquear nem apagar a coleta 4ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 tarefa_no_prazo (aguardar) bloqueia o item como antes, sem repetir sozinho 4ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de esperar renova uma vez e pausa, como todo 401 que não é reentrar 3ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 reentrar (sessao_encerrada) pausa sem gastar a renovação e mantém os dois itens 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 credenciais, também reentrar, pausa sem gastar a renovação rotativa 1ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 5xx com código de outra categoria continua temporário e mantém o item pendente 3ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 troca_de_senha_obrigatoria (reentrar) pausa e 403 acesso_suspenso (aguardar) adia 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente mantém o bloqueio sem apagar o item automaticamente 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente sem destino mantém o arquivamento existente com a coleta guardada 3ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar em 401 repete o mesmo pedido, com o mesmo corpo e a mesma chave, uma vez 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar sem token novo pausa sem bloquear ou perder nenhum item 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar recusado outra vez pausa sem laço e mantém todos os itens 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > servidor indisponível depois de renovar adia sem transformar a recusa em descarte 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 sem corpo mantém a renovação única e a pausa sem perda do comportamento anterior 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > código desconhecido usa o padrão do status sem bloquear indisponibilidade 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > conta desativada continua pausando em vez de recusar a coleta 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > a categoria que o servidor mande no corpo não governa a fila 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 17 passed (23)
+
+## 3. Versão da base 257bd42
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > usa a base com /v1 e remove a barra final sem duplicar o prefixo 9ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > preserva o contrato baseUrl sem acrescentar /v1 ao chamador legado 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > envia os bytes à URL assinada exata, sem /v1 nem token da API 3ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > base fornecida pelo aplicativo > 403 do armazenamento continua temporário para a próxima tentativa pedir outra URL 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 de categoria renovar não gasta a renovação do token e recusa o dado como antes 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 autor_divergente (reentrar) bloqueia só o item, sem pausar a fila nem renovar 23ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de dado renova uma vez e pausa, sem bloquear nem apagar a coleta 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 409 tarefa_no_prazo (aguardar) bloqueia o item como antes, sem repetir sozinho 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 com código de esperar renova uma vez e pausa, como todo 401 que não é reentrar 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 reentrar (sessao_encerrada) pausa sem gastar a renovação e mantém os dois itens 1ms
+ × packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 credenciais, também reentrar, pausa sem gastar a renovação rotativa 19ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 5xx com código de outra categoria continua temporário e mantém o item pendente 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 403 troca_de_senha_obrigatoria (reentrar) pausa e 403 acesso_suspenso (aguardar) adia 5ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente mantém o bloqueio sem apagar o item automaticamente 2ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > permanente sem destino mantém o arquivamento existente com a coleta guardada 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar em 401 repete o mesmo pedido, com o mesmo corpo e a mesma chave, uma vez 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar sem token novo pausa sem bloquear ou perder nenhum item 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > renovar recusado outra vez pausa sem laço e mantém todos os itens 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > servidor indisponível depois de renovar adia sem transformar a recusa em descarte 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > 401 sem corpo mantém a renovação única e a pausa sem perda do comportamento anterior 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > código desconhecido usa o padrão do status sem bloquear indisponibilidade 0ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > conta desativada continua pausando em vez de recusar a coleta 1ms
+ ✓ packages/campo/test/categorias-do-transporte.test.ts > categoria do catálogo dentro do status > a categoria que o servidor mande no corpo não governa a fila 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 22 passed (23)

@@ -1290,7 +1290,7 @@ export default function Perfil() {
               <Txt variante="corpoP" mono>{versao}</Txt>
             </LinhaDeEstado>
             <LinhaDeEstado rotulo="Servidor">
-              <Txt variante="corpoP" mono>{enderecoDaApi()}</Txt>
+              <Txt variante="corpoP" mono>{enderecoDaApi("origem")}</Txt>
             </LinhaDeEstado>
           </Cartao>,
         )}
