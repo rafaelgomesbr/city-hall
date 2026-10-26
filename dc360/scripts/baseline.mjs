@@ -926,6 +926,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F02-E07": { total: 5, falhas: 0 },
   // V2-F03-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F03 reserva os códigos de identidade e não repete `segundo_fator_desligado` nem `usuario_repetido`).
   "V2-F03-0C": { total: 1, falhas: 0 },
+  // V2-F04-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F04 reserva `orgao_sem_gestor`, `encaminhamento_encerrado`, `devolucao_so_antes_do_aceite` e `cadeia_esgotada` no fim da lista, sem repetir `transicao_invalida` nem `ja_respondida`).
+  "V2-F04-0C": { total: 1, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

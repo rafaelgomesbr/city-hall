@@ -185,6 +185,31 @@ describe("a lista reservada", () => {
     expect(ehCodigoReservado("usuario_repetido")).toBe(false);
   });
 
+  it("a F04 reserva os códigos do encaminhamento ao órgão no fim da lista, sem repetir o que já é emitido", () => {
+    const esperados = {
+      orgao_sem_gestor: 409,
+      encaminhamento_encerrado: 409,
+      devolucao_so_antes_do_aceite: 409,
+      cadeia_esgotada: 409,
+    } as const;
+    for (const [codigo, status] of Object.entries(esperados)) {
+      expect(ehCodigoReservado(codigo), codigo).toBe(true);
+      expect(ehCodigoDeErro(codigo), codigo).toBe(false);
+      expect(CODIGOS_RESERVADOS[codigo as keyof typeof esperados].status, codigo).toBe(status);
+      expect(categoriaDoCodigo(codigo), codigo).toBe("permanente");
+    }
+    /* O bloco da F04 vem DEPOIS de `versao_do_aplicativo_ausente`; o da F03 fica no início. */
+    const ordem = Object.keys(CODIGOS_RESERVADOS);
+    const fim = ordem.indexOf("versao_do_aplicativo_ausente");
+    for (const codigo of Object.keys(esperados)) {
+      expect(ordem.indexOf(codigo), codigo).toBeGreaterThan(fim);
+    }
+    expect(ordem.indexOf("papel_nao_se_converte")).toBeLessThan(fim);
+    /* Já emitidos: reservar de novo duplicaria. */
+    expect(ehCodigoReservado("transicao_invalida")).toBe(false);
+    expect(ehCodigoReservado("ja_respondida")).toBe(false);
+  });
+
   it("reservado tem categoria (o cliente já sabe o que fazer antes de o servidor emitir)", () => {
     expect(categoriaDoCodigo("versao_do_aplicativo_antiga")).toBe("permanente");
   });
