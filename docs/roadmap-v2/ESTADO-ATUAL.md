@@ -6,14 +6,14 @@
 > Se algo divergir da conversa ou de uma nota, vale o repositório (28, seção 3).
 
 ## Fase atual
-- F00 Estabilização obrigatória (ordem 1 de 36), gate G00 BASE CONFIÁVEL: RECOMENDADO
-- Último gate aprovado: nenhum
-- Gate anterior na ordem: nenhum (primeira fase)
-- GATE.md do G00 em docs/evidencias-v2/G00/: ausente
+- F01 Fundação de engenharia e ambientes (ordem 2 de 36), gate G01 ENGENHARIA E AMBIENTES PRONTOS: NÃO INICIADO
+- Último gate aprovado: G00 (F00)
+- Gate anterior na ordem: G00 APROVADO
+- GATE.md do G01 em docs/evidencias-v2/G01/: ausente
 
-## Etapas da F00 (25)
-- VALIDADA 8, VALIDADA COM PENDÊNCIA HUMANA 16, ACEITA 1
-- Próxima etapa acionável na ordem da tabela: nenhuma
+## Etapas da F01 (22)
+- PENDENTE 22
+- Próxima etapa acionável na ordem da tabela: V2-F01-E01 (PENDENTE) Proteção da master: PR obrigatório, checks obrigatórios,...
 
 ## Checkpoints ABERTOS ou PARCIAIS citados (fase atual e próxima)
 - CP-04 ABERTO: Entidade, domínio, contas de loja, marca e bundle ids (F01: cabeçalho da fase, F01-E10,...)
@@ -35,6 +35,6 @@
 - nenhum
 
 ## Não iniciar
-- Fases depois da F00 na ordem de execução (35), enquanto o gate G00 não estiver APROVADO:
-  F01, F02, F03, F04, F05, F06, F07, F08, F32, F09, F10, F11, F12, F13, F14, F33, F15, F16, F17, F18,
-  F34, F19, F29, F30, F31, F35, F20, F21, F22, F23, F24, F25, F26, F27, F28
+- Fases depois da F01 na ordem de execução (34), enquanto o gate G01 não estiver APROVADO:
+  F02, F03, F04, F05, F06, F07, F08, F32, F09, F10, F11, F12, F13, F14, F33, F15, F16, F17, F18, F34,
+  F19, F29, F30, F31, F35, F20, F21, F22, F23, F24, F25, F26, F27, F28
