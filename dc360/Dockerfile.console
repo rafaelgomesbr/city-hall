@@ -113,8 +113,9 @@ RUN npm ci --workspaces --include-workspace-root --include=dev \
 FROM base AS runtime
 # O `node_modules` traz os atalhos de workspace que o npm cria
 # (`@dc360/shared`, `@dc360/db`, `@dc360/campo`, `@dc360/api`), e nesta imagem
-# eles apontam para pastas que não existem. São inertes de propósito: nenhuma
-# linha do console os resolve em produção, e a única que poderia
+# os de `db`, `campo` e `api` apontam para pastas que não existem. São inertes de
+# propósito: nenhuma linha do console os resolve em produção (o `shared` é a
+# exceção e vem copiado abaixo), e a única que poderia
 # (`banco-em-memoria.ts`, com o `import` dinâmico de `@dc360/db`) só roda sem
 # `CONSOLE_DATABASE_URL`, que `config.ts` recusa em produção. Trazer as árvores
 # inteiras só para os atalhos não ficarem pendurados engordaria a imagem para
@@ -125,6 +126,12 @@ COPY --from=dependencias /app/node_modules ./node_modules
 # uma decisão de segurança. Sem este arquivo o console não sobe, porque a
 # conexão está em modo verificado; ver apps/api/src/banco/postgres.ts.
 COPY db/provedores db/provedores
+# O pacote compartilhado ENTRA desde a V2-F02-E02 (DV-38): o console importa dele
+# o mapa de mensagens do Zod em português, e o atalho `node_modules/@dc360/shared`
+# agora precisa apontar para algo que existe. Só o `dist` e o `package.json`, como
+# na imagem da API; as dependências dele (o Zod) já vieram em `node_modules`.
+COPY --from=construcao /app/packages/shared/dist packages/shared/dist
+COPY --from=construcao /app/packages/shared/package.json packages/shared/
 COPY --from=construcao /app/apps/console/dist apps/console/dist
 COPY --from=construcao /app/apps/console/package.json apps/console/
 

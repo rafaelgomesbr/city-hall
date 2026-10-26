@@ -14,7 +14,7 @@ build) valem lá, não aqui.
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1927 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 339 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 359 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -862,6 +862,20 @@ recuperação). Nenhuma delas lê dado de cidadão, e nenhuma apaga na hora: que
 executa a eliminação vencida é o relógio da API (`docs/SAIDA-DE-MUNICIPIO.md`,
 capítulo 5). O banco é o MESMO Postgres dos municípios, com papel próprio, e não
 um banco separado.
+
+**Versão no endereço (V2-F02-E02).** A página do console pede tudo sob `/v1`
+(`/v1/entrar`, `/v1/municipios`, `/v1/prefeituras` e as demais): um ponto único,
+a função `pedir` em `apps/console/src/pagina.ts`, põe o prefixo. As rotas moram
+numa função só (`registrarRotasDeNegocio`), registrada duas vezes: sob `/v1` e no
+caminho sem prefixo, que fica como espelho para a página que alguém deixou aberta
+antes da troca. `/saude`, a casca da página, os estáticos e as fontes não têm
+versão. O teto de tentativas por endereço é UM por rota lógica, nos dois
+prefixos (`apps/console/src/limite-por-rota.ts`): alternar o prefixo não dobra o
+limite da porta. Ordem de implantação: o console novo serve as duas formas, então
+não há ordem a respeitar entre o processo e a página (ela vem do mesmo processo).
+O erro de validação sai em português, na forma `{ erro, mensagem, campos }`, com
+o mapa de mensagens do pacote compartilhado (DV-38); a imagem do console passou a
+levar `packages/shared/dist` por isso.
 
 ### O segundo fator não é opcional
 

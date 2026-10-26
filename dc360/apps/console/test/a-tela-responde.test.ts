@@ -855,7 +855,7 @@ describe("Desativar o acesso e reativar, pelo dialogo do produto", () => {
     const promessa = tela.disparar("forma-dialogo", "submit");
     await tela.passo();
 
-    expect(tela.ultima().caminho).toBe(`/municipios/${SERRA_ALTA.organizacao_id}/suspender`);
+    expect(tela.ultima().caminho).toBe(`/v1/municipios/${SERRA_ALTA.organizacao_id}/suspender`);
     expect(corpoDaUltima(tela)["motivo"]).toBe("Inadimplência");
     expect(tela.pegar("dialogo-agir").disabled, "o botao aceita um segundo clique").toBe(true);
     expect(tela.pegar("dialogo-agir").getAttribute("aria-busy")).toBe("true");
@@ -863,7 +863,7 @@ describe("Desativar o acesso e reativar, pelo dialogo do produto", () => {
     tela.ultima().resolver(resposta({ municipio: {} }));
     await tela.passo();
     /* Recarrega a lista, e a linha volta dizendo que esta suspensa. */
-    expect(tela.ultima().caminho).toBe("/municipios");
+    expect(tela.ultima().caminho).toBe("/v1/municipios");
     tela.ultima().resolver(resposta({ municipios: [{
       ...SERRA_ALTA, acesso_suspenso_em: "2026-09-15T12:00:00Z", suspensao_motivo: "Inadimplência",
     }] }));
@@ -919,7 +919,7 @@ describe("Desativar o acesso e reativar, pelo dialogo do produto", () => {
     expect(tela.pegar("dialogo-agir-texto").textContent).toContain("Reativar o acesso de Serra Alta");
     const promessa = tela.disparar("forma-dialogo", "submit");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe(`/municipios/${SERRA_ALTA.organizacao_id}/reativar`);
+    expect(tela.ultima().caminho).toBe(`/v1/municipios/${SERRA_ALTA.organizacao_id}/reativar`);
     tela.ultima().resolver(resposta({ municipio: {} }));
     await tela.passo();
     tela.ultima().resolver(resposta({ municipios: [SERRA_ALTA] }));
@@ -970,7 +970,7 @@ describe("Eliminar, com senha, codigo novo, nome exato e motivo, nessa ordem", (
     const promessa = tela.disparar("forma-eliminar", "submit");
     await tela.passo();
 
-    expect(tela.ultima().caminho).toBe(`/municipios/${SERRA_ALTA.organizacao_id}/eliminar`);
+    expect(tela.ultima().caminho).toBe(`/v1/municipios/${SERRA_ALTA.organizacao_id}/eliminar`);
     expect(corpoDaUltima(tela)).toEqual({
       senha: "a-senha", codigo: "654321", nome: "Serra Alta", motivo: "fim de contrato",
     });
@@ -980,7 +980,7 @@ describe("Eliminar, com senha, codigo novo, nome exato e motivo, nessa ordem", (
     const daqui7 = new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString();
     tela.ultima().resolver(resposta({ municipio: {}, eliminacao_agendada_para: daqui7 }));
     await tela.passo();
-    expect(tela.ultima().caminho).toBe("/municipios");
+    expect(tela.ultima().caminho).toBe("/v1/municipios");
     tela.ultima().resolver(resposta({ municipios: [{
       ...SERRA_ALTA, acesso_suspenso_em: new Date().toISOString(), suspensao_motivo: "fim de contrato",
       eliminacao_agendada_para: daqui7,
@@ -1044,7 +1044,7 @@ describe("Eliminar, com senha, codigo novo, nome exato e motivo, nessa ordem", (
     expect(tela.pegar("dialogo-agir-texto").textContent).toContain("Cancelar a eliminação de Serra Alta");
     const promessa = tela.disparar("forma-dialogo", "submit");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe(`/municipios/${SERRA_ALTA.organizacao_id}/eliminacao/cancelar`);
+    expect(tela.ultima().caminho).toBe(`/v1/municipios/${SERRA_ALTA.organizacao_id}/eliminacao/cancelar`);
     tela.ultima().resolver(resposta({ municipio: {} }));
     await tela.passo();
     tela.ultima().resolver(resposta({ municipios: [SERRA_ALTA] }));
@@ -1061,7 +1061,7 @@ describe("A area de usuarios, so do dono", () => {
     await entrar(tela, "dona@fornecedor.com.br", "dono");
     const promessa = tela.disparar("ir-usuarios", "click");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe("/operadores");
+    expect(tela.ultima().caminho).toBe("/v1/operadores");
     tela.ultima().resolver(resposta({ operadores }));
     await promessa;
     await tela.passo();
@@ -1095,7 +1095,7 @@ describe("A area de usuarios, so do dono", () => {
     tela.pegar("email-operador").value = "Novo@Fornecedor.com.br";
     const promessa = tela.disparar("forma-operador", "submit");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe("/operadores");
+    expect(tela.ultima().caminho).toBe("/v1/operadores");
     expect(corpoDaUltima(tela)["email"]).toBe("Novo@Fornecedor.com.br");
     expect(tela.pegar("criar-operador").disabled).toBe(true);
 
@@ -1158,7 +1158,7 @@ describe("A area de usuarios, so do dono", () => {
     expect(tela.pegar("dialogo-agir-texto").textContent).toContain("Desativar plantao@fornecedor.com.br");
     const promessa = tela.disparar("forma-dialogo", "submit");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe(`/operadores/${PLANTAO.id}/desativar`);
+    expect(tela.ultima().caminho).toBe(`/v1/operadores/${PLANTAO.id}/desativar`);
     tela.ultima().resolver(resposta({ id: PLANTAO.id, ativo: false }));
     await tela.passo();
     tela.ultima().resolver(resposta({ operadores: [DONA, { ...PLANTAO, ativo: false }] }));
@@ -1219,7 +1219,7 @@ describe("Trocar a minha senha", () => {
     tela.pegar("senha-nova-2").value = "uma-senha-nova-comprida";
     const promessa = tela.disparar("forma-senha-nova", "submit");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe("/senha");
+    expect(tela.ultima().caminho).toBe("/v1/senha");
     expect(corpoDaUltima(tela)).toEqual({
       senhaAtual: "atual", codigo: "123456", novaSenha: "uma-senha-nova-comprida",
     });
@@ -1287,7 +1287,7 @@ describe("Codigos de recuperacao, em Minha senha", () => {
     const abrir = tela.disparar("ir-senha", "click");
     await tela.passo();
     expect(tela.ultima().caminho, "abrir Minha senha nao perguntou quantos codigos restam")
-      .toBe("/codigos-de-recuperacao");
+      .toBe("/v1/codigos-de-recuperacao");
     expect(tela.ultima().opcoes?.["method"]).toBe("GET");
     tela.ultima().resolver(resposta({ restantes }));
     await abrir;
@@ -1330,7 +1330,7 @@ describe("Codigos de recuperacao, em Minha senha", () => {
     const antes = rotulo.textContent;
     const { promessa } = await gerar();
 
-    expect(tela.ultima().caminho).toBe("/codigos-de-recuperacao");
+    expect(tela.ultima().caminho).toBe("/v1/codigos-de-recuperacao");
     expect(tela.ultima().opcoes?.["method"]).toBe("POST");
     expect(corpoDaUltima(tela)).toEqual({ senha: "a-senha-atual", codigo: "123456" });
     expect(botao.disabled, "o botao aceita um segundo clique").toBe(true);
@@ -1489,7 +1489,7 @@ describe("Esqueci a senha, na porta, sem sessao", () => {
     const promessa = tela.disparar("forma-recuperar", "submit");
     await tela.passo();
 
-    expect(tela.ultima().caminho).toBe("/recuperar");
+    expect(tela.ultima().caminho).toBe("/v1/recuperar");
     expect(corpoDaUltima(tela)).toEqual({
       email: " Dona@Fornecedor.com.br ", codigo: "abcde-fghjk", novaSenha: "uma-senha-nova-comprida",
     });
@@ -1655,7 +1655,7 @@ describe("A conta sem codigos de recuperacao e avisada na entrada, ate gerar", (
     await entrarCom(0);
     const abrir = tela.disparar("aviso-sem-codigos-ir", "click");
     await tela.passo();
-    expect(tela.ultima().caminho).toBe("/codigos-de-recuperacao");
+    expect(tela.ultima().caminho).toBe("/v1/codigos-de-recuperacao");
     tela.ultima().resolver(resposta({ restantes: 0 }));
     await abrir;
     await tela.passo();
