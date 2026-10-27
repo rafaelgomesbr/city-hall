@@ -163,23 +163,26 @@ ativo, para o município não ficar sem ele. A conferência não é à prova de 
 administradores que se desativam no mesmo instante (`apps/api/PENDENCIAS.md`):
 combine antes quem fica.
 
-**O que a pessoa desativada vê.** A desativação vale no próximo registro que ela
-tentar gravar, sem esperar o acesso vencer. No painel, ela é levada à tela de
+**O que a pessoa desativada vê.** A desativação vale no próximo pedido dela,
+de gravar ou de consultar, sem esperar o acesso vencer. No painel, ela é levada à tela de
 entrada com a frase "Sua conta foi desativada. Entrar de novo não resolve:
 procure a coordenação do seu município. Nada do que você já registrou se
 perdeu." Quando só a sessão foi encerrada (por você, em "encerrar sessões"), a frase é
 outra, "Sua sessão foi encerrada", e entrar de novo resolve. **Trocar o papel de
-alguém NÃO encerra a sessão dela.** O que vale é o papel gravado, e só na
-ESCRITA: no primeiro registro que ela tentar gravar depois da troca, o servidor
-recusa o acesso antigo com `nao_autenticado`; o painel renova sozinho e repete, e
-a renovação já traz o papel novo. No aplicativo de campo só a fila de envio faz
-isso (uma vez); as outras escritas diretas do aplicativo não renovam nem repetem.
-Na LEITURA nada muda até o acesso vencer (15 minutos, por padrão, que é o teto):
-quem foi rebaixado continua lendo, por exemplo a trilha de auditoria, com o papel
-de antes. Com o painel aberto e a aba visível, porém, o sino consulta `GET /avisos` a cada cerca de
-30 segundos, e essa rota confere o papel: o painel costuma perceber a troca em
-meio minuto, renova e passa a ver só o que o papel novo permite. Ela não perde nada do
-que estava fazendo. Tentar entrar com a conta desativada recusa com a mesma frase de
+alguém NÃO encerra a sessão dela.** O que vale é o papel gravado, na
+escrita e na leitura: no primeiro pedido que ela fizer depois da troca (gravar ou
+consultar), o servidor recusa o acesso antigo com `nao_autenticado`; o painel renova
+sozinho e repete, e a renovação já traz o papel novo, com o que ela passa a ver
+só o que o papel novo permite. Ela não perde nada do que estava fazendo. No
+aplicativo de campo só a fila de envio renova e repete (uma vez); as outras
+chamadas diretas do aplicativo não renovam nem repetem, e a pessoa entra de novo.
+O mesmo corte imediato vale para sessão encerrada, conta desativada e município
+suspenso: a leitura deixa de ser atendida no pedido seguinte, e não quinze minutos
+depois. O que já estava aberto na tela fica visível, mas nenhuma consulta nova é
+atendida. **Alcance do corte:** os endereços assinados de arquivo (fotos e
+documentos que o painel já abriu) são conferidos pela assinatura e pela validade,
+e não pela sessão; um endereço já gerado continua abrindo o arquivo até vencer, por
+padrão em cinco minutos. Tentar entrar com a conta desativada recusa com a mesma frase de
 senha errada, de propósito: a tela de entrada não revela quem tem conta.
 
 No aplicativo de campo, o que o agente já coletou continua guardado no aparelho

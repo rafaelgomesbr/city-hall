@@ -51,7 +51,7 @@ describe("Achado 1: gravando, o Esc e o clique no fundo não fecham a janela de 
 describe("Achados 2 e 3: as frases não fixam o número de minutos nem dizem que as sessões caem", () => {
   const usuarios = semQuebras(fonte("paginas", "Usuarios.tsx"));
   const conta = semQuebras(fonte("paginas", "MinhaConta.tsx"));
-  const honesta = "pode continuar consultando por alguns minutos";
+  const honesta = "nenhuma consulta nova é atendida";
 
   it("nenhuma das telas fixa '15 minutos' nem diz 'mostrando consultas'", () => {
     for (const texto of [usuarios, conta]) {
@@ -64,13 +64,21 @@ describe("Achados 2 e 3: as frases não fixam o número de minutos nem dizem que
     const janela = usuarios.slice(usuarios.indexOf('titulo="Desativar usuário"'));
     const trecho = janela.slice(0, janela.indexOf("rotuloDaAcao"));
     expect(trecho).not.toContain("as sessões dela caem");
-    expect(trecho).toContain("renovar a sessão e gravar são recusados na hora");
-    expect(trecho).toContain(honesta);
+    // V2-F03-E03: a leitura também cai na hora, então a frase da "janela de alguns minutos" saiu.
+    expect(trecho).toContain("renovar a sessão, gravar e consultar são recusados na hora");
+    expect(trecho).not.toContain("alguns minutos");
   });
 
-  it("'Redefinir senha', 'Encerrar sessões' e 'Encerrar minhas outras sessões' usam a mesma frase", () => {
-    expect(usuarios.split(honesta)).toHaveLength(4); // Desativar, Redefinir, Encerrar: 3 ocorrências
+  it("'Encerrar sessões' e 'Encerrar minhas outras sessões' dizem que nenhuma consulta nova é atendida", () => {
+    expect(usuarios.split(honesta)).toHaveLength(2); // só "Encerrar sessões": 1 ocorrência
     expect(conta).toContain(honesta);
+  });
+
+  it("nenhuma tela promete 'alguns minutos' de leitura depois do corte (V2-F03-E03)", () => {
+    for (const texto of [usuarios, conta]) {
+      expect(texto).not.toContain("continuar consultando");
+      expect(texto).not.toContain("alguns minutos");
+    }
   });
 });
 

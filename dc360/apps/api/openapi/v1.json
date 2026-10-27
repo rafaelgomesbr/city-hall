@@ -86,9 +86,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -125,10 +141,11 @@
             }
           },
           "503": {
-            "description": "push_desligado: Notificação por push desligada; push_android_desligado: Push para Android desligado",
+            "description": "push_desligado: Notificação por push desligada; push_android_desligado: Push para Android desligado; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
               "push_desligado",
-              "push_android_desligado"
+              "push_android_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -183,9 +200,25 @@
             "description": "Sem corpo."
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -222,9 +255,10 @@
             }
           },
           "503": {
-            "description": "push_desligado: Notificação por push desligada",
+            "description": "push_desligado: Notificação por push desligada; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "push_desligado"
+              "push_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -383,9 +417,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -396,9 +431,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -417,6 +455,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -468,9 +519,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -489,6 +556,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -811,9 +891,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -832,6 +928,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -1706,9 +1815,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -1727,6 +1852,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -1822,6 +1960,21 @@
               }
             }
           },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
           "422": {
             "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
             "x-codigos-de-erro": [
@@ -1844,6 +1997,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -1989,9 +2155,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -2023,6 +2205,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -2095,9 +2290,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -2129,6 +2340,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -2327,9 +2551,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -2369,6 +2609,19 @@
             "description": "excesso_de_requisicoes: Requisições demais",
             "x-codigos-de-erro": [
               "excesso_de_requisicoes"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -2751,9 +3004,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -2764,9 +3018,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -2785,6 +3042,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -2834,9 +3104,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -2855,6 +3141,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -2902,9 +3201,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -2915,129 +3215,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "nao_encontrada: Recurso não encontrado",
-            "x-codigos-de-erro": [
-              "nao_encontrada"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "sem_vistoria: Ocorrência sem vistoria concluída",
-            "x-codigos-de-erro": [
-              "sem_vistoria"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
-            "x-codigos-de-erro": [
-              "dados_invalidos"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "426": {
-            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
-            "x-codigos-de-erro": [
-              "versao_do_aplicativo_antiga"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/documentos/{id}/laudo.pdf": {
-      "get": {
-        "tags": [
-          "documentos"
-        ],
-        "summary": "Emite o laudo técnico de uma ocorrência em PDF.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          },
-          {
-            "name": "x-app-version",
-            "in": "header",
-            "required": false,
-            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "O mesmo laudo em PDF, gerado na hora. Cabeçalho Content-Disposition: inline; filename=\"laudo-de-vistoria-<oito primeiros caracteres do id>.pdf\".",
-            "content": {
-              "application/pdf": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
-            "x-codigos-de-erro": [
-              "nao_autenticado"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
-            "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3100,9 +3283,147 @@
             }
           },
           "503": {
-            "description": "pdf_indisponivel: Geração de PDF indisponível",
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "pdf_indisponivel"
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documentos/{id}/laudo.pdf": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o laudo técnico de uma ocorrência em PDF.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O mesmo laudo em PDF, gerado na hora. Cabeçalho Content-Disposition: inline; filename=\"laudo-de-vistoria-<oito primeiros caracteres do id>.pdf\".",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
+            "x-codigos-de-erro": [
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "sem_vistoria: Ocorrência sem vistoria concluída",
+            "x-codigos-de-erro": [
+              "sem_vistoria"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "pdf_indisponivel: Geração de PDF indisponível; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "pdf_indisponivel",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -3155,9 +3476,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -3168,9 +3490,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3232,6 +3557,19 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
           }
         }
       }
@@ -3276,9 +3614,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -3289,133 +3628,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "nao_encontrada: Recurso não encontrado",
-            "x-codigos-de-erro": [
-              "nao_encontrada"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "sem_vistoria: Ocorrência sem vistoria concluída; interdicao_nao_indicada: A vistoria não indicou interdição; sem_despacho: Ocorrência ainda não despachada; ocorrencia_encerrada: Ocorrência encerrada não aceita o ato; estado_mudou: O estado mudou enquanto o pedido era feito",
-            "x-codigos-de-erro": [
-              "sem_vistoria",
-              "interdicao_nao_indicada",
-              "sem_despacho",
-              "ocorrencia_encerrada",
-              "estado_mudou"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
-            "x-codigos-de-erro": [
-              "dados_invalidos"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "426": {
-            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
-            "x-codigos-de-erro": [
-              "versao_do_aplicativo_antiga"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/documentos/{id}/termo-de-interdicao.pdf": {
-      "get": {
-        "tags": [
-          "documentos"
-        ],
-        "summary": "Emite o termo de interdição de uma ocorrência em PDF.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          },
-          {
-            "name": "x-app-version",
-            "in": "header",
-            "required": false,
-            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "O mesmo termo em PDF. Só interdita depois que o PDF foi gerado. Cabeçalho Content-Disposition: inline; filename=\"termo-de-interdicao-<oito primeiros caracteres do id>.pdf\".",
-            "content": {
-              "application/pdf": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
-            "x-codigos-de-erro": [
-              "nao_autenticado"
-            ],
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErroDaApi"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
-            "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3482,9 +3700,151 @@
             }
           },
           "503": {
-            "description": "pdf_indisponivel: Geração de PDF indisponível",
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "pdf_indisponivel"
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documentos/{id}/termo-de-interdicao.pdf": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o termo de interdição de uma ocorrência em PDF.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "x-app-version",
+            "in": "header",
+            "required": false,
+            "description": "Aplicativo e versão declarados pelo cliente, no formato `aplicativo/maior.menor.correção` (por exemplo `campo/1.4.0`). Serve à compatibilidade e à medição, nunca decide acesso. Ausente ou ilegível: o pedido segue normalmente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O mesmo termo em PDF. Só interdita depois que o PDF foi gerado. Cabeçalho Content-Disposition: inline; filename=\"termo-de-interdicao-<oito primeiros caracteres do id>.pdf\".",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
+            "x-codigos-de-erro": [
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "sem_vistoria: Ocorrência sem vistoria concluída; interdicao_nao_indicada: A vistoria não indicou interdição; sem_despacho: Ocorrência ainda não despachada; ocorrencia_encerrada: Ocorrência encerrada não aceita o ato; estado_mudou: O estado mudou enquanto o pedido era feito",
+            "x-codigos-de-erro": [
+              "sem_vistoria",
+              "interdicao_nao_indicada",
+              "sem_despacho",
+              "ocorrencia_encerrada",
+              "estado_mudou"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "versao_do_aplicativo_antiga: Versão do aplicativo abaixo da mínima aceita. Devolvida antes da autenticação, só quando o cabeçalho de versão é legível e está abaixo do mínimo configurado para o aplicativo.",
+            "x-codigos-de-erro": [
+              "versao_do_aplicativo_antiga"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "pdf_indisponivel: Geração de PDF indisponível; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "pdf_indisponivel",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -3625,9 +3985,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3672,6 +4048,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -3752,9 +4141,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3773,6 +4178,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -3853,9 +4271,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -3866,9 +4285,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -3913,6 +4335,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -4005,9 +4440,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -4018,9 +4454,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4081,6 +4520,19 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
           }
         }
       }
@@ -4133,9 +4585,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4193,6 +4661,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -4432,9 +4913,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -4445,10 +4927,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor; conta_desativada: Conta desativada; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "acesso_suspenso"
+              "acesso_suspenso",
+              "conta_desativada",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4618,9 +5102,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -4631,10 +5116,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor; conta_desativada: Conta desativada; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "acesso_suspenso"
+              "acesso_suspenso",
+              "conta_desativada",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4810,9 +5297,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4844,6 +5347,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -4917,9 +5433,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -4930,9 +5447,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -4987,6 +5507,19 @@
             "description": "nao_resolveu: Serviço de mapa não resolveu o link",
             "x-codigos-de-erro": [
               "nao_resolveu"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -5396,9 +5929,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -5430,6 +5979,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -5619,9 +6181,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -5632,9 +6195,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -5666,6 +6232,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -6514,9 +7093,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -6561,6 +7156,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -6697,9 +7305,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -6710,9 +7319,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -6770,6 +7382,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -6846,9 +7471,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -6859,9 +7485,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -6921,6 +7550,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7007,9 +7649,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7020,9 +7663,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7085,6 +7731,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7172,9 +7831,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7185,9 +7845,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7248,6 +7911,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7351,9 +8027,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7364,9 +8041,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7428,6 +8108,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7533,9 +8226,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7546,9 +8240,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7606,6 +8303,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7723,9 +8433,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7736,9 +8447,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7798,6 +8512,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -7929,9 +8656,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -7942,9 +8670,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -7963,6 +8694,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8066,9 +8810,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8100,6 +8860,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8185,9 +8958,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8206,6 +8995,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8336,9 +9138,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8357,6 +9175,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8525,9 +9356,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8559,6 +9406,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8665,9 +9525,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8686,6 +9562,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8810,9 +9699,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -8823,9 +9713,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -8857,6 +9750,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -8930,9 +9836,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -8943,9 +9850,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9003,6 +9913,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -9210,9 +10133,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -9223,9 +10147,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9270,6 +10197,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -9317,9 +10257,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -9330,9 +10271,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9377,6 +10321,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -9466,9 +10423,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -9479,9 +10437,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9560,9 +10521,10 @@
             }
           },
           "503": {
-            "description": "envio_desligado: Envio de ofício por email desligado",
+            "description": "envio_desligado: Envio de ofício por email desligado; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "envio_desligado"
+              "envio_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -9639,9 +10601,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -9652,9 +10615,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9673,6 +10639,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -9778,9 +10757,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -9791,9 +10771,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9826,6 +10809,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -9954,9 +10950,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -9988,6 +11000,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -10067,9 +11092,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -10080,9 +11106,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -10127,6 +11156,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -10218,9 +11260,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -10231,9 +11274,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -10291,6 +11337,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -10373,9 +11432,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -10386,9 +11446,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -10446,6 +11509,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -10508,9 +11584,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -10521,9 +11598,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -10581,6 +11661,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -10882,9 +11975,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -10895,9 +11989,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -10929,6 +12026,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -11014,9 +12124,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -11027,9 +12138,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -11048,6 +12162,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -11146,9 +12273,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -11159,10 +12287,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente_para_dado_pessoal: Exportação com dado pessoal é de quem administra",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente_para_dado_pessoal: Exportação com dado pessoal é de quem administra; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente_para_dado_pessoal"
+              "posto_insuficiente_para_dado_pessoal",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -11207,6 +12338,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -11367,9 +12511,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -11380,9 +12525,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -11414,6 +12562,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -11551,9 +12712,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -11616,9 +12793,10 @@
             }
           },
           "503": {
-            "description": "caminho_desligado: Caminho por ruas desligado",
+            "description": "caminho_desligado: Caminho por ruas desligado; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "caminho_desligado"
+              "caminho_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -11790,9 +12968,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -11803,9 +12982,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -11824,6 +13006,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -12154,9 +13349,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12167,9 +13363,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12229,6 +13428,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -12341,9 +13553,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12354,9 +13567,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12414,6 +13630,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -12567,9 +13796,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12580,9 +13810,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12601,6 +13834,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -12700,9 +13946,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12713,9 +13960,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12760,6 +14010,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -12866,9 +14129,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12879,9 +14143,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12929,6 +14196,19 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
           }
         }
       }
@@ -12963,9 +14243,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -12976,9 +14257,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -12997,6 +14281,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -13060,9 +14357,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -13081,6 +14394,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -13244,9 +14570,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -13298,10 +14640,11 @@
             }
           },
           "503": {
-            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; segundo_fator_ilegivel: Segredo do segundo fator ilegível",
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; segundo_fator_ilegivel: Segredo do segundo fator ilegível; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
               "segundo_fator_desligado",
-              "segundo_fator_ilegivel"
+              "segundo_fator_ilegivel",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -13372,9 +14715,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -13425,9 +14784,10 @@
             }
           },
           "503": {
-            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "segundo_fator_desligado"
+              "segundo_fator_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -13503,9 +14863,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -13568,9 +14944,10 @@
             }
           },
           "503": {
-            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor",
+            "description": "segundo_fator_desligado: Segundo fator desligado neste servidor; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
             "x-codigos-de-erro": [
-              "segundo_fator_desligado"
+              "segundo_fator_desligado",
+              "acesso_suspenso"
             ],
             "content": {
               "application/json": {
@@ -13734,9 +15111,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -13747,10 +15125,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor; conta_desativada: Conta desativada; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "acesso_suspenso"
+              "acesso_suspenso",
+              "conta_desativada",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -14026,9 +15406,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -14039,9 +15420,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -14060,6 +15444,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -14171,9 +15568,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -14184,9 +15582,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -14218,6 +15619,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -14624,9 +16038,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -14637,10 +16052,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "description": "sem_permissao: Perfil sem permissão para a ação; acesso_suspenso: Acesso do município suspenso pelo fornecedor; conta_desativada: Conta desativada; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "acesso_suspenso"
+              "acesso_suspenso",
+              "conta_desativada",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -14925,9 +16342,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -14938,9 +16356,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -14972,6 +16393,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15035,9 +16469,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15048,9 +16483,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15069,6 +16507,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15182,9 +16633,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15195,9 +16647,12 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "description": "sem_permissao: Perfil sem permissão para a ação; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
-              "sem_permissao"
+              "sem_permissao",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15216,6 +16671,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15323,9 +16791,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15336,10 +16805,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente"
+              "posto_insuficiente",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15384,6 +16856,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15498,9 +16983,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15511,11 +16997,14 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; email_so_por_administrador: Troca de email é de quem administra",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; email_so_por_administrador: Troca de email é de quem administra; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
               "posto_insuficiente",
-              "email_so_por_administrador"
+              "email_so_por_administrador",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15575,6 +17064,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15638,9 +17140,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15651,10 +17154,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente"
+              "posto_insuficiente",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15700,6 +17206,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15765,9 +17284,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15778,10 +17298,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente"
+              "posto_insuficiente",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15827,6 +17350,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -15904,9 +17440,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -15917,10 +17454,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente"
+              "posto_insuficiente",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -15965,6 +17505,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -16044,9 +17597,10 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
             ],
             "content": {
               "application/json": {
@@ -16057,10 +17611,13 @@
             }
           },
           "403": {
-            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta",
+            "description": "sem_permissao: Perfil sem permissão para a ação; posto_insuficiente: Perfil não administra esta conta; conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
             "x-codigos-de-erro": [
               "sem_permissao",
-              "posto_insuficiente"
+              "posto_insuficiente",
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -16107,6 +17664,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -16197,9 +17767,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -16234,6 +17820,19 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
           }
         }
       }
@@ -16260,9 +17859,25 @@
             "description": "Sem corpo."
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -16281,6 +17896,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -16344,9 +17972,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -16393,6 +18037,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }
@@ -16499,9 +18156,25 @@
             }
           },
           "401": {
-            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "description": "nao_autenticado: Token ausente, inválido ou vencido; sessao_encerrada: Sessão encerrada ou cadastro alterado",
             "x-codigos-de-erro": [
-              "nao_autenticado"
+              "nao_autenticado",
+              "sessao_encerrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "conta_desativada: Conta desativada; acesso_suspenso: Acesso do município suspenso pelo fornecedor; troca_de_senha_obrigatoria: Senha provisória: definir a senha",
+            "x-codigos-de-erro": [
+              "conta_desativada",
+              "acesso_suspenso",
+              "troca_de_senha_obrigatoria"
             ],
             "content": {
               "application/json": {
@@ -16533,6 +18206,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersaoDoAplicativoAntiga"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "acesso_suspenso: Acesso do município suspenso pelo fornecedor",
+            "x-codigos-de-erro": [
+              "acesso_suspenso"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
                 }
               }
             }

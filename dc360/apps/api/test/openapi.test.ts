@@ -430,8 +430,17 @@ describe("o documento v1.json", () => {
     const operacao = documento.paths["/v1/ocorrencias/{id}/triagem"]?.post as {
       responses: Record<string, { "x-codigos-de-erro"?: string[] }>;
     };
-    expect(operacao.responses["401"]?.["x-codigos-de-erro"]).toEqual(["nao_autenticado"]);
-    expect(operacao.responses["403"]?.["x-codigos-de-erro"]).toEqual(["sem_permissao"]);
+    // Toda rota autenticada ganha, derivados, os códigos da vigência (V2-F03-E03, correção 1).
+    expect(operacao.responses["401"]?.["x-codigos-de-erro"]).toEqual([
+      "nao_autenticado",
+      "sessao_encerrada",
+    ]);
+    expect(operacao.responses["403"]?.["x-codigos-de-erro"]).toEqual([
+      "sem_permissao",
+      "conta_desativada",
+      "acesso_suspenso",
+      "troca_de_senha_obrigatoria",
+    ]);
     expect(documento.components.schemas.ErroDaApi).toMatchObject({ type: "object" });
   });
 

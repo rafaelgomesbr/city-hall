@@ -74,6 +74,18 @@ function estaSobOGanchoDeVersao(r: RotaComGrupo): boolean {
   return r.caminho !== ROTA_DA_VERSAO_MINIMA;
 }
 
+/**
+ * Os códigos que `exigirVigencia` e a senha provisória emitem em TODA rota
+ * autenticada (V2-F03-E03). `nao_autenticado` (papel diferente do token) já é o
+ * que marca a rota como autenticada.
+ */
+export const CODIGOS_DA_VIGENCIA = [
+  "sessao_encerrada",
+  "conta_desativada",
+  "acesso_suspenso",
+  "troca_de_senha_obrigatoria",
+] as const satisfies readonly CodigoDeErro[];
+
 function esquemaJson(esquema: ZodType, io: "input" | "output"): Json {
   const bruto = z.toJSONSchema(esquema, {
     target: "draft-2020-12",
@@ -151,9 +163,23 @@ function respostasDe(r: RotaComGrupo): Json {
     respostas.default = { description: SEM_RESPOSTA };
   }
 
-  /* Os códigos do catálogo, agrupados pelo status com que a rota os escreve. */
+  /*
+    Os códigos do catálogo, agrupados pelo status com que a rota os escreve.
+
+    A rota autenticada (a que declara `nao_autenticado`) ganha, DERIVADOS e nunca
+    declarados entrada a entrada, os códigos da vigência: desde a V2-F03-E03 TODA
+    requisição autenticada, leitura inclusive, confere conta, sessão, senha
+    provisória e município no banco (`auth/vigencia.ts`), e responde 401
+    `sessao_encerrada` ou 403 `conta_desativada`, `acesso_suspenso` (503 nas rotas
+    da fila do aparelho) ou `troca_de_senha_obrigatoria`. Declarar só o que a
+    rota escreve deixaria o documento prometer menos do que a API faz.
+  */
+  const erros: CodigoDeErro[] = [...(r.erros ?? [])];
+  if (erros.includes("nao_autenticado")) {
+    for (const codigo of CODIGOS_DA_VIGENCIA) if (!erros.includes(codigo)) erros.push(codigo);
+  }
   const porStatus = new Map<number, CodigoDeErro[]>();
-  for (const codigo of r.erros ?? []) {
+  for (const codigo of erros) {
     const entrada = CODIGOS_DE_ERRO[codigo];
     for (const status of [
       entrada.status,

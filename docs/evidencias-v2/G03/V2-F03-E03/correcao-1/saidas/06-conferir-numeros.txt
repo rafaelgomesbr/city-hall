@@ -1,0 +1,35 @@
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  4874  total de testes automatizados
+   435  testes do pacote compartilhado
+   283  testes do motor de campo
+  2331  testes da API
+   379  testes do console do fornecedor
+   825  testes de fonte do painel
+   621  testes do banco
+   162  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    17  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   258  verificações no navegador, contra a API
+   328  verificações no navegador, somadas
+  2023  testes do aplicativo de campo
+  6897  total de testes automatizados, somando o aplicativo
+
+Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
+  0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
+  8 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    3 em db/test/busca.test.ts
+    1 em db/test/extensoes.espacial.test.ts
+    1 em db/test/postgis-disponivel.espacial.test.ts
+    1 em db/test/postgis-provedor.espacial.test.ts
+    1 em db/test/trava-de-migracao.test.ts
+
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.

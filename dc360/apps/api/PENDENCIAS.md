@@ -119,6 +119,13 @@ em GET, em HEAD e na escrita.
   traz o papel novo. O painel já renova e repete; o aplicativo de campo só a fila
   de envio faz isso (uma vez), e as leituras diretas dele seguem sem renovar nem
   repetir. Validar em aparelho é humano.
+- **Endereços assinados de arquivo seguem abrindo depois do corte:** a entrega
+  dos bytes (`rotas/armazenamento-local.ts`, `armazenamento/s3.ts`, validade
+  padrão de 5 minutos) confere a assinatura e a validade, e não a sessão. Um
+  endereço gerado antes de encerrar a sessão continua utilizável até vencer.
+  Limitação preexistente, fora da autenticação por sessão; o README e o guia do
+  coordenador dizem esse alcance. Fechar exigiria validade menor ou vigência na
+  entrega (F07).
 - **`GET /avisos` escreve dentro de um GET:** ver a seção própria, mais abaixo.
 
 **Decisões da V2-F00-E07, para não serem reabertas por engano:**

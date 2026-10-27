@@ -27,6 +27,12 @@ export const parametroIdEProvidencia = z.object({
  *                        permissão de negócio.
  *   `ERROS_AUTORIZADA`   `autorizar(...)`: além do token, a permissão do papel.
  *
+ * Os códigos da VIGÊNCIA (`sessao_encerrada`, `conta_desativada`,
+ * `acesso_suspenso`, `troca_de_senha_obrigatoria`) NÃO entram nestas listas: o
+ * gerador do documento (`openapi.ts`, `CODIGOS_DA_VIGENCIA`) os acrescenta a
+ * toda entrada que declara `nao_autenticado`, porque desde a V2-F03-E03 toda
+ * requisição autenticada, leitura inclusive, os pode devolver.
+ *
  * `dados_invalidos` (400) entra junto quando a rota aplica um esquema ao corpo,
  * à query ou ao caminho, e `nao_encontrada` (404) quando o registro do `:id`
  * pode não existir ou ser de outro município (que responde 404, nunca 403).

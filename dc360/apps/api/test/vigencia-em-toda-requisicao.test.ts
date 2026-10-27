@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
@@ -7,6 +8,7 @@ import { emitirAcesso } from "../src/auth/tokens.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import type { Banco } from "../src/banco/tipos.js";
 import { carregarConfig } from "../src/config.js";
+import { caminhoOpenApi } from "../src/contrato/openapi.js";
 import { construirServidor } from "../src/servidor.js";
 import { rotasRegistradas } from "./apoio/rotas.js";
 import { ehSemToken } from "./superficie-registrada.js";
@@ -97,6 +99,12 @@ type Resposta = { rota: string; status: number; erro: string | undefined; corpo:
 /** O HEAD não leva corpo: para ele o status é a prova inteira. */
 const ehHead = (r: Resposta) => r.rota.startsWith("HEAD ");
 
+/**
+ * Cada recusa de acesso OBSERVADA na varredura (`MÉTODO caminho|status|erro`), para
+ * o último bloco conferir que o contrato OpenAPI a declara.
+ */
+const observadas = new Set<string>();
+
 /** Pede CADA rota autenticada (e o HEAD de cada GET, se `comHead`) com o token dado. */
 async function varrer(token: string, comHead = false): Promise<Resposta[]> {
   const respostas: Resposta[] = [];
@@ -116,6 +124,13 @@ async function varrer(token: string, comHead = false): Promise<Resposta[]> {
         erro = (r.json() as { erro?: string }).erro;
       } catch {
         erro = undefined;
+      }
+      if (
+        metodo !== "HEAD" &&
+        erro !== undefined &&
+        (r.statusCode === 401 || r.statusCode === 403 || r.statusCode === 503)
+      ) {
+        observadas.add(`${metodo} ${rota.caminho}|${String(r.statusCode)}|${erro}`);
       }
       respostas.push({
         rota: `${metodo} ${rota.caminho}`,
@@ -607,5 +622,103 @@ describe("Uma consulta por requisição, sem cache", () => {
     expect(await pedir("GET", { comEfeito: true })).toEqual({ comTenant: 1, consultas: 1 });
     // O mesmo autenticador, o mesmo token, duas vezes: duas idas ao banco.
     expect(await pedir("GET", {}, 2)).toEqual({ comTenant: 2, consultas: 2 });
+  });
+});
+
+describe("O contrato declara cada recusa que a varredura observou", () => {
+  type OperacaoDoContrato = { responses?: Record<string, { "x-codigos-de-erro"?: string[] }> };
+  const contrato = JSON.parse(
+    readFileSync(new URL("../openapi/v1.json", import.meta.url), "utf8"),
+  ) as { paths: Record<string, Record<string, OperacaoDoContrato>> };
+
+  it("toda recusa de vigência observada em rota de /v1 está no contrato daquela rota, com o status e o código", () => {
+    // Ancora: os casos acima rodaram e observaram as quatro famílias de recusa.
+    const codigos = new Set([...observadas].map((o) => o.split("|")[2]));
+    for (const esperado of [
+      "sessao_encerrada",
+      "conta_desativada",
+      "acesso_suspenso",
+      "troca_de_senha_obrigatoria",
+      "nao_autenticado",
+    ]) {
+      expect(codigos.has(esperado), `a varredura não observou ${esperado}`).toBe(true);
+    }
+    const naoDeclaradas: string[] = [];
+    let conferidas = 0;
+    const semOperacao = new Set<string>();
+    for (const chave of observadas) {
+      const [rota, status, erro] = chave.split("|") as [string, string, string];
+      const [metodo, caminho] = rota.split(" ") as [string, string];
+      // O espelho sem prefixo é a mesma rota de /v1: o contrato é o de /v1.
+      const comPrefixo = caminho.startsWith("/v1/") ? caminho : `/v1${caminho}`;
+      // O Fastify registra a rota com e sem a barra final; o contrato descreve a sem barra.
+      const noContrato = comPrefixo.length > 1 ? comPrefixo.replace(/\/+$/, "") : comPrefixo;
+      const operacao = contrato.paths[caminhoOpenApi(noContrato)]?.[metodo.toLowerCase()];
+      if (!operacao) {
+        semOperacao.add(`${metodo} ${noContrato}`);
+        continue;
+      }
+      conferidas += 1;
+      const declarados = operacao.responses?.[status]?.["x-codigos-de-erro"] ?? [];
+      if (!declarados.includes(erro)) {
+        naoDeclaradas.push(
+          `${metodo} ${noContrato} respondeu ${status} ${erro}, e o contrato não declara`,
+        );
+      }
+    }
+    expect(conferidas, "a conferência contra o contrato não pode passar vazia").toBeGreaterThan(80);
+    expect(naoDeclaradas).toEqual([]);
+    // Rota registrada que o contrato não descreve é assunto do contrato (`pendentes`) e não fica calada.
+    expect([...semOperacao].sort(), "rotas observadas sem operação no contrato").toEqual([]);
+  });
+});
+
+describe("A marca sp do token deixou de valer na leitura, nos dois sentidos", () => {
+  it("token antigo com sp: true, banco já sem provisoriedade e sessão de pé: lê (a marca não tranca ninguém)", async () => {
+    const entrada = await entrar();
+    const sid = (
+      await mem.bruto.query<{ id: string }>(
+        "SELECT id FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL ORDER BY criada_em DESC LIMIT 1",
+        [HELENA],
+      )
+    ).rows[0]!.id;
+    expect(entrada).toBeTruthy();
+    const comMarca = await emitirAcesso(
+      segredo,
+      {
+        sub: HELENA,
+        org: organizacaoDeHelena,
+        papel: "coordenador",
+        nome: "Helena",
+        sid,
+        sp: true,
+      },
+      15,
+    );
+    // O banco não tem prazo de senha provisória: a marca velha do token é ignorada, na leitura e na escrita.
+    const leitura = await app.inject({
+      method: "GET",
+      url: "/ocorrencias?status=ativas",
+      headers: com(comMarca),
+    });
+    expect(leitura.statusCode, leitura.body).toBe(200);
+    const lerEu = await app.inject({ method: "GET", url: "/auth/eu", headers: com(comMarca) });
+    expect(lerEu.statusCode, lerEu.body).toBe(200);
+  });
+});
+
+describe("Não existe rota só de HEAD, que a varredura não recomporia", () => {
+  it("todo HEAD registrado vem com o GET da mesma rota", () => {
+    const arvore = app.printRoutes({ commonPrefix: false });
+    const soHead: string[] = [];
+    for (const linha of arvore.split("\n")) {
+      const casou = /\((.+?)\)\s*$/.exec(linha);
+      if (!casou) continue;
+      const metodos = casou[1]!.split(",").map((m) => m.trim());
+      if (metodos.includes("HEAD") && !metodos.includes("GET")) soHead.push(linha.trim());
+    }
+    // `rotasRegistradas` descarta HEAD e OPTIONS e a varredura recompõe o HEAD de cada GET.
+    // Uma rota registrada só com HEAD ficaria sem prova; hoje não existe nenhuma.
+    expect(soHead).toEqual([]);
   });
 });

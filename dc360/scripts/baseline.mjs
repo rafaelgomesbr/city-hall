@@ -896,6 +896,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F03-abertura-1C": { total: 27, falhas: 0, puladas: 0 },
   // V2-F03-E03 (vigencia em toda requisicao, DV-35): `apps/api/test/vigencia-em-toda-requisicao.test.ts` e novo, com 16 casos (a varredura de TODAS as rotas autenticadas do servidor montado, GET e HEAD inclusive, com sessao encerrada, conta desativada, municipio suspenso e eliminado, senha provisoria vencida e em vigor, papel rebaixado e sid de outra pessoa; o controle de que com a vigencia em dia nenhuma rota responde codigo de vigencia; a recusa igual entre leitura e escrita e entre recurso existente e inexistente; e uma so consulta por requisicao, sem cache). Seis casos existentes mudaram de afirmacao sem mudar de numero: `vigencia-na-escrita` ("continua LENDO" virou "deixa de LER"), `acesso-suspenso`, `codigos-de-erro`, `familia-da-sessao`, `get-com-efeito` e o piso de `prova-dinamica-dos-codigos-de-erro`.
   "V2-F03-E03": { total: 16, falhas: 0, puladas: 0 },
+  // V2-F03-E03, correcao 1 (revisao do Codex): `vigencia-em-toda-requisicao.test.ts` ganha 3 casos (toda recusa de vigencia observada na varredura esta declarada no contrato OpenAPI da rota, com status e codigo; o token antigo com `sp: true` e banco sem provisoriedade le; nao existe rota so de HEAD).
+  "V2-F03-E03-correcao-1": { total: 3, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -1009,6 +1011,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F02-E02-parte-2A": { total: 23, falhas: 0 },
   // V2-F02-E06, parte 3B: `apps/web/test/versao-do-aplicativo.test.ts` é novo, com 4 casos (`x-app-version: painel/desconhecido` nas dez formas de pedido e no download sem token; o 426 com a frase do corpo, sem renovar e sem derrubar a sessão, numa chamada comum e num download).
   "V2-F02-E06-parte-3B": { total: 4, falhas: 0 },
+  // V2-F03-E03, correcao 1: `correcao-8b-da-e09.test.ts` ganha 1 caso (nenhuma tela do painel promete 'alguns minutos' de leitura depois do corte); os de `correcao-8-da-e09.test.ts` mudam de afirmacao sem mudar de numero.
+  "V2-F03-E03-correcao-1": { total: 1, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);

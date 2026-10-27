@@ -1,0 +1,24 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a6cccda357125e37f/dc360/apps/api
+
+ ✓ test/vigencia-em-toda-requisicao.test.ts (19 tests) 55588ms
+   ✓ A varredura enxerga a superfície inteira > controle: com a vigência em dia nenhuma rota responde código de vigência  7535ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > sessão encerrada: 401 sessao_encerrada em todas, GET e HEAD  6333ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > conta desativada: 403 conta_desativada em todas, mesmo com a sessão ainda de pé  5280ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > município suspenso: 403 acesso_suspenso em todas (503 só na fila do campo, que é escrita)  5740ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > município eliminado (linha ainda de pé) conta como suspenso, em toda rota  3331ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > senha provisória VENCIDA: 401 sessao_encerrada em todas, e a troca de senha não é exceção  3981ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > papel rebaixado: 401 nao_autenticado em todas (renove e repita), e a renovação traz o papel novo  2114ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > sid de OUTRA pessoa: 401 sessao_encerrada em todas, a sessão tem de ser da própria conta  2519ms
+   ✓ Toda rota autenticada recusa quem já não pode, leitura inclusive > senha provisória EM VIGOR, mesmo sem a marca no token: o banco manda, e só a troca e o encerrar abrem  4927ms
+   ✓ A recusa é a mesma onde tem de ser a mesma, e não depende do recurso > sessão encerrada e senha provisória vencida dão o MESMO corpo, na leitura e na escrita  2035ms
+   ✓ A recusa é a mesma onde tem de ser a mesma, e não depende do recurso > sem vigência, o recurso existente e o inexistente respondem IGUAL: a recusa não revela o que há  809ms
+   ✓ A recusa é a mesma onde tem de ser a mesma, e não depende do recurso > depois da renovação o token antigo ainda LÊ pelos quinze minutos: rotação não é expulsão  930ms
+   ✓ A recusa é a mesma onde tem de ser a mesma, e não depende do recurso > papel rebaixado: o token antigo recusa, e a renovação devolve o papel novo, que lê como o papel novo  909ms
+   ✓ A marca sp do token deixou de valer na leitura, nos dois sentidos > token antigo com sp: true, banco já sem provisoriedade e sessão de pé: lê (a marca não tranca ninguém)  1118ms
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  20:07:28
+   Duration  68.05s (transform 7.17s, setup 1.44s, collect 9.47s, tests 55.59s, environment 0ms, prepare 372ms)
+

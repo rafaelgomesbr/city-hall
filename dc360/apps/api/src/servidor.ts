@@ -124,13 +124,15 @@ export const ROTA_DA_FILA_DO_CAMPO = { config: { filaDoCampo: true } } as const;
  * exporta) ou muda dado do município (materializa e expurga avisos). O GET
  * cuja única escrita é o registro de que ELE foi lido (`registrarConsulta`:
  * o dossiê `GET /ocorrencias/:id` e a busca) NÃO leva a marca: é leitura, o
- * registro é a auditoria dela, e a vigência dessa leitura é da F03-E03.
+ * registro é a auditoria dela. Desde a V2-F03-E03 a vigência vale em TODA
+ * requisição autenticada (leitura inclusive), então este critério deixou de
+ * decidir se a rota confere; só decide quais GET entram na lista.
  *
- * A marca é lida em `exigirAutenticacao` de `req.routeOptions.config`, e o HEAD
- * automático do Fastify herda a configuração do GET. Rota GET nova que escreve
- * e não leva a marca reprova em `test/get-com-efeito.test.ts`, que confere a
- * lista explícita pelo comportamento e varre o fonte das rotas. A vigência em
- * LEITURA PURA continua sendo da F03-E03.
+ * O HEAD automático do Fastify herda a configuração do GET. Rota GET nova que
+ * escreve e não leva a marca reprova em `test/get-com-efeito.test.ts`, que
+ * varre o fonte das rotas. A marca já não é lida pela autenticação: a vigência
+ * de LEITURA e de escrita é a mesma desde a V2-F03-E03
+ * (`auth/autenticacao-da-requisicao.ts`).
  */
 export const ROTA_GET_COM_EFEITO = { config: { comEfeito: true } } as const;
 

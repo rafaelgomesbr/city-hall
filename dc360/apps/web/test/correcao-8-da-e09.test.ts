@@ -537,21 +537,21 @@ describe("Achado 3: as frases das janelas dizem o que o sistema faz, e nada alé
 
   it("'Encerrar sessões' não promete que a pessoa sai de todos os navegadores agora", () => {
     expect(usuarios).not.toContain("sai de todos os navegadores");
-    expect(usuarios).toContain("deixa de poder renovar a sessão e de gravar qualquer coisa agora");
-    expect(usuarios).toContain("Uma tela que já estava");
-    expect(usuarios).toContain("pode continuar consultando por alguns minutos");
+    expect(usuarios).toContain("deixa de poder renovar a sessão, gravar e consultar agora");
+    expect(usuarios).toContain("que já estava aberto fica visível");
+    expect(usuarios).toContain("nenhuma consulta nova é atendida");
   });
 
   it("'Redefinir senha' não promete que as sessões abertas caem na hora", () => {
     expect(usuarios).not.toMatch(/as sessões abertas\s+caem/);
     expect(usuarios).toContain("as sessões abertas deixam");
-    expect(usuarios).toContain("minutos). O sistema sorteia");
+    expect(usuarios).toContain("de renovar, de gravar e de consultar na hora. O sistema sorteia");
   });
 
   it("'Encerrar minhas outras sessões' diz a mesma coisa, sem fixar o número de minutos", () => {
     expect(conta).not.toContain("saem agora e precisam entrar de novo");
-    expect(conta).toContain("deixam de poder renovar a sessão e de");
-    expect(conta).toContain("pode continuar consultando por alguns minutos");
+    expect(conta).toContain("deixam de poder renovar a sessão,");
+    expect(conta).toContain("nenhuma consulta nova é atendida");
   });
 });
 

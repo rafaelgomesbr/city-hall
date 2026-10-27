@@ -1,0 +1,14 @@
+Portoes finais da V2-F03-E03, correcao 1 (a partir de dc360/, Windows)
+
+npm run typecheck ............... saida 0 (01-typecheck.txt)
+npm run lint .................... saida 0 (02-lint.txt)
+npm run lint:teto ............... saida 0, 431 (02b-lint-teto.txt)
+npm run formato:conferir ........ saida 0 (02c-formato.txt)
+npm run conferir:numeros ........ saida 0 (06-conferir-numeros.txt)
+node scripts/auditar.mjs ........ saida 0 (05-auditar.txt)
+gerar-estado --conferir ......... confere
+npm test (03-npm-test-completo.txt):
+  campo 283; shared 434 de 435; api 2329 passam, 2 falham, 34 puladas; console 379; web 825; db 613 passam, 8 falham
+  Falhas: so as de ambiente Windows aceitas (regras-de-conteudo 1, semear-homologacao 2, desfazer-migracao 5, guarda-da-semente 3).
+  O pacote db inclui isolamento.test.ts e catalogo-nominal.test.ts, sem falha.
+CI=true npm run test:scripts ..... 831 casos, 808 passam, 23 pulados, 0 falham (04-test-scripts.txt; a primeira passada falhou so em e2e-porta-ocupada por porta em uso, passou isolada e na repeticao)

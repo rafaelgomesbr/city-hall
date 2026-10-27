@@ -464,10 +464,10 @@ export function Usuarios() {
         titulo="Desativar usuário"
         consequencia={
           <>
-            A pessoa perde o acesso agora: renovar a sessão e gravar são recusados na
-            hora (uma tela já aberta pode continuar consultando por alguns minutos) e o
-            aplicativo de campo para de sincronizar. O nome continua nos laudos que ela
-            assinou e na trilha de auditoria, e reativar devolve o acesso.
+            A pessoa perde o acesso agora: renovar a sessão, gravar e consultar são
+            recusados na hora, em qualquer tela, e o aplicativo de campo para de
+            sincronizar. O nome continua nos laudos que ela assinou e na trilha de
+            auditoria, e reativar devolve o acesso.
           </>
         }
         rotuloDaAcao={`Desativar ${aDesativar?.nome ?? "usuário"}`}
@@ -563,9 +563,9 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         consequencia={
           <>
             A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
-            de renovar e de gravar (uma tela já aberta pode continuar consultando por alguns
-            minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
-            que vale por 72 horas e precisa ser trocada na primeira entrada.
+            de renovar, de gravar e de consultar na hora. O sistema sorteia uma senha
+            temporária, mostrada uma única vez, que vale por 72 horas e precisa ser
+            trocada na primeira entrada.
           </>
         }
         rotuloDaAcao={`Redefinir a senha de ${alvo.nome}`}
@@ -661,10 +661,10 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
         titulo="Encerrar sessões"
         consequencia={
           <>
-            {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
-            precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
-            aberta pode continuar consultando por alguns minutos. Quem está em campo
-            fica sem sincronizar até entrar outra vez.
+            {alvo.nome} deixa de poder renovar a sessão, gravar e consultar agora, em
+            qualquer tela, e precisa entrar de novo com a própria senha, que não muda. O
+            que já estava aberto fica visível, mas nenhuma consulta nova é atendida. Quem
+            está em campo fica sem sincronizar até entrar outra vez.
           </>
         }
         rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}
