@@ -207,7 +207,16 @@ export const COLUNAS_QUE_NUNCA_SAEM: Record<string, readonly string[]> = {
   // A senha do servidor público. Derivada com custo alto, e ainda assim: um
   // hash entregue é um hash que alguém pode atacar offline pelo tempo que
   // quiser, e servidor público reusa senha como todo mundo.
-  usuarios: ["senha_hash"],
+  //
+  // E o identificador GLOBAL da pessoa (`pessoa_id`, migração 054, ADR 0009): é
+  // o mesmo em todo município onde a pessoa tem conta. Dois pacotes de
+  // municípios diferentes, com a coluna, se cruzariam por ele e revelariam que
+  // a mesma pessoa serve nos dois, que é o que o isolamento entre municípios
+  // existe para não dizer. `sessoes.pessoa_id` também existe, mas a tabela
+  // inteira fica fora do pacote (`TABELAS_QUE_NAO_SAEM`). Tabela nova que
+  // carregue `pessoa_id` e entre em `TABELAS_DA_SAIDA` TEM de listar a coluna
+  // aqui: o teste de `pacote-de-saida-contrato.test.ts` confere o banco.
+  usuarios: ["senha_hash", "pessoa_id"],
   // A ficha de push. Quem a tem escreve na tela bloqueada de um agente de
   // Defesa Civil, e uma ordem falsa de evacuação escrita ali é dano na rua.
   aparelhos: ["ficha"],

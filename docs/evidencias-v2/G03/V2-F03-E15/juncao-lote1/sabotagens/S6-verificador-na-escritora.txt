@@ -1,0 +1,1313 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db
+
+ ❯ test/pessoas.test.ts (96 tests | 17 failed | 10 skipped) 29590ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > aplica sem erro e não muda nada do que já existia  301ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > N contas viram N pessoas, cada conta com a sua, e a marca `backfill` de cada uma 7ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > a credencial e o e-mail foram copiados sem perda; nada de município foi para a pessoa 18ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > toda sessão de antes carrega a pessoa da conta, e o login de antes ainda acha a conta 10ms
+   × positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o cadastro de hoje (INSERT do dc360_app no município) passa no fim da transação, com pessoa nova e marca da MESMA transação 248ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   × positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > `provisionar_municipio` (console) cria a pessoa nova junto, com a senha provisória, e passa 25ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   × positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > e-mail repetido em `provisionar_municipio` continua o DC363 de antes (o oráculo da F00 não muda de forma) 11ms
+     → expected '42501' to be 'DC363' // Object.is equality
+   × positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o INSERT do dono, sem contexto (sementes, testes), também passa 21ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   × positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > toda conta do backfill tem a marca `backfill`, e as contas criadas depois, `criador` 11ms
+     → expected [ { origem: 'backfill', n: 3 } ] to deeply equal [ { origem: 'backfill', n: 3 }, …(1) ]
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o e-mail de uma pessoa existente NÃO liga a conta nova a ela: a conta é recusada como sempre foi 28ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > segunda PESSOA com o mesmo e-mail (outra caixa), mesmo pelo dono: `pessoas_email_idx` recusa 2ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > conta de outro município com contexto: o criador recusa (42501) antes de criar a pessoa 7ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > o dc360_app informando `pessoa_id` no INSERT: permissão negada, antes de qualquer escrita 6ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > função do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT 25ms
+   × negativo da origem: `pessoa_id` só nasce pelo gatilho criador > um BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação 37ms
+     → expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+   × negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono) 37ms
+     → expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo dc360_app: permissão negada (privilégio de coluna) 7ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo DONO, direto ou por função SECURITY DEFINER: o gatilho recusa (IS DISTINCT FROM) 42ms
+   × `pessoa_id` é imutável e há uma conta por pessoa no sistema > um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa 5ms
+     → deveria ter sido recusado
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > segunda conta da mesma pessoa, com a primeira ATIVA ou DESATIVADA: o UNIQUE total recusa (gatilhos desligados para chegar no índice) 49ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  7488ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas no contexto de A: permissão negada 50ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens no contexto de A: permissão negada 37ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas sem contexto: permissão negada 46ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas sem contexto: permissão negada 9ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens sem contexto: permissão negada 43ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas sem contexto: permissão negada 6ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nenhum privilégio, de tabela ou de coluna, a dc360_app, dc360_console ou PUBLIC; RLS forçada e nenhuma policy 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nem o dono apaga a pessoa nem reescreve a marca (no lugar da chave estrangeira que o portão não deixa declarar) 75ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > as funções dos gatilhos: o app não as executa (sem EXECUTE), e nem o dono as chama fora de gatilho 80ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a redefinição de senha por quem administra (UPDATE do dc360_app no município), como a rota faz 61ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > `registrar_tentativa_login` (falha e acerto), `trocar_senha` e o gatilho da 046 chegam à pessoa 78ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o link de recuperação (`abrir_recuperacao` e `consumir_recuperacao`) chega à pessoa 71ms
+   × o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09) 8ms
+     → expected undefined to match object { …(3) }
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > de mão única: escrever na pessoa (só o dono pode) não volta para a conta 5ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > com o município de outro no contexto, o espelho recusa (o dono atualizando a conta de A sob o contexto de B) 62ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o UPDATE do dc360_app em `usuarios` é por coluna: as que a API grava passam, `id`, `organizacao_id` e `ultimo_acesso` não 10ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa, município do contexto e sessão viva: a conta, o papel, o nome e a sessão viva 59ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > org alheio ao contexto: vazio (nem a linha do município); sem contexto: vazio 61ms
+   × `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa sem conta no município do contexto, ou sessão de outra conta: sem conta e sem sessão viva 11ms
+     → Cannot read properties of undefined (reading 'v')
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > a sessão rotacionada vale enquanto a família tem sessão de pé; encerrada, não; município suspenso aparece 140ms
+   ✓ `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > pelo e-mail, sem diferença de caixa, uma linha por conta da pessoa (hoje, uma), antes do tenant 87ms
+   ✓ `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > lê de `pessoas`, e não de `usuarios` (o hash da pessoa, mudado só nela pelo dono, é o que sai) 8ms
+   ✓ `travar_pessoa` e `travar_pessoa_da_conta` (N2) > toma uma trava consultiva de transação com chave própria, separada da trava das sessões (049), mesmo com o mesmo uuid 70ms
+   ✓ `travar_pessoa` e `travar_pessoa_da_conta` (N2) > pela conta, no município do contexto, trava a pessoa da conta; conta de outro município, nada; e não devolve o pessoa_id 99ms
+   ✓ `sessoes.pessoa_id`: a sessão carrega a pessoa da conta, presa pela chave composta > abrir_sessao preenche a pessoa; pessoa de outra conta na sessão é recusada pela chave 10ms
+   ✓ o inventário da credencial bate com o banco > toda função que cita a credencial, o e-mail ou a pessoa está no inventário, e todo item do inventário existe 63ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  7441ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  4969ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > o ataque relatado: o dc360_app cria TEMP `usuarios`, anexa o espelho e escreve a credencial de outra pessoa. Recusado, e a pessoa não muda 25ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > o dc360_app, o dc360_console e PUBLIC não têm TEMP no banco 2ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > nenhum papel do produto executa função de gatilho da 054; e mesmo com TEMP devolvido, o app não anexa o espelho nem o criador 40ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > anexadas pelo DONO a uma tabela que não é `public.usuarios`, as duas funções privilegiadas recusam, sem escrever nada 44ms
+   ✓ correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município > com município no contexto, recusa (42501), seja o e-mail de outro município ou do próprio 32ms
+   ✓ correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município > sem contexto, continua respondendo (o outro lado, o do login) 3ms
+   ✓ correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre > sem contexto: o mesmo erro (código, mensagem, detalhe, restrição, tabela) para e-mail existente e livre, e nenhuma pessoa nova 29ms
+   ✓ correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre > com o contexto de outro município: o mesmo erro para e-mail existente e livre 9ms
+   ✓ correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta > matrícula já existente, id novo e e-mail livre, pelo dc360_app no município e pelo dono: a transação volta inteira 26ms
+   × correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta > o mesmo comando sem conflito continua passando (a conta, a pessoa e a marca nascem juntas) 7ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ correção 1, achado 5: o espelho dispara antes do gatilho dos links (N4 antes de N7) > entre os gatilhos AFTER UPDATE de `usuarios`, o do espelho vem antes do da 051 (ordem alfabética do Postgres) 2ms
+   ✓ correção 1, achado 7: `pessoas.id` não muda > UPDATE de `pessoas.id` pelo dono, direto: recusado; reescrever o mesmo valor passa 25ms
+   × correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a conta apagada pelo dono leva a marca dela, e só ela: as outras marcas ficam iguais, valor por valor, e nenhuma fica sem conta 3ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a marca de conta VIVA não se apaga, nem pelo dono; a de conta que já não existe, sim (pelo dono) 8ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > falha fechada: quem apaga sem enxergar todas as contas (o RLS de usuarios vale para ele) é recusado mesmo para marca sem conta 28ms
+   × correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > conta inserida e apagada na mesma transação: a marca sai com ela, e o verificador recusa no fim (falha fechada) 38ms
+     → expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+   × correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica 3868ms
+     → expected [ …(2) ] to deeply equal []
+   × correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > no catálogo do banco: os dois gatilhos de conferência executam conferir_origem_da_conta, e nenhum AFTER INSERT de usuarios executa conta_ganha_pessoa 4ms
+     → expected [ { …(3) }, { …(3) }, { …(3) }, …(1) ] to deeply equal [ { …(3) }, { …(3) }, { …(3) }, …(1) ]
+   ✓ correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > a leitora real passa na lista permitida, com o search_path fixo, e nenhum papel do produto a executa 29ms
+   × correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > prova adicional por contadores: o adiado disparado com IMMEDIATE não muda contador nem sequência, no caminho que passa e nos que recusam 76ms
+     → expected error: conta_ganha_pessoa so serve aos do… { …(15) } to be null
+   × correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > as sete sabotagens da correção 6: todas reprovam na lista permitida; as que escrevem (tabela ou sequência) também nos contadores 67ms
+     → pg_notify: a leitora sabotada ainda passa no caminho de aceite: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to be null
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > na confirmação: a diferença acumulada é exatamente usuarios, pessoas e origens_de_conta +1 inserção; e a sabotagem da marca temporária aparece
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela pessoa), sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela conta), sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > a trava da pessoa e a das sessões (049) não se esperam, mesmo com o mesmo uuid
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > conta de outro município pelo contexto: `travar_pessoa_da_conta` não trava ninguém
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > correção 1, achado 1, num banco criado com CREATE DATABASE: o dc360_app não cria TEMP `usuarios` para anexar o espelho, e a pessoa não muda
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > consumir_recuperacao contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > redefinição por quem administra contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 1 primeiro): uma fica, a outra recebe 23505, sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 2 primeiro): uma fica, a outra recebe 23505, sem 40P01
+ ❯ test/isolamento.test.ts (171 tests | 10 failed | 59 skipped) 122438ms
+   ✓ CA-06: isolamento entre organizações > cada município enxerga apenas as próprias ocorrências 33ms
+   ✓ CA-06: isolamento entre organizações > não lê ocorrência de outro município nem pedindo pelo id exato 6ms
+   ✓ CA-06: isolamento entre organizações > não altera ocorrência de outro município 37ms
+   ✓ CA-06: isolamento entre organizações > não cria registro carimbado com o id de outro município 8ms
+   ✓ CA-06: isolamento entre organizações > sem contexto de organização, não enxerga nada 30ms
+   ✓ CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada 152ms
+   ✓ CA-06: isolamento entre organizações > o formulário público escreve e NÃO lê 27ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto 219ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO 92ms
+   ✓ CA-06: isolamento entre organizações > toda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale 1ms
+   ✓ CA-06: isolamento entre organizações > cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4) 54ms
+   ✓ CA-06: isolamento entre organizações > nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema 103ms
+   ✓ CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização 53ms
+   × CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G) 7360ms
+     → expected [ …(2) ] to deeply equal []
+   ✓ CA-06: isolamento entre organizações > nenhum papel do produto, nem PUBLIC, tem TEMP ou CREATE no banco, nem CREATE em esquema nenhum (parte 0G) 3ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada: ninguém do produto a executa, dispara só onde o catálogo diz e confere a tabela por TG_RELID (parte 0G) 55ms
+   × CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G) 58ms
+     → expected [ …(2) ] to deeply equal []
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)  1317ms
+   ✓ CA-06: isolamento entre organizações > nenhuma coluna proibida (a credencial, o e-mail e o pessoa_id de usuarios depois da 061) volta ao catálogo nem ao banco (correção 1 da 0G) 8ms
+   ✓ CA-06: isolamento entre organizações > toda tabela sem município semeia o outro município da prova, e toda chave para global declara as colunas referenciadas (correção 1 da 0G) 1ms
+   ✓ Funções privilegiadas > existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando) 59ms
+   ✓ Funções privilegiadas > o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita  607ms
+   ✓ Funções privilegiadas > toda função privilegiada fixa o search_path 4ms
+   ✓ Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC 5ms
+   ✓ Funções privilegiadas > o papel de aplicação não é superusuário nem dono das tabelas 3ms
+   ✓ Trilha auditável é append-only > aceita inserção mas recusa alteração e exclusão 111ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > nenhuma tabela de prova tem policy que alcance DELETE 262ms
+   × Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá 111ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > a ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade 95ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada 10ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma 78ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo 71ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT 93ms
+   ✓ Regras de negócio garantidas pelo banco > recusa encerrar sem motivo 59ms
+   ✓ Regras de negócio garantidas pelo banco > protocolo pode repetir entre municípios, mas não dentro do mesmo 7ms
+   ✓ Regras de negócio garantidas pelo banco > gera protocolo sequencial por organização e ano, sem colidir entre municípios 63ms
+   ✓ Regras de negócio garantidas pelo banco > recusa evidência cuja chave de storage não tem o prefixo do tenant 100ms
+   × Regras de negócio garantidas pelo banco > a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040) 66ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ Regras de negócio garantidas pelo banco > recusa a mesma coleta enviada duas vezes com a mesma chave de idempotência 11ms
+   ✓ Isolamento sob concorrência na mesma conexão > duas leituras concorrentes de municípios diferentes não trocam de contexto  521ms
+   ✓ Isolamento sob concorrência na mesma conexão > escrita concorrente de um município não escapa para o outro 89ms
+   ↓ Chave estrangeira nao atravessa municipio > nao vincula ocorrencia a chamado de outro municipio
+   ↓ Chave estrangeira nao atravessa municipio > nao despacha para equipe de outro municipio
+   ↓ Chave estrangeira nao atravessa municipio > nao coloca servidor em equipe de outro municipio
+   ↓ Chave estrangeira nao atravessa municipio > nao grava vistoria apontando para ocorrencia de outro municipio
+   ↓ Chave estrangeira nao atravessa municipio > nao assina evento da trilha com servidor de outro municipio
+   ↓ Chave estrangeira nao atravessa municipio > o vinculo dentro do proprio municipio continua funcionando
+   ↓ Aparelho de push e aviso de prazo > nao le a ficha de push do aparelho de outro municipio
+   ↓ Aparelho de push e aviso de prazo > nao revoga o aparelho de outro municipio
+   ↓ Aparelho de push e aviso de prazo > nao registra aparelho no nome de servidor de outro municipio
+   ↓ Aparelho de push e aviso de prazo > a mesma ficha registrada por dois municipios nao denuncia a existencia da outra
+   ↓ Aparelho de push e aviso de prazo > a mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica
+   ↓ Aparelho de push e aviso de prazo > aparelho nao se apaga, se revoga
+   ↓ Aparelho de push e aviso de prazo > revogar aparelho sem motivo e recusado pelo banco
+   ↓ Aparelho de push e aviso de prazo > nao registra aviso apontando para ocorrencia de outro municipio
+   ↓ Aparelho de push e aviso de prazo > o papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade
+   ↓ Aparelho de push e aviso de prazo > nao le o aviso enviado por outro municipio
+   ↓ Aparelho de push e aviso de prazo > a varredura nao aceita municipio de quem chama e nao devolve dado de pessoa
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso carimbado com o id de outro municipio
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a aplicacao so enfileira: nao registra entrega nem cria aviso de prazo
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > enfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa
+   ↓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho
+   ↓ Sino de avisos > nao le o aviso de outro municipio
+   ↓ Sino de avisos > nao cria aviso carimbado com o id de outro municipio
+   ↓ Sino de avisos > nao cria aviso apontando para ocorrencia de outro municipio
+   ↓ Sino de avisos > nao registra leitura no nome de servidor de outro municipio
+   ↓ Sino de avisos > nao registra leitura de aviso de outro municipio
+   ↓ Sino de avisos > nao le quem leu o que no outro municipio
+   ↓ Sino de avisos > nao apaga aviso de outro municipio, nem o velho
+   ↓ Sino de avisos > a retencao e do banco: nem o proprio municipio apaga aviso que ainda vale
+   ↓ Sino de avisos > o expurgo por idade leva junto quem leu, em vez de travar
+   ↓ Sino de avisos > o mesmo fato nao vira dois avisos
+   ↓ Sino de avisos > aviso nao se edita, e leitura nao se desfaz
+   ↓ Sino de avisos > os gatilhos do sino nao sao privilegiados
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o orgao de outro municipio nem pedindo pelo id exato 11ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao encaminha providencia para orgao de outro municipio 54ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > providencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho 8ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o mesmo nome de orgao nao entra duas vezes so por causa da caixa 38ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > orgao nao se apaga, se desativa com motivo 63ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > numera oficio por municipio e por ano, sem colidir entre municipios 15ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a numeracao de oficio recusa rodar sem contexto de municipio 3ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao emite dois oficios para a mesma providencia 45ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > oficio emitido nao se corrige: sem UPDATE e sem DELETE 7ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o oficio nem o envio de outro municipio 52ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o email so sai para dominio de orgao ativo do proprio municipio 11ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o link abre uma vez, e a segunda abertura e recusada e registrada 73ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o uso unico e do banco, e nao da aplicacao 2ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link expirado nao entrega o oficio, e a recusa fica registrada 42ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link desconhecido nao registra nada e nao conta se o municipio existe 6ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve 77ms
+   ✓ O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token 86ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > aceita o chamado que entrou sem classificacao, com o relato junto 8ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa 'outro' sem dizer o que foi relatado 34ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa descricao pendurada em tipo da COBRADE 5ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa despachar equipe para chamado que continua 'outro' 53ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > encerrar sem nunca classificar continua permitido 13ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > reclassificar limpa a descricao e libera o despacho 18ms
+   ✓ Orgaos indicados pela vistoria > grava a indicacao do proprio municipio, do catalogo e por texto livre 8ms
+   ✓ Orgaos indicados pela vistoria > nao indica orgao do catalogo de outro municipio 7ms
+   ✓ Orgaos indicados pela vistoria > nao pendura indicacao em vistoria de outro municipio 7ms
+   ✓ Orgaos indicados pela vistoria > o vizinho nao le as indicacoes de quem esta ao lado 6ms
+   ✓ Orgaos indicados pela vistoria > o mesmo orgao do catalogo nao entra duas vezes na mesma vistoria 5ms
+   ✓ Orgaos indicados pela vistoria > a coleta de campo nao se reescreve nem se apaga 7ms
+   ↓ Minimizacao por prazo e registro de consulta > nao le o registro de acesso do municipio vizinho
+   ↓ Minimizacao por prazo e registro de consulta > nao registra consulta apontando para ocorrencia de outro municipio
+   ↓ Minimizacao por prazo e registro de consulta > nao registra consulta no nome de servidor de outro municipio
+   ↓ Minimizacao por prazo e registro de consulta > nao carimba o registro com o id de outro municipio
+   ↓ Minimizacao por prazo e registro de consulta > o registro de acesso nao se reescreve nem se apaga
+   ↓ Minimizacao por prazo e registro de consulta > nao le nem altera o prazo de retencao do municipio vizinho
+   ↓ Minimizacao por prazo e registro de consulta > a minimizacao nao aceita municipio nem prazo de quem chama
+   ↓ Minimizacao por prazo e registro de consulta > a minimizacao nao devolve dado de pessoa
+   ↓ Minimizacao por prazo e registro de consulta > nem PUBLIC nem uma conta qualquer executa a minimizacao
+   ↓ Segundo fator > um municipio nao alcanca o segundo fator do outro, nem pelo id exato
+   ↓ Segundo fator > recusa o segredo do TOTP gravado em texto
+   ↓ Segundo fator > recusa desligar o segundo fator deixando o segredo guardado
+   ↓ Segundo fator > recusa o codigo de recuperacao gravado em texto
+   ↓ Segundo fator > guarda o codigo como resumo e recusa apagar o que ja foi gasto
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  4441ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  12775ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  3860ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel do produto e superusuario ou ignora RLS 5ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  71062ms
+   ↓ Metricas escritas pelo proprio municipio > o municipio escreve o proprio resumo, e ele bate com o que o municipio ve
+   ↓ Metricas escritas pelo proprio municipio > chamar duas vezes no mesmo dia corrige a linha, nao empilha outra
+   ↓ Metricas escritas pelo proprio municipio > o resumo conta o proprio municipio, e nao enxerga o vizinho
+   ↓ Metricas escritas pelo proprio municipio > nao escreve resumo carimbado com o id de outro municipio
+   ↓ Metricas escritas pelo proprio municipio > sem contexto de municipio, a escrita nao acontece
+   ↓ Metricas escritas pelo proprio municipio > o municipio nao apaga o proprio historico de metricas
+   ↓ Metricas escritas pelo proprio municipio > a regra de coluna proibida reprova de verdade quando ha o que reprovar
+   ↓ Metricas escritas pelo proprio municipio > nada que identifique pessoa ou imovel entra no que o console le
+   ↓ Metricas escritas pelo proprio municipio > a marca de tempo da ultima escrita existe e e obrigatoria
+   ↓ Metricas escritas pelo proprio municipio > municipio que nao escreveu aparece como sinal, e nao como linha faltando
+   × O console le metrica e nao alcanca dado de municipio > le o resumo de mais de um municipio, que e o motivo de ele existir 5ms
+     → o console nao conseguiu ler o resumo de mais de um municipio, e sem isso ele nao responde nenhuma das tres perguntas da ADR 0008: expected 0 to be greater than or equal to 2
+   ✓ O console le metrica e nao alcanca dado de municipio > nao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum 81ms
+   ✓ O console le metrica e nao alcanca dado de municipio > nao escreve nada, nem na tabela que ele le 3ms
+   ✓ O console le metrica e nao alcanca dado de municipio > a visao que ele le roda com os privilegios DELE, e nao com os do dono 40ms
+   × O relogio que descobre para quem chamar o resumo > descobre quem esta sem resumo fresco, sem contexto de municipio nenhum 206ms
+     → o municipio que escreveu o resumo ha instantes continua na fila do relogio, e o relogio reescreveria o mesmo numero a cada rodada: expected [ …(3) ] to not include '4965dbd5-fb9e-49af-a598-1b14c3b8129c'
+   ✓ O relogio que descobre para quem chamar o resumo > some da fila assim que o municipio escreve, e volta quando o resumo envelhece 26ms
+   ✓ O relogio que descobre para quem chamar o resumo > nao aceita municipio de parametro, e nao devolve nome de prefeitura 3ms
+   ✓ O relogio que descobre para quem chamar o resumo > o papel do console nao executa o relogio 5ms
+   × A porta de criar municipio, e por que ela nao serve para ler > o municipio, o administrador e a linha de nascimento nascem juntos 26ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > a saida sao dois identificadores, e nao ha como devolver linha de tabela 3ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > nenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio 7ms
+   × A porta de criar municipio, e por que ela nao serve para ler > depois de criar o municipio, o console continua sem enxergar o que criou 22ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   × A porta de criar municipio, e por que ela nao serve para ler > recusa municipio duplicado ANTES de escrever, e diz qual ja existe 6ms
+     → conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > recusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou 43ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > o papel de aplicacao de um municipio nao alcanca esta porta 28ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada 1ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos 51ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A 6ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role) 6ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos 40ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental 7ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER 32ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada 3ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele 35ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio 7ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role 4ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante) 32ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém) 10ms
+   × Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 6 da ADR 0009: a leitora de origens_de_conta (o verificador adiado) só lê, por lista permitida, com search_path fixo, e nenhuma escritora verifica 38ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 2 da ADR 0009: a forma da marca "recusada depois da liberação" (antes da liberação, a marcada é do papel de aplicação) 0ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último 0ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > a âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio 10ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não agenda eliminação, nem sem sessão 26ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cancela eliminação (UPDATE às cegas), nem sem sessão 23ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não cria outro operador nem outro dono, e sem sessão também não 52ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não altera o dono (UPDATE às cegas) 9ms
+   ✓ Prova comportamental entre municípios, tabela por tabela (parte 0D) > item 4: o operador do console sem autorização tentando, de verdade > o operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum 35ms
+ ❯ test/catalogo-nominal.test.ts (146 tests | 18 failed) 150471ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as funções privilegiadas listadas são exatamente as do banco 32ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante 64ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > nada fora do esquema public, e nenhum papel do produto noutro esquema 33ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam  1075ms
+   ✓ a BASE congelada (só ela é fixada aqui) > as 27 funções de hoje, pela assinatura completa, sem teto numérico 2ms
+   ✓ a BASE congelada (só ela é fixada aqui) > as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor 0ms
+   ✓ a BASE congelada (só ela é fixada aqui) > as 16 colunas com UPDATE do papel de aplicação 0ms
+   ✓ a BASE congelada (só ela é fixada aqui) > o único privilégio por coluna que não é UPDATE do app: o cancelamento do livro pelo console (parte 0G) 0ms
+   ✓ a BASE congelada (só ela é fixada aqui) > a dívida de tenant da base está declarada, com a etapa que a paga 2ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > a base vem primeiro, e é a BASE 0ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > todo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra 17ms
+   ✓ a FORMA das contribuições das etapas (e não a lista de nomes) > cada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio 2ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista 16ms
+   ✓ sonda 1: função SECURITY DEFINER fora da lista reprova > a função de uma etapa que o catálogo ainda não conhece reprova 48ms
+   ✓ sonda 2: sobrecarga de uma função listada reprova > mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura 9ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função que não existe no banco 31ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > uma função listada que deixou de ser SECURITY DEFINER 9ms
+   ✓ sonda 3: entrada na lista que o banco não confirma reprova > tirar a função da lista (o caminho inverso) também reprova 32ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido a PUBLIC 7ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > EXECUTE concedido ao console numa função que só a aplicação executa 45ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console) 83ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > S12: trocar o dono de uma função privilegiada reprova no catálogo 73ms
+   ✓ sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados > quemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão 0ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > dívida de tenant sem a etapa que a paga 6ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > motivo de enchimento 10ms
+   ✓ sonda 5: o que a entrada diz precisa ser verdade e ter dono > S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova 57ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna 185ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna 106ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa 62ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) 25ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que não existe 78ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`) 205ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > tabela que TEM policy de tenant: dispensa de policy desnecessária 80ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não dispensa nem a coluna nem a policy 69ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > entrada que não diz se dispensa ou mantém um invariante 60ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: RLS não forçada reprova 116ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova 55ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete` 74ms
+   ✓ sonda 7: exceção que o banco não confirma reprova > dispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção 2ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova 121ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção 1ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado 1ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > S8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco 63ms
+   ✓ sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse > tabela do fornecedor que o papel de aplicação alcança reprova 123ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app  383ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app  319ms
+   ✓ sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão > USAGE num esquema vazio, e CREATE em public, também reprovam 129ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não existe reprova  706ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com uma migração que não recria a função reprova  313ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > S5a: redefinir com a mesma migração da entrada substituída é recusado na junção 1ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)  368ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma etapa que redefine uma função da base com redefine: true e a migração que a recria passa (parte 0G)  845ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova  311ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas  967ms
+   ✓ sonda 11: a junção das contribuições das etapas > a mesma função em duas etapas, sem redefine, é erro 1ms
+   ✓ sonda 11: a junção das contribuições das etapas > redefine: true com migração maior substitui a entrada anterior 45ms
+   ✓ sonda 11: a junção das contribuições das etapas > redefine: true sem entrada anterior é erro (nome errado) 1ms
+   ✓ sonda 11: a junção das contribuições das etapas > entrada que diz outra etapa que não a do arquivo é erro 1ms
+   ✓ sonda 11: a junção das contribuições das etapas > assinatura que não é da função nomeada é erro 0ms
+   ✓ sonda 11: a junção das contribuições das etapas > a mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também 1ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  14616ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  10727ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  11441ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  12312ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  12490ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  11722ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  11765ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  10895ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > a junção: grupo repetido, redefinição com migração menor, o mesmo UPDATE nos dois lugares, coluna repetida e motivo curto 2ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > o banco de hoje passa, e as duas isenções do fornecedor são as únicas que o portão passa por nome 79ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > a chave declarada para tabela global declarada passa 75ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para a tabela global sem a declaração da chave reprova 74ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada para tabela que não é global no catálogo reprova 47ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave sem organizacao_id para outra tabela qualquer continua reprovando 69ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave para tabela global com cascata, ou com a coluna gravável pelo app, reprova 73ms
+   ✓ sonda 13 (parte 0G): chave estrangeira sem organizacao_id só para tabela global declarada > chave declarada que o banco não tem, ou que inclui organizacao_id, reprova 91ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a protegida e a global, na forma certa, passam 114ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela protegida com um grant ao app reprova 30ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela sem organizacao_id fingindo ser protegida (RLS não forçada, policy aberta, grant declarado) reprova 45ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > tabela sem município que não mantém o que precisa manter reprova 59ms
+   ✓ sonda 14 (parte 0G): tabela sem município (global ou protegida) só com RLS forçada, nenhum privilégio e nenhuma policy > a junção: sem município e do fornecedor ao mesmo tempo, e o porquê curto, são recusados 1ms
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa 3962ms
+     → expected [ …(2) ] to deeply equal []
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco 1648ms
+     → expected [ Array(1) ] to deeply equal []
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova 1809ms
+     → expected [ Array(1) ] to deeply equal [ Array(1) ]
+   × sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova 2515ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  3741ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o banco de hoje: nenhum papel do produto cria objeto, e nenhuma função de gatilho privilegiada existe 45ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TEMP e EXECUTE o ataque grava no cofre; a entrada de antes da 0G passava, e agora as três conferências reprovam 123ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > sem TEMP o ataque não começa, e sem EXECUTE o gatilho não se anexa 46ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > com TG_RELID conferido, nem TEMP e EXECUTE juntos gravam; e a forma certa passa nas três conferências 128ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > o gatilho numa tabela que o catálogo não declara, e o nome nu no corpo, reprovam 88ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > conferir pelo esquema E pelo nome também vale; só pelo nome (TG_TABLE_NAME = 'usuarios', que a temporária também tem) reprova 142ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > CREATE no banco ou num esquema, dado a PUBLIC, reprova 5ms
+   ✓ sonda 16 (parte 0G): a tabela temporária de mesmo nome e o gatilho privilegiado > a função de gatilho na lista com EXECUTE vazio não reprova mais por 'ninguém a chama', e a comum continua reprovando 51ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > encolher passa; ampliar sem declarar reprova (o caso da auditoria: a coluna de volta à lista) 5ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > a ampliação declarada é exatamente o que a redefinição acrescenta, com justificativa, e só em redefinição 5ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > a coluna proibida não volta nem por ampliação declarada; proibição não se redefine nem se repete 2ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > antes da migração da proibição nada se confere; depois, a tabela sem o privilégio passa 60ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > o privilégio proibido no banco reprova, de coluna ou de tabela, do app, do console ou de PUBLIC 56ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > o catálogo que lista a coluna proibida reprova, mesmo com o banco igual a ele 41ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > proibição sobre tabela que não existe reprova 2ms
+   ✓ sonda 17 (correção 1 da 0G, item 1): a redefinição de privilégio por coluna só encolhe, e a coluna proibida nunca volta > as proibições do portão passam no banco das migrações reais; enquanto a 061 não existe, ligá-las mesmo assim morde (o app ainda alcança a credencial de usuarios) 86ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > a mesma exceção, no mesmo regime, redefinida, passa 1ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > tirar semMunicipio de uma tabela protegida reprova (ela voltava à exceção comum e saía da prova da eliminação) 0ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > trocar protegida por global, ou o destino na eliminação, reprova 1ms
+   ✓ sonda 18 (correção 1 da 0G, item 2): a redefinição de uma exceção preserva o regime > uma exceção comum também não ganha regime por redefinição (qualquer transição é ampliação) 0ms
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão 1808ms
+     → expected [ Array(1) ] to deeply equal []
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava) 1721ms
+     → expected [ Array(1) ] to deeply equal [ Array(1) ]
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim 1660ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava) 1891ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa 1877ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   × sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto) 1758ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  4376ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a declaração completa: sem semearOutroMunicipio, ou compartilhar sem :outra, reprova 1ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > o banco de hoje não tem função de gatilho privilegiada, e passa  329ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a recusa por TG_RELID antes de tudo passa  412ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > PERFORM TG_RELID = ... (inoperante) passa na conferência textual e reprova aqui: a função não recusa, e escreve  388ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a conferência posta DEPOIS da escrita reprova: escreveu antes de recusar  315ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa  572ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a sequência que anda antes da recusa também é efeito 288ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > recusar com outro erro que não 42501 não é a recusa pela tabela que disparou  512ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > cada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam  945ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a função sem gatilho no banco é disparada de uma tabela de prova  833ms
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS 42ms
+     → expected [ …(2) ] to deeply equal []
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também 41ms
+     → expected [ …(3) ] to deeply equal [ StringMatching{…} ]
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo 127ms
+     → expected [ …(3) ] to deeply equal [ Array(1) ]
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam 49ms
+     → CREATE TRIGGER sonda_alvo_grava AFTER INSERT ON sonda_alvo FOR EACH ROW EXECUTE FUNCTION sonda_grava();: expected [ …(3) ] to deeply equal [ StringMatching{…} ]
+   × sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova 44ms
+     → expected [ …(4) ] to deeply equal [ …(2) ]
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a chave validada para as colunas declaradas passa 86ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > NOT VALID reprova 88ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > referenciar outra coluna única do alvo reprova, declarada ou não; declarar a coluna certa passa 225ms
+   ✓ sonda 22 (correção 1 da 0G, item 8): a chave para a tabela global referencia as colunas declaradas e está validada > a declaração completa: chave para global sem colunasReferenciadas reprova 1ms
+   × sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > a consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado) 2192ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   × sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > sem linha exclusiva, nem a limpeza de verdade basta: não há o que provar 1794ms
+     → expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+   × sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > controle: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva 1841ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > tabela vazia: a escrita chaveada por NEW antes da recusa passava só com a linha nula, e com a linha semeada reprova  690ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > a escrita só quando NEW difere de OLD, antes da recusa, passava com SET coluna = coluna e reprova com a mudança efetiva  379ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > controle: a recusa antes de tudo passa com a linha semeada e com a mudança efetiva  458ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > a semeadura que não põe linha na tabela do gatilho reprova  341ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > a declaração completa: função de gatilho privilegiada sem semearParaProva (ou sem :org) reprova 1ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > a leitora da E15 passa; os literais são preservados (um -- ou um ; dentro do literal é texto) 5ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > as sete sabotagens da correção 6 reprovam, uma por vez 5ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > a escrita disfarçada de leitura e o que o conferidor não reconhece reprovam (falha fechada) 17ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > a leitora na forma certa passa no banco; sem leitora declarada, também 30ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > proconfig diferente, sem SECURITY DEFINER, com EXECUTE, ou corpo sabotado reprovam 63ms
+   ✓ sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida > duas leitoras, leitora escritora, leitora fora de usuarios ou de AFTER INSERT, e escritora com ramo verificador reprovam 54ms
+
+ Test Files  3 failed (3)
+      Tests  45 failed | 299 passed | 69 skipped (413)
+     Errors  1 error
+   Start at  19:34:56
+   Duration  152.51s (transform 1.11s, setup 0ms, collect 3.26s, tests 302.50s, environment 1ms, prepare 812ms)
+
+19:34:57 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db/test/catalogo-nominal.test.ts
+stderr | test/pessoas.test.ts
+Testes de Postgres real de pessoas.test.ts PULADOS: DC360_POSTGRES_DE_PROVA não está definida. Aponte-a para um Postgres descartável (ex.: postgres://postgres:postgres@localhost:5432/postgres) para provar a trava da pessoa e a corrida do cadastro com duas conexões; o job `implantavel` do CI a define.
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/isolamento.test.ts > Chave estrangeira nao atravessa municipio
+ FAIL  test/isolamento.test.ts > Aparelho de push e aviso de prazo
+ FAIL  test/isolamento.test.ts > O aviso de despacho nasce na aplicacao, pela porta estreita da 042
+ FAIL  test/isolamento.test.ts > Sino de avisos
+ FAIL  test/isolamento.test.ts > Minimizacao por prazo e registro de consulta
+ FAIL  test/isolamento.test.ts > Segundo fator
+ FAIL  test/isolamento.test.ts > Metricas escritas pelo proprio municipio
+error: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+ ❯ ye.Ve ../node_modules/@electric-sql/pg-protocol/src/parser.ts:432:11
+ ❯ ye.nt ../node_modules/@electric-sql/pg-protocol/src/parser.ts:210:16
+ ❯ ye.parse ../node_modules/@electric-sql/pg-protocol/src/parser.ts:102:25
+ ❯ pe.execProtocol ../node_modules/@electric-sql/pglite/src/pglite.ts:631:26
+ ❯ pe.l ../node_modules/@electric-sql/pglite/src/base.ts:130:12
+ ❯ ../node_modules/@electric-sql/pglite/src/base.ts:274:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/52]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 45 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "pessoas (global, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++   "origens_de_conta (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:1496:78
+    1494| 
+    1495|   it("o catálogo de hoje não declara nenhuma, e passa", async () => {
+    1496|     expect(await conferirEliminacaoSemMunicipio(db, EXCECOES_AO_ISOLAM…
+       |                                                                              ^
+    1497|   });
+    1498| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sonda_marcas (protegida, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:1503:7
+    1501|     expect(
+    1502|       await comBuraco(ABRIR, FECHAR, () => eliminar(protegida("sonda_m…
+    1503|     ).toEqual([]);
+       |       ^
+    1504|     expect(await organizacoes()).toBe(antes);
+    1505|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova
+AssertionError: expected [ Array(1) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+-   "sonda_marcas (protegida, some): o catálogo diz que as linhas do município SOMEM na eliminação, e 1 de 1 ficaram",
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:1510:7
+    1508|     expect(
+    1509|       await comBuraco(ABRIR, FECHAR, () => eliminar(protegida("sonda_m…
+    1510|     ).toEqual([
+       |       ^
+    1511|       "sonda_marcas (protegida, some): o catálogo diz que as linhas do…
+    1512|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:1520:7
+    1518|         eliminar(protegida("sonda_marcas", "some")),
+    1519|       ),
+    1520|     ).toEqual([]);
+       |       ^
+    1521|     expect(
+    1522|       await comBuraco(`${ABRIR} ${SOME}`, `${FECHAR_SOME} ${FECHAR}`, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sonda_marcas (protegida, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:2068:78
+    2066|   it("com o outro município semeado, a marca que fica passa; e a prova…
+    2067|     const antes = await contagem();
+    2068|     expect(await comBuraco(ABRIR, FECHAR, () => eliminar(comOutro("fic…
+       |                                                                              ^
+    2069|     expect(await contagem()).toEqual(antes);
+    2070|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)
+AssertionError: expected [ Array(1) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+-   "sonda_marcas (protegida, fica): o catálogo diz que as linhas do município FICAM na eliminação, e 1 de 1 sumiram",
++   "sonda_marcas (protegida, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2085:7
+    2083|         eliminar(comOutro("fica")),
+    2084|       ),
+    2085|     ).toEqual([
+       |       ^
+    2086|       "sonda_marcas (protegida, fica): o catálogo diz que as linhas do…
+    2087|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, fica\): a prova do destino na eliminação não chegou ao fim: sonda: recusa na confirmacao/,
++   "sonda_marcas (protegida, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2102:7
+    2100|         eliminar(comOutro("fica")),
+    2101|       ),
+    2102|     ).toEqual([
+       |       ^
+    2103|       expect.stringMatching(
+    2104|         /^sonda_marcas \(protegida, fica\): a prova do destino na elim…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, some\): 2 de 2 chave\(s\) que linhasDoMunicipio devolve não existem em sonda_marcas\.outra ANTES da eliminação/,
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2118:23
+    2116|       ),
+    2117|     );
+    2118|     expect(problemas).toEqual([
+       |                       ^
+    2119|       expect.stringMatching(
+    2120|         /^sonda_marcas \(protegida, some\): 2 de 2 chave\(s\) que linh…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, some\): a eliminação de UM município mexeu em sonda_marcas fora dele .*: 1 linha\(s\) sumiram ou mudaram e 0 apareceram/,
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2140:7
+    2138|         eliminar(comOutro("some")),
+    2139|       ),
+    2140|     ).toEqual([
+       |       ^
+    2141|       expect.stringMatching(
+    2142|         /^sonda_marcas \(protegida, some\): a eliminação de UM municíp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, fica\): linhasDoMunicipio não achou nenhuma linha do OUTRO município/,
++   "sonda_marcas (protegida, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2157:7
+    2155|         eliminar(comOutro("fica", { semearOutroMunicipio: "SELECT :org…
+    2156|       ),
+    2157|     ).toEqual([
+       |       ^
+    2158|       expect.stringMatching(
+    2159|         /^sonda_marcas \(protegida, fica\): linhasDoMunicipio não acho…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > o banco de hoje passa; o gatilho declarado como está passa, também ENABLE ALWAYS
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:2414:73
+    2412| 
+    2413|   it("o banco de hoje passa; o gatilho declarado como está passa, tamb…
+    2414|     expect(await conferirDisparoDosGatilhos(db, FUNCOES_PRIVILEGIADAS)…
+       |                                                                         ^
+    2415|     expect(await comBuraco(ABRIR(ANTES_DO_INSERT), FECHAR, () => dispa…
+    2416|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > função de gatilho sem gatilhos declarados reprova, e gatilhos fora de gatilhoEm também
+AssertionError: expected [ …(3) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^public\.sonda_grava\(\): função de gatilho privilegiada sem gatilhos declarados/,
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
++   "public.sonda_grava(): função de gatilho privilegiada sem gatilhos declarados (tabela, nome, momento, nível, eventos, UPDATE OF, WHEN e adiamento de cada gatilho que a chama)",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2430:7
+    2428|         disparo({ ...ENTRADA, gatilhos: undefined }),
+    2429|       ),
+    2430|     ).toEqual([
+       |       ^
+    2431|       expect.stringMatching(
+    2432|         /^public\.sonda_grava\(\): função de gatilho privilegiada sem …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > desabilitado, ou habilitado só para réplica, reprova; gatilhoEm continuava batendo
+AssertionError: expected [ …(3) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
+    "public.sonda_grava(): o gatilho sonda_alvo_grava de sonda_alvo está DESABILITADO (tgenabled D): gatilho privilegiado dispara sempre (O ou A)",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2456:26
+    2454|     );
+    2455|     expect(textual).toEqual([]);
+    2456|     expect(desabilitado).toEqual([
+       |                          ^
+    2457|       "public.sonda_grava(): o gatilho sonda_alvo_grava de sonda_alvo …
+    2458|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > evento, momento, WHEN, UPDATE OF ou adiamento diferentes do declarado reprovam
+AssertionError: CREATE TRIGGER sonda_alvo_grava AFTER INSERT ON sonda_alvo FOR EACH ROW EXECUTE FUNCTION sonda_grava();: expected [ …(3) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^public\.sonda_grava\(\): o gatilho sonda_alvo\.sonda_alvo_grava no banco é \{.*\}, e o catálogo declara \{"momento":"BEFORE","nivel":"ROW","eventos":\["INSERT"\],"colunasDoUpdate":\[\],"quando":null,"adiado":null\}$/,
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
++   "public.sonda_grava(): o gatilho sonda_alvo.sonda_alvo_grava no banco é {\"momento\":\"AFTER\",\"nivel\":\"ROW\",\"eventos\":[\"INSERT\"],\"colunasDoUpdate\":[],\"quando\":null,\"adiado\":null}, e o catálogo declara {\"momento\":\"BEFORE\",\"nivel\":\"ROW\",\"eventos\":[\"INSERT\"],\"colunasDoUpdate\":[],\"quando\":null,\"adiado\":null}",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2479:81
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 21 (correção 1 da 0G, item 7): o disparo de cada gatilho privilegiado é o declarado, e ele está habilitado > gatilho a mais no banco, ou declarado que não existe, reprova
+AssertionError: expected [ …(4) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
+    "public.sonda_grava(): o gatilho sonda_alvo.sonda_alvo_outro a chama no banco e não está declarado em gatilhos",
+    "public.sonda_grava(): o gatilho sonda_alvo.sonda_fantasma está declarado e não existe no banco",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2530:23
+    2528|         }),
+    2529|     );
+    2530|     expect(problemas).toEqual([
+       |                       ^
+    2531|       "public.sonda_grava(): o gatilho sonda_alvo.sonda_alvo_outro a c…
+    2532|       "public.sonda_grava(): o gatilho sonda_alvo.sonda_fantasma está …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > a consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, some\): nenhuma das 2 chave\(s\) que linhasDoMunicipio devolve para o município eliminado é EXCLUSIVA dele/,
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2652:86
+    2650| 
+    2651|   it("a consulta que devolve as mesmas chaves para os dois municípios,…
+    2652|     expect(await comBuraco(ABRIR, FECHAR, () => eliminar(declarada("so…
+       |                                                                                      ^
+    2653|       expect.stringMatching(SEM_EXCLUSIVA),
+    2654|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > sem linha exclusiva, nem a limpeza de verdade basta: não há o que provar
+AssertionError: expected [ Array(1) ] to deeply equal [ StringMatching{…} ]
+
+- Expected
++ Received
+
+  [
+-   StringMatching /^sonda_marcas \(protegida, some\): nenhuma das 2 chave\(s\) que linhasDoMunicipio devolve para o município eliminado é EXCLUSIVA dele/,
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  ]
+
+ ❯ test/catalogo-nominal.test.ts:2662:7
+    2660|         eliminar(declarada("some", TODAS)),
+    2661|       ),
+    2662|     ).toEqual([expect.stringMatching(SEM_EXCLUSIVA)]);
+       |       ^
+    2663|   });
+    2664| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/52]⎯
+
+ FAIL  test/catalogo-nominal.test.ts > sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > controle: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sonda_marcas (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/catalogo-nominal.test.ts:2670:7
+    2668|         eliminar(declarada("some")),
+    2669|       ),
+    2670|     ).toEqual([]);
+       |       ^
+    2671|     expect(await comBuraco(ABRIR, FECHAR, () => eliminar(declarada("fi…
+    2672|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/52]⎯
+
+ FAIL  test/isolamento.test.ts > CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "pessoas (global, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++   "origens_de_conta (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/isolamento.test.ts:613:78
+    611|       eliminação, numa transação desfeita no fim.
+    612|     */
+    613|     expect(await conferirEliminacaoSemMunicipio(db, EXCECOES_AO_ISOLAM…
+       |                                                                              ^
+    614|   });
+    615| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/52]⎯
+
+ FAIL  test/isolamento.test.ts > CA-06: isolamento entre organizações > função de gatilho privilegiada: cada gatilho que a chama é o declarado (momento, nível, eventos, UPDATE OF, WHEN, adiamento) e está habilitado (correção 1 da 0G)
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.conta_ganha_pessoa(): o gatilho usuarios.usuarios_origem_da_pessoa a chama no banco e não está declarado em gatilhos",
++   "public.conferir_origem_da_conta(): o gatilho usuarios.usuarios_origem_da_pessoa está declarado e não existe no banco",
++ ]
+
+ ❯ test/isolamento.test.ts:635:73
+    633|       continuava batendo com ele.
+    634|     */
+    635|     expect(await conferirDisparoDosGatilhos(db, FUNCOES_PRIVILEGIADAS)…
+       |                                                                         ^
+    636|   });
+    637| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/52]⎯
+
+ FAIL  test/isolamento.test.ts > Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá
+ FAIL  test/isolamento.test.ts > Regras de negócio garantidas pelo banco > a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040)
+ FAIL  test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > `provisionar_municipio` (console) cria a pessoa nova junto, com a senha provisória, e passa
+ FAIL  test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o INSERT do dono, sem contexto (sementes, testes), também passa
+ FAIL  test/pessoas.test.ts > correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a conta apagada pelo dono leva a marca dela, e só ela: as outras marcas ficam iguais, valor por valor, e nenhuma fica sem conta
+error: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+ ❯ ye.Ve ../node_modules/@electric-sql/pg-protocol/src/parser.ts:432:11
+ ❯ ye.nt ../node_modules/@electric-sql/pg-protocol/src/parser.ts:210:16
+ ❯ ye.parse ../node_modules/@electric-sql/pg-protocol/src/parser.ts:102:25
+ ❯ pe.execProtocol ../node_modules/@electric-sql/pglite/src/pglite.ts:631:26
+ ❯ pe.l ../node_modules/@electric-sql/pglite/src/base.ts:130:12
+ ❯ ../node_modules/@electric-sql/pglite/src/base.ts:274:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/52]⎯
+
+ FAIL  test/isolamento.test.ts > O console le metrica e nao alcanca dado de municipio > le o resumo de mais de um municipio, que e o motivo de ele existir
+AssertionError: o console nao conseguiu ler o resumo de mais de um municipio, e sem isso ele nao responde nenhuma das tres perguntas da ADR 0008: expected 0 to be greater than or equal to 2
+ ❯ test/isolamento.test.ts:4661:7
+    4659|       "o console nao conseguiu ler o resumo de mais de um municipio, e…
+    4660|       "ele nao responde nenhuma das tres perguntas da ADR 0008",
+    4661|     ).toBeGreaterThanOrEqual(2);
+       |       ^
+    4662|   });
+    4663| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/52]⎯
+
+ FAIL  test/isolamento.test.ts > O relogio que descobre para quem chamar o resumo > descobre quem esta sem resumo fresco, sem contexto de municipio nenhum
+AssertionError: o municipio que escreveu o resumo ha instantes continua na fila do relogio, e o relogio reescreveria o mesmo numero a cada rodada: expected [ …(3) ] to not include '4965dbd5-fb9e-49af-a598-1b14c3b8129c'
+ ❯ test/isolamento.test.ts:4794:11
+    4792|       "o municipio que escreveu o resumo ha instantes continua na fila…
+    4793|       "e o relogio reescreveria o mesmo numero a cada rodada",
+    4794|     ).not.toContain(orgA);
+       |           ^
+    4795|   });
+    4796| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/52]⎯
+
+ FAIL  test/isolamento.test.ts > A porta de criar municipio, e por que ela nao serve para ler > o municipio, o administrador e a linha de nascimento nascem juntos
+ FAIL  test/isolamento.test.ts > A porta de criar municipio, e por que ela nao serve para ler > depois de criar o municipio, o console continua sem enxergar o que criou
+ FAIL  test/isolamento.test.ts > A porta de criar municipio, e por que ela nao serve para ler > recusa municipio duplicado ANTES de escrever, e diz qual ja existe
+ FAIL  test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o cadastro de hoje (INSERT do dc360_app no município) passa no fim da transação, com pessoa nova e marca da MESMA transação
+ FAIL  test/pessoas.test.ts > correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta > o mesmo comando sem conflito continua passando (a conta, a pessoa e a marca nascem juntas)
+error: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios
+ ❯ ye.Ve ../node_modules/@electric-sql/pg-protocol/src/parser.ts:432:11
+ ❯ ye.nt ../node_modules/@electric-sql/pg-protocol/src/parser.ts:210:16
+ ❯ ye.parse ../node_modules/@electric-sql/pg-protocol/src/parser.ts:102:25
+ ❯ pe.execProtocol ../node_modules/@electric-sql/pglite/src/pglite.ts:631:26
+ ❯ pe.l ../node_modules/@electric-sql/pglite/src/base.ts:130:12
+ ❯ ../node_modules/@electric-sql/pglite/src/base.ts:304:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/52]⎯
+
+ FAIL  test/isolamento.test.ts > Prova comportamental entre municípios, tabela por tabela (parte 0D) > correção 6 da ADR 0009: a leitora de origens_de_conta (o verificador adiado) só lê, por lista permitida, com search_path fixo, e nenhuma escritora verifica
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "public.conta_ganha_pessoa(): função escritora de origens_de_conta disparada pelo gatilho usuarios_origem_da_pessoa (AFTER INSERT de usuarios): ramo verificador em função escritora; o verificador é a leitora separada (correção 6 da ADR 0009)",
++ ]
+
+ ❯ test/isolamento.test.ts:5432:70
+    5430| 
+    5431|   it("correção 6 da ADR 0009: a leitora de origens_de_conta (o verific…
+    5432|     expect(await conferirLeitoraDeOrigem(db, FUNCOES_PRIVILEGIADAS)).t…
+       |                                                                      ^
+    5433|   });
+    5434| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/52]⎯
+
+ FAIL  test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > e-mail repetido em `provisionar_municipio` continua o DC363 de antes (o oráculo da F00 não muda de forma)
+AssertionError: expected '42501' to be 'DC363' // Object.is equality
+
+Expected: "DC363"
+Received: "42501"
+
+ ❯ test/pessoas.test.ts:350:20
+    348|       ),
+    349|     );
+    350|     expect(e.code).toBe("DC363");
+       |                    ^
+    351|   });
+    352| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/52]⎯
+
+ FAIL  test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > toda conta do backfill tem a marca `backfill`, e as contas criadas depois, `criador`
+AssertionError: expected [ { origem: 'backfill', n: 3 } ] to deeply equal [ { origem: 'backfill', n: 3 }, …(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "n": 3,
+      "origem": "backfill",
+    },
+-   {
+-     "n": 0,
+-     "origem": "criador",
+-   },
+  ]
+
+ ❯ test/pessoas.test.ts:372:20
+    370|     );
+    371|     const contasAgora = await umValor<number>(db, "SELECT count(*)::in…
+    372|     expect(r.rows).toEqual([
+       |                    ^
+    373|       { origem: "backfill", n: contasDoBackfill },
+    374|       { origem: "criador", n: contasAgora - contasDoBackfill },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/52]⎯
+
+ FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > um BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação
+AssertionError: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "23514",
+-   "constraint": "usuarios_origem_da_pessoa",
++ E {
++   "code": "42501",
++   "constraint": undefined,
+  }
+
+ ❯ test/pessoas.test.ts:538:17
+    536|       );
+    537|       expect(inseriu).toBe(true);
+    538|       expect(e).toMatchObject({ code: "23514", constraint: "usuarios_o…
+       |                 ^
+    539|     } finally {
+    540|       await db.exec(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/52]⎯
+
+ FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono)
+AssertionError: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "23514",
+-   "constraint": "usuarios_origem_da_pessoa",
++ E {
++   "code": "42501",
++   "constraint": undefined,
+  }
+
+ ❯ test/pessoas.test.ts:574:24
+    572|         ),
+    573|       );
+    574|       expect(semMarca).toMatchObject({ code: "23514", constraint: "usu…
+       |                        ^
+    575|       const marcaVelha = await erroDe(
+    576|         db.query(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/52]⎯
+
+ FAIL  test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa
+Error: deveria ter sido recusado
+ ❯ erroDe test/pessoas.test.ts:94:9
+     92|     return e as Erro;
+     93|   }
+     94|   throw new Error("deveria ter sido recusado");
+       |         ^
+     95| }
+     96| 
+ ❯ test/pessoas.test.ts:649:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/52]⎯
+
+ FAIL  test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09)
+AssertionError: expected undefined to match object { …(3) }
+
+- Expected: 
+{
+  "ativo": true,
+  "email": "a3.novo@exemplo.gov.br",
+  "nome": "Semente",
+}
+
++ Received: 
+undefined
+
+ ❯ test/pessoas.test.ts:893:15
+    891|     );
+    892|     const p = await pessoaDe(contas["A3"]!);
+    893|     expect(p).toMatchObject({ email: "a3.novo@exemplo.gov.br", nome: "…
+       |               ^
+    894|     await comoApp(db, orgA, (tx) =>
+    895|       tx.query("UPDATE usuarios SET ativo = false WHERE id = $1", [con…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/52]⎯
+
+ FAIL  test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa sem conta no município do contexto, ou sessão de outra conta: sem conta e sem sessão viva
+TypeError: Cannot read properties of undefined (reading 'v')
+ ❯ umValor test/pessoas.test.ts:116:21
+    114| ): Promise<T> => {
+    115|   const r = await db.query<{ v: T }>(sql, params);
+    116|   return r.rows[0]!.v;
+       |                     ^
+    117| };
+    118| 
+ ❯ test/pessoas.test.ts:1055:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/52]⎯
+
+ FAIL  test/pessoas.test.ts > correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > conta inserida e apagada na mesma transação: a marca sai com ela, e o verificador recusa no fim (falha fechada)
+AssertionError: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to match object { code: '23514', …(1) }
+(16 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "23514",
+-   "constraint": "usuarios_origem_da_pessoa",
++ E {
++   "code": "42501",
++   "constraint": undefined,
+  }
+
+ ❯ test/pessoas.test.ts:1826:15
+    1824|       }),
+    1825|     );
+    1826|     expect(e).toMatchObject({ code: "23514", constraint: "usuarios_ori…
+       |               ^
+    1827|   });
+    1828| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/52]⎯
+
+ FAIL  test/pessoas.test.ts > correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "pessoas (global, fica): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++   "origens_de_conta (protegida, some): a prova do destino na eliminação não chegou ao fim: conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
++ ]
+
+ ❯ test/pessoas.test.ts:1835:63
+    1833|       ["origens_de_conta", "some"],
+    1834|     ]);
+    1835|     expect(await conferirEliminacaoSemMunicipio(db, tabelas)).toEqual(…
+       |                                                               ^
+    1836|   });
+    1837| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/52]⎯
+
+ FAIL  test/pessoas.test.ts > correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > no catálogo do banco: os dois gatilhos de conferência executam conferir_origem_da_conta, e nenhum AFTER INSERT de usuarios executa conta_ganha_pessoa
+AssertionError: expected [ { …(3) }, { …(3) }, { …(3) }, …(1) ] to deeply equal [ { …(3) }, { …(3) }, { …(3) }, …(1) ]
+
+- Expected
++ Received
+
+@@ -14,9 +14,9 @@
+      "funcao": "conferir_origem_da_conta",
+      "gatilho": "usuarios_nenhuma_pessoa_sem_conta",
+    },
+    {
+      "depois_do_insert": true,
+-     "funcao": "conferir_origem_da_conta",
++     "funcao": "conta_ganha_pessoa",
+      "gatilho": "usuarios_origem_da_pessoa",
+    },
+  ]
+
+ ❯ test/pessoas.test.ts:1950:20
+    1948|                           'public.conta_ganha_pessoa()'::regprocedure)
+    1949|        ORDER BY 1`);
+    1950|     expect(r.rows).toEqual([
+       |                    ^
+    1951|       { gatilho: "usuarios_ganha_pessoa", funcao: "conta_ganha_pessoa"…
+    1952|       {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/52]⎯
+
+ FAIL  test/pessoas.test.ts > correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > prova adicional por contadores: o adiado disparado com IMMEDIATE não muda contador nem sequência, no caminho que passa e nos que recusam
+AssertionError: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to be null
+
+- Expected: 
+null
+
++ Received: 
+error {
+  "message": "conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  "length": 192,
+  "name": "error",
+  "severity": "ERROR",
+  "code": "42501",
+  "detail": undefined,
+  "hint": undefined,
+  "position": undefined,
+  "internalPosition": undefined,
+  "internalQuery": undefined,
+  "where": "PL/pgSQL function conta_ganha_pessoa() line 11 at RAISE",
+  "schema": undefined,
+  "table": undefined,
+  "column": undefined,
+  "dataType": undefined,
+  "constraint": undefined,
+  "file": "pl_exec.c",
+  "line": "3924",
+  "routine": "exec_stmt_raise",
+}
+
+ ❯ test/pessoas.test.ts:1984:24
+    1982|   it("prova adicional por contadores: o adiado disparado com IMMEDIATE…
+    1983|     const passa = await dispararNaTransacao();
+    1984|     expect(passa.erro).toBeNull();
+       |                        ^
+    1985|     // A leitura enxerga a escrita da transação (a conta, a pessoa e a…
+    1986|     const linha = (n: string) => passa.antes!.tabelas.find((l) => l.re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/52]⎯
+
+ FAIL  test/pessoas.test.ts > correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > as sete sabotagens da correção 6: todas reprovam na lista permitida; as que escrevem (tabela ou sequência) também nos contadores
+AssertionError: pg_notify: a leitora sabotada ainda passa no caminho de aceite: expected error: conta_ganha_pessoa so serve aos do… { …(15) } to be null
+
+- Expected: 
+null
+
++ Received: 
+error {
+  "message": "conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios",
+  "length": 192,
+  "name": "error",
+  "severity": "ERROR",
+  "code": "42501",
+  "detail": undefined,
+  "hint": undefined,
+  "position": undefined,
+  "internalPosition": undefined,
+  "internalQuery": undefined,
+  "where": "PL/pgSQL function conta_ganha_pessoa() line 11 at RAISE",
+  "schema": undefined,
+  "table": undefined,
+  "column": undefined,
+  "dataType": undefined,
+  "constraint": undefined,
+  "file": "pl_exec.c",
+  "line": "3924",
+  "routine": "exec_stmt_raise",
+}
+
+ ❯ test/pessoas.test.ts:2046:86
+    2044|       ).toBeGreaterThan(0);
+    2045|       const r = await dispararNaTransacao({ preparo: PREPARO, corpo });
+    2046|       expect(r.erro, `${nome}: a leitora sabotada ainda passa no camin…
+       |                                                                                      ^
+    2047|       if (contadoresVeem) {
+    2048|         expect(r.depois, `${nome}: os contadores veem a escrita`).not.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/52]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+

@@ -1,0 +1,11 @@
+typecheck 0
+lint 0
+lint:teto 0
+formato:conferir 0
+conferir:numeros 0
+baseline.test 0
+regras-de-conteudo 1 (1 falha aceita, EPERM, DV-46)
+auditar 0
+test:isolamento 1 (8 falhas de ambiente Windows aceitas)
+npm test 1 (falhas de ambiente aceitas)
+console no-navegador sozinho 0

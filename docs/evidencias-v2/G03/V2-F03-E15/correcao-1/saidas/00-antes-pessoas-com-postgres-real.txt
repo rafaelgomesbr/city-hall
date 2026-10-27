@@ -1,0 +1,319 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db[39m
+
+ [31m❯[39m test/pessoas.test.ts [2m([22m[2m86 tests[22m[2m | [22m[31m13 failed[39m[2m)[22m[33m 7696[2mms[22m[39m
+   [32m✓[39m o backfill da 054, sobre contas, sessões e segundo fator de antes[2m > [22maplica sem erro e não muda nada do que já existia[32m 40[2mms[22m[39m
+   [32m✓[39m o backfill da 054, sobre contas, sessões e segundo fator de antes[2m > [22mN contas viram N pessoas, cada conta com a sua, e a marca `backfill` de cada uma[32m 5[2mms[22m[39m
+   [32m✓[39m o backfill da 054, sobre contas, sessões e segundo fator de antes[2m > [22ma credencial e o e-mail foram copiados sem perda; nada de município foi para a pessoa[32m 8[2mms[22m[39m
+   [32m✓[39m o backfill da 054, sobre contas, sessões e segundo fator de antes[2m > [22mtoda sessão de antes carrega a pessoa da conta, e o login de antes ainda acha a conta[32m 7[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22mo cadastro de hoje (INSERT do dc360_app no município) passa no fim da transação, com pessoa nova e marca da MESMA transação[32m 9[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22m`provisionar_municipio` (console) cria a pessoa nova junto, com a senha provisória, e passa[32m 5[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22me-mail repetido em `provisionar_municipio` continua o DC363 de antes (o oráculo da F00 não muda de forma)[32m 3[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22mo INSERT do dono, sem contexto (sementes, testes), também passa[32m 2[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22mtoda conta do backfill tem a marca `backfill`, e as contas criadas depois, `criador`[32m 3[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22mo e-mail de uma pessoa existente NÃO liga a conta nova a ela: a conta é recusada como sempre foi[32m 5[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22msegunda PESSOA com o mesmo e-mail (outra caixa), mesmo pelo dono: `pessoas_email_idx` recusa[32m 1[2mms[22m[39m
+   [32m✓[39m positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador`[2m > [22mconta de outro município com contexto: o criador recusa (42501) antes de criar a pessoa[32m 5[2mms[22m[39m
+   [32m✓[39m negativo da origem: `pessoa_id` só nasce pelo gatilho criador[2m > [22mo dc360_app informando `pessoa_id` no INSERT: permissão negada, antes de qualquer escrita[32m 5[2mms[22m[39m
+   [32m✓[39m negativo da origem: `pessoa_id` só nasce pelo gatilho criador[2m > [22mfunção do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT[32m 6[2mms[22m[39m
+   [32m✓[39m negativo da origem: `pessoa_id` só nasce pelo gatilho criador[2m > [22mum BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação[32m 5[2mms[22m[39m
+   [32m✓[39m negativo da origem: `pessoa_id` só nasce pelo gatilho criador[2m > [22mconta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono)[32m 6[2mms[22m[39m
+   [32m✓[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mUPDATE de `pessoa_id` pelo dc360_app: permissão negada (privilégio de coluna)[32m 3[2mms[22m[39m
+   [32m✓[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mUPDATE de `pessoa_id` pelo DONO, direto ou por função SECURITY DEFINER: o gatilho recusa (IS DISTINCT FROM)[32m 4[2mms[22m[39m
+   [32m✓[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mum BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa[32m 3[2mms[22m[39m
+   [32m✓[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22msegunda conta da mesma pessoa, com a primeira ATIVA ou DESATIVADA: o UNIQUE total recusa (gatilhos desligados para chegar no índice)[32m 8[2mms[22m[39m
+   [33m[2m✓[22m[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mos gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado [33m 891[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT pessoas no contexto de A: permissão negada[32m 3[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT count pessoas no contexto de A: permissão negada[32m 3[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mINSERT pessoas no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mUPDATE pessoas no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mDELETE pessoas no contexto de A: permissão negada[32m 4[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT origens no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mINSERT origens no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mUPDATE origens no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mDELETE origens no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mTRUNCATE pessoas no contexto de A: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mTRUNCATE origens no contexto de A: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT pessoas sem contexto: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT count pessoas sem contexto: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mINSERT pessoas sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mUPDATE pessoas sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mDELETE pessoas sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mSELECT origens sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mINSERT origens sem contexto: permissão negada[32m 2[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mUPDATE origens sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mDELETE origens sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mTRUNCATE pessoas sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mTRUNCATE origens sem contexto: permissão negada[32m 1[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mnenhum privilégio, de tabela ou de coluna, a dc360_app, dc360_console ou PUBLIC; RLS forçada e nenhuma policy[32m 3[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22mnem o dono apaga a pessoa nem reescreve a marca (no lugar da chave estrangeira que o portão não deixa declarar)[32m 4[2mms[22m[39m
+   [32m✓[39m `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum[2m > [22ma função dos gatilhos não se chama fora de gatilho: o EXECUTE do app é inerte[32m 5[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22ma redefinição de senha por quem administra (UPDATE do dc360_app no município), como a rota faz[32m 9[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22m`registrar_tentativa_login` (falha e acerto), `trocar_senha` e o gatilho da 046 chegam à pessoa[32m 9[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22mo link de recuperação (`abrir_recuperacao` e `consumir_recuperacao`) chega à pessoa[32m 5[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22ma troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09)[32m 8[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22mde mão única: escrever na pessoa (só o dono pode) não volta para a conta[32m 2[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22mcom o município de outro no contexto, o espelho recusa (o dono atualizando a conta de A sob o contexto de B)[32m 2[2mms[22m[39m
+   [32m✓[39m o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única[2m > [22mo UPDATE do dc360_app em `usuarios` é por coluna: as que a API grava passam, `id`, `organizacao_id` e `ultimo_acesso` não[32m 2[2mms[22m[39m
+   [32m✓[39m `vigencia_da_sessao`: uma consulta, e só no município do contexto[2m > [22mpessoa, município do contexto e sessão viva: a conta, o papel, o nome e a sessão viva[32m 3[2mms[22m[39m
+   [32m✓[39m `vigencia_da_sessao`: uma consulta, e só no município do contexto[2m > [22morg alheio ao contexto: vazio (nem a linha do município); sem contexto: vazio[32m 7[2mms[22m[39m
+   [32m✓[39m `vigencia_da_sessao`: uma consulta, e só no município do contexto[2m > [22mpessoa sem conta no município do contexto, ou sessão de outra conta: sem conta e sem sessão viva[32m 6[2mms[22m[39m
+   [32m✓[39m `vigencia_da_sessao`: uma consulta, e só no município do contexto[2m > [22ma sessão rotacionada vale enquanto a família tem sessão de pé; encerrada, não; município suspenso aparece[32m 12[2mms[22m[39m
+   [32m✓[39m `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta[2m > [22mpelo e-mail, sem diferença de caixa, uma linha por conta da pessoa (hoje, uma), antes do tenant[32m 5[2mms[22m[39m
+   [32m✓[39m `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta[2m > [22mlê de `pessoas`, e não de `usuarios` (o hash da pessoa, mudado só nela pelo dono, é o que sai)[32m 4[2mms[22m[39m
+   [32m✓[39m `travar_pessoa` e `travar_pessoa_da_conta` (N2)[2m > [22mtoma uma trava consultiva de transação com chave própria, separada da trava das sessões (049), mesmo com o mesmo uuid[32m 4[2mms[22m[39m
+   [32m✓[39m `travar_pessoa` e `travar_pessoa_da_conta` (N2)[2m > [22mpela conta, no município do contexto, trava a pessoa da conta; conta de outro município, nada; e não devolve o pessoa_id[32m 7[2mms[22m[39m
+   [32m✓[39m `sessoes.pessoa_id`: a sessão carrega a pessoa da conta, presa pela chave composta[2m > [22mabrir_sessao preenche a pessoa; pessoa de outra conta na sessão é recusada pela chave[32m 4[2mms[22m[39m
+   [32m✓[39m o inventário da credencial bate com o banco[2m > [22mtoda função que cita a credencial, o e-mail ou a pessoa está no inventário, e todo item do inventário existe[32m 6[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 054[2m > [22maplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos [33m 1084[2mms[22m[39m
+[31m   [31m×[31m a volta da 054[2m > [22mfalha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica[39m[33m 1041[2mms[22m[39m
+[31m     → deveria ter sido recusado[39m
+[31m   [31m×[31m correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mo ataque relatado: o dc360_app cria TEMP `usuarios`, anexa o espelho e escreve a credencial de outra pessoa. Recusado, e a pessoa não muda[39m[32m 9[2mms[22m[39m
+[31m     → expected 'SONDA' to be '42501' // Object.is equality[39m
+[31m   [31m×[31m correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mo dc360_app, o dc360_console e PUBLIC não têm TEMP no banco[39m[32m 4[2mms[22m[39m
+[31m     → expected [ …(3) ] to deeply equal [ { papel: 'dc360_app', …(1) }, …(2) ][39m
+[31m   [31m×[31m correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mnenhum papel do produto executa função de gatilho da 054; e mesmo com TEMP devolvido, o app não anexa o espelho nem o criador[39m[32m 3[2mms[22m[39m
+[31m     → conta_ganha_pessoa: expected [ 'dc360_app' ] to deeply equal [][39m
+[31m   [31m×[31m correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22manexadas pelo DONO a uma tabela que não é `public.usuarios`, as duas funções privilegiadas recusam, sem escrever nada[39m[32m 6[2mms[22m[39m
+[31m     → expected 'SONDA' to be '42501' // Object.is equality[39m
+[31m   [31m×[31m correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município[2m > [22mcom município no contexto, recusa (42501), seja o e-mail de outro município ou do próprio[39m[32m 2[2mms[22m[39m
+[31m     → deveria ter sido recusado[39m
+   [32m✓[39m correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município[2m > [22msem contexto, continua respondendo (o outro lado, o do login)[32m 2[2mms[22m[39m
+[31m   [31m×[31m correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre[2m > [22msem contexto: o mesmo erro (código, mensagem, detalhe, restrição, tabela) para e-mail existente e livre, e nenhuma pessoa nova[39m[32m 5[2mms[22m[39m
+[31m     → expected '23505' to be '42501' // Object.is equality[39m
+   [32m✓[39m correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre[2m > [22mcom o contexto de outro município: o mesmo erro para e-mail existente e livre[32m 5[2mms[22m[39m
+[31m   [31m×[31m correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta[2m > [22mmatrícula já existente, id novo e e-mail livre, pelo dc360_app no município e pelo dono: a transação volta inteira[39m[32m 4[2mms[22m[39m
+[31m     → deveria ter sido recusado[39m
+   [32m✓[39m correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta[2m > [22mo mesmo comando sem conflito continua passando (a conta, a pessoa e a marca nascem juntas)[32m 4[2mms[22m[39m
+[31m   [31m×[31m correção 1, achado 5: o espelho dispara antes do gatilho dos links (N4 antes de N7)[2m > [22mentre os gatilhos AFTER UPDATE de `usuarios`, o do espelho vem antes do da 051 (ordem alfabética do Postgres)[39m[32m 2[2mms[22m[39m
+[31m     → expected 1 to be less than 0[39m
+[31m   [31m×[31m correção 1, achado 7: `pessoas.id` não muda[2m > [22mUPDATE de `pessoas.id` pelo dono, direto: recusado; reescrever o mesmo valor passa[39m[32m 4[2mms[22m[39m
+[31m     → expected Error: a sonda passou inteira, sem recusa { code: '…' } to match object { code: '23514', …(1) }[39m
+   [32m✓[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mduas transações na mesma pessoa se enfileiram em N2 (primeiro pela pessoa), sem 40P01[32m 285[2mms[22m[39m
+   [32m✓[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mduas transações na mesma pessoa se enfileiram em N2 (primeiro pela conta), sem 40P01[32m 146[2mms[22m[39m
+   [32m✓[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22ma trava da pessoa e a das sessões (049) não se esperam, mesmo com o mesmo uuid[32m 117[2mms[22m[39m
+   [32m✓[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mconta de outro município pelo contexto: `travar_pessoa_da_conta` não trava ninguém[32m 84[2mms[22m[39m
+[31m   [31m×[31m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mcorreção 1, achado 1, num banco criado com CREATE DATABASE: o dc360_app não cria TEMP `usuarios` para anexar o espelho, e a pessoa não muda[39m[32m 76[2mms[22m[39m
+[31m     → deveria ter sido recusado[39m
+[31m   [31m×[31m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mconsumir_recuperacao contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01[39m[32m 217[2mms[22m[39m
+[31m     → expected '55P03' to be 'livre' // Object.is equality[39m
+[31m   [31m×[31m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mredefinição por quem administra contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01[39m[32m 217[2mms[22m[39m
+[31m     → expected '55P03' to be 'livre' // Object.is equality[39m
+   [33m[2m✓[22m[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mduas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 1 primeiro): uma fica, a outra recebe 23505, sem 40P01 [33m 462[2mms[22m[39m
+   [32m✓[39m Em Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mduas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 2 primeiro): uma fica, a outra recebe 23505, sem 40P01[32m 288[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 13 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22ma volta da 054[2m > [22mfalha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica
+[31m[1mError[22m: deveria ter sido recusado[39m
+[36m [2m❯[22m erroDe test/pessoas.test.ts:[2m91:9[22m[39m
+    [90m 89| [39m    [35mreturn[39m e [35mas[39m [33mErro[39m[33m;[39m
+    [90m 90| [39m  }
+    [90m 91| [39m  [35mthrow[39m [35mnew[39m [33mError[39m([32m"deveria ter sido recusado"[39m)[33m;[39m
+    [90m   | [39m        [31m^[39m
+    [90m 92| [39m}
+    [90m 93| [39m
+[90m [2m❯[22m test/pessoas.test.ts:[2m1370:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mo ataque relatado: o dc360_app cria TEMP `usuarios`, anexa o espelho e escreve a credencial de outra pessoa. Recusado, e a pessoa não muda
+[31m[1mAssertionError[22m: expected 'SONDA' to be '42501' // Object.is equality[39m
+
+Expected: [32m"42501"[39m
+Received: [31m"SONDA"[39m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1430:20[22m[39m
+    [90m1428| [39m      await tx.exec("UPDATE pg_temp.usuarios SET senha_hash = 'senha-d…
+    [90m1429| [39m    })[33m;[39m
+    [90m1430| [39m    [34mexpect[39m(e[33m.[39mcode)[33m.[39m[34mtoBe[39m([32m"42501"[39m)[33m;[39m
+    [90m   | [39m                   [31m^[39m
+    [90m1431| [39m    [34mexpect[39m(e[33m.[39mmessage)[33m.[39m[34mtoMatch[39m([36m/permission denied/[39m)[33m;[39m
+    [90m1432| [39m    [34mexpect[39m(
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mo dc360_app, o dc360_console e PUBLIC não têm TEMP no banco
+[31m[1mAssertionError[22m: expected [ …(3) ] to deeply equal [ { papel: 'dc360_app', …(1) }, …(2) ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    {[22m
+[2m      "papel": "dc360_app",[22m
+[32m-     "temp": false,[39m
+[31m+     "temp": true,[39m
+[2m    },[22m
+[2m    {[22m
+[2m      "papel": "dc360_console",[22m
+[32m-     "temp": false,[39m
+[31m+     "temp": true,[39m
+[2m    },[22m
+[2m    {[22m
+[2m      "papel": "public",[22m
+[32m-     "temp": false,[39m
+[31m+     "temp": true,[39m
+[2m    },[22m
+[2m  ][22m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1441:20[22m[39m
+    [90m1439| [39m      SELECT p AS papel, has_database_privilege(p, current_database(),…
+    [90m1440| [39m        FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) AS …
+    [90m1441| [39m    [34mexpect[39m(r[33m.[39mrows)[33m.[39m[34mtoEqual[39m([
+    [90m   | [39m                   [31m^[39m
+    [90m1442| [39m      { papel[33m:[39m [32m"dc360_app"[39m[33m,[39m temp[33m:[39m [35mfalse[39m }[33m,[39m
+    [90m1443| [39m      { papel[33m:[39m [32m"dc360_console"[39m[33m,[39m temp[33m:[39m [35mfalse[39m }[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22mnenhum papel do produto executa função de gatilho da 054; e mesmo com TEMP devolvido, o app não anexa o espelho nem o criador
+[31m[1mAssertionError[22m: conta_ganha_pessoa: expected [ 'dc360_app' ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "dc360_app",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1464:49[22m[39m
+    [90m1462| [39m      expect.arrayContaining(["conta_ganha_pessoa", "pessoa_espelha_a_…
+    [90m1463| [39m    )[33m;[39m
+    [90m1464| [39m    [35mfor[39m ([35mconst[39m l [35mof[39m r[33m.[39mrows) [34mexpect[39m(l[33m.[39mquem[33m,[39m l[33m.[39mf)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                                                [31m^[39m
+    [90m1465| [39m    [35mfor[39m ([35mconst[39m [f[33m,[39m quando] [35mof[39m [
+    [90m1466| [39m      [[32m"pessoa_espelha_a_conta"[39m[33m,[39m [32m"AFTER UPDATE"[39m][33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária[2m > [22manexadas pelo DONO a uma tabela que não é `public.usuarios`, as duas funções privilegiadas recusam, sem escrever nada
+[31m[1mAssertionError[22m: expected 'SONDA' to be '42501' // Object.is equality[39m
+
+Expected: [32m"42501"[39m
+Received: [31m"SONDA"[39m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1500:26[22m[39m
+    [90m1498| [39m      await tx.exec("UPDATE pg_temp.usuarios SET senha_hash = 'pelo-do…
+    [90m1499| [39m    })[33m;[39m
+    [90m1500| [39m    [34mexpect[39m(espelho[33m.[39mcode)[33m.[39m[34mtoBe[39m([32m"42501"[39m)[33m;[39m
+    [90m   | [39m                         [31m^[39m
+    [90m1501| [39m    [34mexpect[39m(espelho[33m.[39mmessage)[33m.[39m[34mtoMatch[39m([36m/so serve/[39m)[33m;[39m
+    [90m1502| [39m    [35mconst[39m criador [33m=[39m [35mawait[39m [34msemRastro[39m([35masync[39m (tx) [33m=>[39m {
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município[2m > [22mcom município no contexto, recusa (42501), seja o e-mail de outro município ou do próprio
+[31m[1mError[22m: deveria ter sido recusado[39m
+[36m [2m❯[22m erroDe test/pessoas.test.ts:[2m91:9[22m[39m
+    [90m 89| [39m    [35mreturn[39m e [35mas[39m [33mErro[39m[33m;[39m
+    [90m 90| [39m  }
+    [90m 91| [39m  [35mthrow[39m [35mnew[39m [33mError[39m([32m"deveria ter sido recusado"[39m)[33m;[39m
+    [90m   | [39m        [31m^[39m
+    [90m 92| [39m}
+    [90m 93| [39m
+[90m [2m❯[22m test/pessoas.test.ts:[2m1527:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre[2m > [22msem contexto: o mesmo erro (código, mensagem, detalhe, restrição, tabela) para e-mail existente e livre, e nenhuma pessoa nova
+[31m[1mAssertionError[22m: expected '23505' to be '42501' // Object.is equality[39m
+
+Expected: [32m"[7m4[27m250[7m1[27m"[39m
+Received: [31m"2[7m3[27m50[7m5[27m"[39m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1566:28[22m[39m
+    [90m1564| [39m    [35mconst[39m existente [33m=[39m [35mawait[39m [34minserir[39m([35mnull[39m[33m,[39m orgA[33m,[39m [32m"a1@exemplo.gov.br"[39m)[33m;[39m
+    [90m1565| [39m    const livre = await inserir(null, orgA, "ninguem.oraculo@exemplo.g…
+    [90m1566| [39m    [34mexpect[39m(existente[33m.[39mcode)[33m.[39m[34mtoBe[39m([32m"42501"[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m1567| [39m    expect(formaDoErro(existente as Erro & Record<string, unknown>)).t…
+    [90m1568| [39m      [34mformaDoErro[39m(livre [35mas[39m [33mErro[39m [33m&[39m [33mRecord[39m[33m<[39mstring[33m,[39m unknown[33m>[39m)[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta[2m > [22mmatrícula já existente, id novo e e-mail livre, pelo dc360_app no município e pelo dono: a transação volta inteira
+[31m[1mError[22m: deveria ter sido recusado[39m
+[36m [2m❯[22m erroDe test/pessoas.test.ts:[2m91:9[22m[39m
+    [90m 89| [39m    [35mreturn[39m e [35mas[39m [33mErro[39m[33m;[39m
+    [90m 90| [39m  }
+    [90m 91| [39m  [35mthrow[39m [35mnew[39m [33mError[39m([32m"deveria ter sido recusado"[39m)[33m;[39m
+    [90m   | [39m        [31m^[39m
+    [90m 92| [39m}
+    [90m 93| [39m
+[90m [2m❯[22m test/pessoas.test.ts:[2m1597:21[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 5: o espelho dispara antes do gatilho dos links (N4 antes de N7)[2m > [22mentre os gatilhos AFTER UPDATE de `usuarios`, o do espelho vem antes do da 051 (ordem alfabética do Postgres)
+[31m[1mAssertionError[22m: expected 1 to be less than 0[39m
+[36m [2m❯[22m test/pessoas.test.ts:[2m1636:53[22m[39m
+    [90m1634| [39m    [35mconst[39m ordem [33m=[39m r[33m.[39mrows[33m.[39m[34mmap[39m((x) [33m=>[39m x[33m.[39mfuncao)[33m;[39m
+    [90m1635| [39m    [34mexpect[39m(ordem)[33m.[39m[34mtoContain[39m([32m"pessoa_espelha_a_conta"[39m)[33m;[39m
+    [90m1636| [39m    [34mexpect[39m(ordem[33m.[39m[34mindexOf[39m([32m"pessoa_espelha_a_conta"[39m))[33m.[39m[34mtoBeLessThan[39m(
+    [90m   | [39m                                                    [31m^[39m
+    [90m1637| [39m      ordem[33m.[39m[34mindexOf[39m([32m"invalidar_recuperacoes_pendentes"[39m)[33m,[39m
+    [90m1638| [39m    )[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mcorreção 1, achado 7: `pessoas.id` não muda[2m > [22mUPDATE de `pessoas.id` pelo dono, direto: recusado; reescrever o mesmo valor passa
+[31m[1mAssertionError[22m: expected Error: a sonda passou inteira, sem recusa { code: '…' } to match object { code: '23514', …(1) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- {[39m
+[32m-   "code": "23514",[39m
+[32m-   "constraint": "pessoas_id_nao_muda",[39m
+[31m+ Error {[39m
+[31m+   "code": "SONDA",[39m
+[2m  }[22m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1650:15[22m[39m
+    [90m1648| [39m      await tx.query("UPDATE pessoas SET id = gen_random_uuid() WHERE …
+    [90m1649| [39m    })[33m;[39m
+    [90m1650| [39m    expect(e).toMatchObject({ code: "23514", constraint: "pessoas_id_n…
+    [90m   | [39m              [31m^[39m
+    [90m1651| [39m    await db.query("UPDATE pessoas SET id = id WHERE id = $1", [pessoa…
+    [90m1652| [39m    [34mexpect[39m(
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mEm Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mcorreção 1, achado 1, num banco criado com CREATE DATABASE: o dc360_app não cria TEMP `usuarios` para anexar o espelho, e a pessoa não muda
+[31m[1mError[22m: deveria ter sido recusado[39m
+[36m [2m❯[22m erroDe test/pessoas.test.ts:[2m91:9[22m[39m
+    [90m 89| [39m    [35mreturn[39m e [35mas[39m [33mErro[39m[33m;[39m
+    [90m 90| [39m  }
+    [90m 91| [39m  [35mthrow[39m [35mnew[39m [33mError[39m([32m"deveria ter sido recusado"[39m)[33m;[39m
+    [90m   | [39m        [31m^[39m
+    [90m 92| [39m}
+    [90m 93| [39m
+[90m [2m❯[22m test/pessoas.test.ts:[2m1832:19[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mEm Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mconsumir_recuperacao contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+[41m[1m FAIL [22m[49m test/pessoas.test.ts[2m > [22mEm Postgres real: a trava da pessoa e a corrida do cadastro[2m > [22mredefinição por quem administra contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+[31m[1mAssertionError[22m: expected '55P03' to be 'livre' // Object.is equality[39m
+
+Expected: [32m"livre"[39m
+Received: [31m"55P03"[39m
+
+[36m [2m❯[22m test/pessoas.test.ts:[2m1923:29[22m[39m
+    [90m1921| [39m            )[33m;[39m
+    [90m1922| [39m          [35mawait[39m c[33m.[39m[34mquery[39m([32m"ROLLBACK"[39m)[33m;[39m
+    [90m1923| [39m          [34mexpect[39m(linkLivre)[33m.[39m[34mtoBe[39m([32m"livre"[39m)[33m;[39m
+    [90m   | [39m                            [31m^[39m
+    [90m1924| [39m          [35mawait[39m a[33m.[39m[34mquery[39m(
+    [90m1925| [39m            "UPDATE recuperacoes_senha SET usada_em = now() WHERE id =…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m13 failed[39m[22m[2m | [22m[1m[32m73 passed[39m[22m[90m (86)[39m
+[2m   Start at [22m 10:57:52
+[2m   Duration [22m 8.70s[2m (transform 131ms, setup 0ms, collect 399ms, tests 7.70s, environment 0ms, prepare 276ms)[22m
+

@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/apps/console
+
+ ✓ test/no-navegador.test.ts (8 tests) 25058ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > a pagina abre com a politica no cabecalho, e o script e a folha passam por ela  969ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > o dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes  1090ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > com senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar  1808ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > cancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha  998ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > em Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda  5973ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > sair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele  7028ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  20:11:24
+   Duration  27.64s (transform 419ms, setup 192ms, collect 1.85s, tests 25.06s, environment 0ms, prepare 213ms)
+

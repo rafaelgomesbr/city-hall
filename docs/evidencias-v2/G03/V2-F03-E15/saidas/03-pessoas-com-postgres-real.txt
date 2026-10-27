@@ -1,0 +1,74 @@
+$ (em dc360/db) DC360_POSTGRES_DE_PROVA=<postgres 18.3 descartavel local, superusuario postgres, porta 55915> npx vitest run test/pessoas.test.ts --reporter=verbose
+ ✓ test/pessoas.test.ts > o backfill da 054, sobre contas, sessões e segundo fator de antes > aplica sem erro e não muda nada do que já existia 34ms
+ ✓ test/pessoas.test.ts > o backfill da 054, sobre contas, sessões e segundo fator de antes > N contas viram N pessoas, cada conta com a sua, e a marca `backfill` de cada uma 3ms
+ ✓ test/pessoas.test.ts > o backfill da 054, sobre contas, sessões e segundo fator de antes > a credencial e o e-mail foram copiados sem perda; nada de município foi para a pessoa 5ms
+ ✓ test/pessoas.test.ts > o backfill da 054, sobre contas, sessões e segundo fator de antes > toda sessão de antes carrega a pessoa da conta, e o login de antes ainda acha a conta 5ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o cadastro de hoje (INSERT do dc360_app no município) passa no fim da transação, com pessoa nova e marca da MESMA transação 7ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > `provisionar_municipio` (console) cria a pessoa nova junto, com a senha provisória, e passa 5ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > e-mail repetido em `provisionar_municipio` continua o DC363 de antes (o oráculo da F00 não muda de forma) 3ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o INSERT do dono, sem contexto (sementes, testes), também passa 2ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > toda conta do backfill tem a marca `backfill`, e as contas criadas depois, `criador` 2ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o e-mail de uma pessoa existente NÃO liga a conta nova a ela: a conta é recusada como sempre foi 5ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > segunda PESSOA com o mesmo e-mail (outra caixa), mesmo pelo dono: `pessoas_email_idx` recusa 1ms
+ ✓ test/pessoas.test.ts > positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > conta de outro município com contexto: o criador recusa (42501) antes de criar a pessoa 3ms
+ ✓ test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > o dc360_app informando `pessoa_id` no INSERT: permissão negada, antes de qualquer escrita 2ms
+ ✓ test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > função do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT 6ms
+ ✓ test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > um BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação 5ms
+ ✓ test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono) 5ms
+ ✓ test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo dc360_app: permissão negada (privilégio de coluna) 2ms
+ ✓ test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo DONO, direto ou por função SECURITY DEFINER: o gatilho recusa (IS DISTINCT FROM) 4ms
+ ✓ test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa 3ms
+ ✓ test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > segunda conta da mesma pessoa, com a primeira ATIVA ou DESATIVADA: o UNIQUE total recusa (gatilhos desligados para chegar no índice) 6ms
+ ✓ test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado 754ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas no contexto de A: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas no contexto de A: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas no contexto de A: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens no contexto de A: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas no contexto de A: permissão negada 2ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens no contexto de A: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens sem contexto: permissão negada 1ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nenhum privilégio, de tabela ou de coluna, a dc360_app, dc360_console ou PUBLIC; RLS forçada e nenhuma policy 3ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nem o dono apaga a pessoa nem reescreve a marca (no lugar da chave estrangeira que o portão não deixa declarar) 4ms
+ ✓ test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > a função dos gatilhos não se chama fora de gatilho: o EXECUTE do app é inerte 3ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a redefinição de senha por quem administra (UPDATE do dc360_app no município), como a rota faz 4ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > `registrar_tentativa_login` (falha e acerto), `trocar_senha` e o gatilho da 046 chegam à pessoa 7ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o link de recuperação (`abrir_recuperacao` e `consumir_recuperacao`) chega à pessoa 4ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09) 8ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > de mão única: escrever na pessoa (só o dono pode) não volta para a conta 2ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > com o município de outro no contexto, o espelho recusa (o dono atualizando a conta de A sob o contexto de B) 2ms
+ ✓ test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o UPDATE do dc360_app em `usuarios` é por coluna: as que a API grava passam, `id`, `organizacao_id` e `ultimo_acesso` não 2ms
+ ✓ test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa, município do contexto e sessão viva: a conta, o papel, o nome e a sessão viva 4ms
+ ✓ test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > org alheio ao contexto: vazio (nem a linha do município); sem contexto: vazio 7ms
+ ✓ test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa sem conta no município do contexto, ou sessão de outra conta: sem conta e sem sessão viva 5ms
+ ✓ test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > a sessão rotacionada vale enquanto a família tem sessão de pé; encerrada, não; município suspenso aparece 11ms
+ ✓ test/pessoas.test.ts > `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > pelo e-mail, sem diferença de caixa, uma linha por conta da pessoa (hoje, uma), antes do tenant 4ms
+ ✓ test/pessoas.test.ts > `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > lê de `pessoas`, e não de `usuarios` (o hash da pessoa, mudado só nela pelo dono, é o que sai) 4ms
+ ✓ test/pessoas.test.ts > `travar_pessoa` e `travar_pessoa_da_conta` (N2) > toma uma trava consultiva de transação com chave própria, separada da trava das sessões (049), mesmo com o mesmo uuid 4ms
+ ✓ test/pessoas.test.ts > `travar_pessoa` e `travar_pessoa_da_conta` (N2) > pela conta, no município do contexto, trava a pessoa da conta; conta de outro município, nada; e não devolve o pessoa_id 6ms
+ ✓ test/pessoas.test.ts > `sessoes.pessoa_id`: a sessão carrega a pessoa da conta, presa pela chave composta > abrir_sessao preenche a pessoa; pessoa de outra conta na sessão é recusada pela chave 3ms
+ ✓ test/pessoas.test.ts > o inventário da credencial bate com o banco > toda função que cita a credencial, o e-mail ou a pessoa está no inventário, e todo item do inventário existe 5ms
+ ✓ test/pessoas.test.ts > a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos 910ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela pessoa), sem 40P01 108ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela conta), sem 40P01 109ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > a trava da pessoa e a das sessões (049) não se esperam, mesmo com o mesmo uuid 51ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > conta de outro município pelo contexto: `travar_pessoa_da_conta` não trava ninguém 55ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 1 primeiro): uma fica, a outra recebe 23505, sem 40P01 139ms
+ ✓ test/pessoas.test.ts > Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 2 primeiro): uma fica, a outra recebe 23505, sem 40P01 116ms
+ Test Files  1 passed (1)
+      Tests  70 passed (70)
+   Duration  7.52s (transform 118ms, setup 0ms, collect 332ms, tests 6.71s, environment 0ms, prepare 173ms)

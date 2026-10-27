@@ -87,6 +87,19 @@ trilha.
 | `foto_chave` | A foto de perfil, como chave no armazenamento (nunca URL). Opcional, escolhida pelo próprio servidor. Prefixo obrigatório `tenant/<org>/usuarios/<id>/`, por CHECK (migração 040). Dado pessoal do servidor: ver `PRIVACIDADE.md`, seção 2.2 |
 | `foto_bytes` | O tamanho da foto no armazenamento, lido do próprio armazenamento na confirmação (migração 045). Conta no teto do município (`situacao_de_armazenamento`). Nulo com chave é foto confirmada antes da 045, que conta zero até a pessoa trocar de foto; bytes sem chave é proibido por CHECK |
 | `busca` | Chave de busca **gerada pelo banco** a partir de `nome`, `matricula` e `email`, normalizada. Ninguém escreve nela. Ver "A busca com tolerância a erro", abaixo |
+| `pessoa_id` | A pessoa (global) dona desta conta, desde a migração 054. Não nula, atribuída uma vez na criação da conta pelo gatilho criador e **nunca muda**; uma conta por pessoa no sistema inteiro até a liberação da segunda conta (064). O papel de aplicação não a grava. Ver "A pessoa global e a conta no município", abaixo |
+
+Desde a migração 054 a linha de `usuarios` é a **conta** de uma pessoa num
+município. A credencial (`senha_hash`, `falhas_login`, `bloqueado_ate`,
+`senha_provisoria_ate`) e o `email` continuam aqui e continuam sendo gravados
+aqui, e cada escrita é espelhada em `pessoas` (passo 1 da ADR 0009). O
+`dc360_app` atualiza `usuarios` só pelas colunas que a API grava (privilégio por
+coluna, migração 054), nunca `pessoa_id`, `id`, `organizacao_id`, `criado_em`
+nem `ultimo_acesso`; e insere só pelas colunas do cadastro (privilégio de INSERT
+por coluna, também da 054), nunca `pessoa_id`. `pessoa_id` aponta para
+`pessoas(id)` pela chave estrangeira `usuarios_pessoa_id_fkey`, sem
+`organizacao_id` porque a pessoa é global (o portão de isolamento a aceita por
+nome).
 
 ---
 
@@ -325,7 +338,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 | `protocolo_sequencias` | O último número usado por município e por ano. Garante protocolo único sem sequência global, que vazaria volume entre municípios |
 | `devolucoes_de_tarefa` | A tarefa que venceu e o agente devolveu à coordenação sem ter vistoriado, com motivo de lista fechada, observação, a equipe que estava designada e o prazo que já estava perdido. **Append-only**, como a trilha: é declaração de campo, e correção se faz com despacho novo. Não encerra a ocorrência (ela volta para `triagem`) e não zera `prazo_em`, senão o atraso sumiria do painel |
 | `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
-| `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município. Duas leituras (V2-F00-E09) expõem sessões: `GET /auth/sessoes` à própria pessoa (quando entrou, até quando vale, o aparelho resumido em uma frase e a marca da sessão atual) e `GET /usuarios/:id/sessoes` a quem administra (só a quantidade e as datas). `ip` e `user_agent` continuam guardados para investigação e NÃO saem em nenhuma das duas (IDN-29 do REL:06) |
+| `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município. Duas leituras (V2-F00-E09) expõem sessões: `GET /auth/sessoes` à própria pessoa (quando entrou, até quando vale, o aparelho resumido em uma frase e a marca da sessão atual) e `GET /usuarios/:id/sessoes` a quem administra (só a quantidade e as datas). `ip` e `user_agent` continuam guardados para investigação e NÃO saem em nenhuma das duas (IDN-29 do REL:06). `pessoa_id` (migração 054) é a pessoa da conta da sessão: preenchida pelo gatilho `sessao_carrega_a_pessoa` e presa pela chave composta `(organizacao_id, usuario_id, pessoa_id)` com a conta, para a vigência conferir município, conta e pessoa juntos |
 | `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único. `usada_em` marca também o link invalidado: por um pedido novo, e (migração 051) por toda mudança de senha e toda desativação da conta |
 | `vistoria_orgaos_indicados` | Os órgãos que o agente marcou na vistoria como a acionar (migração 020): uma linha por órgão, na ordem em que ele escolheu. `orgao_id` nulo não é dado faltando: é o órgão digitado à mão, porque um aparelho novo pode ter o catálogo vazio, e o nome viaja sempre. É o que deixa o laudo dizer **qual** órgão acionar, e não só "sim" |
 | `vistoria_evidencias_perdidas` | A prova que foi capturada no local e não pôde ser recuperada do aparelho (migração 030): uma linha por arquivo perdido, com a chave que o aparelho cunhou, o `papel` (`foto` ou `assinatura`), quando foi capturada e o que sobrou de legenda e de coordenada. Não se apaga nem se corrige (migração 032). É o que faz o laudo e o termo dizerem "Assinatura coletada em campo e não recuperada do aparelho" em vez de "Assinatura não coletada", e a tabela **sai no pacote de saída** (`tabelas/vistoria_evidencias_perdidas.csv`) |
@@ -546,6 +559,95 @@ transformaria a caixa num oráculo de "este número está na base?"), o relato e
 a descrição de vulnerabilidade (texto livre que nomeia terceiros e descreve
 saúde). O filtro da lista continua procurando no relato por substring, como
 sempre fez, sem o parecido.
+
+---
+
+## A pessoa global e a conta no município (migração 054)
+
+A ADR 0009 separa três coisas: a **pessoa** (global), a **conta** dela em cada
+município (`usuarios`) e, a partir da E05, o vínculo da conta com um órgão. A
+054 (V2-F03-E15) cria a pessoa e liga cada conta a ela, sem mudar ids, chaves
+nem o que a API grava. Hoje a relação é estritamente **uma conta por pessoa**,
+garantida no banco; a segunda conta da mesma pessoa só existe depois da
+liberação da E16 (064).
+
+### `pessoas`
+
+A **exceção nomeada** à regra do `organizacao_id`: a pessoa não pertence a
+município nenhum, por definição. O que a prende no lugar da coluna são quatro
+travas: RLS ativada e forçada **sem nenhuma policy**; **nenhum privilégio** do
+papel de aplicação, do console ou de `PUBLIC` (nem `SELECT`: tocar a tabela dá
+"permissão negada"); acesso só pelas funções `SECURITY DEFINER` da lista nominal
+do portão; e essa lista conferida nos dois sentidos (`db/test/catalogo/f03-e15.ts`).
+A pessoa **não se apaga** (gatilho `pessoas_nao_se_apagam`, para o dono também), e
+o `id` dela **não muda** (gatilhos `pessoas_id_nao_muda`, antes e no estado final):
+contas, sessões e marcas apontam para ele sem chave estrangeira.
+
+| Coluna | Significado |
+| --- | --- |
+| `nome` | O nome da pessoa, copiado da conta na criação. O nome que o município digitou continua na conta, e a pessoa não acompanha a troca dele |
+| `email` | O e-mail da pessoa. Único entre todas as pessoas (`pessoas_email_idx`, total, em `lower(email)`; a E09 o troca pelo único entre pessoas ativas) |
+| `senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate` | A credencial. **Até a E08 é cópia da conta**: toda escrita em `usuarios` é espelhada aqui pelo gatilho `pessoa_recebe_a_credencial_da_conta`, de mão única, que dispara antes do gatilho dos links de recuperação (a linha da pessoa antes das dos links, na ordem de travas da ADR 0009). A E02 passa a ler daqui; a E08 passa a gravar só aqui |
+| `email_verificado_em` | Quando a pessoa provou que recebe no e-mail. Nulo em toda pessoa do backfill: não havia verificação antes |
+| `ativo` | Se a pessoa pode entrar. Até a E09 é a foto da criação (do backfill, a da conta); a autoridade é o `ativo` da conta, que as funções devolvem junto. A E09 passa a mantê-lo pelas contas ativas |
+
+### `origens_de_conta`
+
+De onde veio o `pessoa_id` de cada conta, uma linha por conta: `backfill` (as
+contas que já existiam na 054), `criador` (conta nova, pessoa nova, pelo gatilho
+criador) ou `aceite` (a partir da E10, `aceitar_convite`), com a transação de quem
+gravou (`transacao`, `xid8`). É o que deixa o gatilho adiado distinguir o valor
+criado pelo gatilho criador do informado por quem faz o INSERT. Mesma proteção
+de `pessoas`, sem privilégio de papel nenhum do produto. É registro permanente da
+CONTA: não se altera, e só sai junto com a conta que descreve (correção 4 da ADR
+0009): quando uma conta é apagada (na eliminação do município, por exemplo), o
+gatilho `usuarios_marca_sai_com_a_conta` apaga a marca dela, pelo `usuario_id`, e
+só ela; a marca de conta viva não se apaga para ninguém, nem para o dono
+(`origens_de_conta_so_saem_com_a_conta`, que recusa também quem não enxerga todas
+as contas). Não tem `organizacao_id` e fica fora da ordem de apagamento. A pessoa
+continua global e fica (destino: H98).
+
+### Como a conta ganha a pessoa
+
+- **Antes de tudo**, o gatilho comum `conta_nasce_no_municipio_do_contexto` recusa,
+  com o mesmo erro da policy de inserção, a conta que o RLS de `usuarios` vai
+  recusar (fora do município do contexto, ou sem contexto), antes de qualquer
+  consulta a `pessoas`: sem contexto, e-mail existente e e-mail livre recebem a
+  mesma resposta.
+- **Conta nova sem pessoa informada** (o cadastro de hoje, o modo local do painel,
+  `provisionar_municipio`, as sementes): o gatilho `usuarios_ganha_pessoa`
+  (`BEFORE INSERT`) cria uma pessoa **nova** com a credencial e o e-mail da conta e
+  grava a marca `criador`. Nunca procura pessoa pelo e-mail: e-mail de pessoa que
+  já existe é recusado como sempre foi (o mesmo 23505 do índice global de e-mail).
+- **`pessoa_id` informado**: recusado na hora ("permissão negada"), venha de quem
+  vier, até a E10 abrir o caminho do convite. Para o papel de aplicação, pelo
+  privilégio (o INSERT por coluna não inclui `pessoa_id`); para o dono, pelo
+  gatilho criador.
+- **No fim da transação**, o gatilho adiado `usuarios_origem_da_pessoa` (a função
+  LEITORA `conferir_origem_da_conta`, separada da que escreve, que só lê a marca
+  da própria conta, correção 6 da ADR 0009) confere que
+  toda conta inserida tem a marca da mesma transação e da mesma pessoa da linha
+  final. Sem isso, a transação inteira volta.
+- **No fim de cada INSERT**, o gatilho de comando `usuarios_nenhuma_pessoa_sem_conta`
+  confere que toda marca `criador` da transação tem a sua conta: a linha que o
+  criador viu e que foi descartada depois (`ON CONFLICT DO NOTHING`) não deixa
+  pessoa nem marca sem conta; o comando volta inteiro.
+- **As funções dos gatilhos só servem a `public.usuarios`** (conferem o oid da
+  tabela) e nenhum papel do produto as executa; o papel de aplicação, o console e
+  `PUBLIC` não têm `TEMP` no banco (não criam tabela temporária).
+- **`pessoa_id` não muda**: os gatilhos `usuarios_pessoa_id_nao_muda` (antes e no
+  estado final) recusam toda mudança, para todo papel, inclusive o dono.
+
+### As funções
+
+| Função | O que responde |
+| --- | --- |
+| `vigencia_da_sessao(pessoa, org, sid)` | Numa consulta: município suspenso, a conta da pessoa no município, se está ativa, papel e nome, pessoa ativa, senha provisória e se a sessão está viva. Só para o município do contexto; com outro, nada |
+| `credenciais_da_pessoa(email)` | A credencial lida da pessoa, com cada conta dela (município, papel, ativo). Só antes do tenant, como o login de hoje: com município no contexto, recusa. Não compara senha |
+| `travar_pessoa(pessoa)` e `travar_pessoa_da_conta(conta)` | A trava da pessoa (nível N2 da ordem de travas da ADR 0009, escrita no cabeçalho da 054), separada da trava das sessões da conta. A segunda acha a pessoa pela conta no município do contexto e não devolve o `pessoa_id` |
+
+As duas primeiras ainda não têm quem as chame na API (E02 e E03). As contagens
+do backfill estão em `docs/evidencias-v2/G03/V2-F03-E15/`.
 
 ---
 

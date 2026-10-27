@@ -156,6 +156,7 @@ CREATE ROLE dc360_setup LOGIN PASSWORD '$SENHA_SETUP' CREATEROLE BYPASSRLS NOSUP
 ALTER SCHEMA public OWNER TO dc360_setup;
 GRANT ALL ON SCHEMA public TO dc360_setup;
 GRANT CREATE ON DATABASE $BANCO_ORIGEM TO dc360_setup;
+REVOKE TEMPORARY ON DATABASE $BANCO_ORIGEM FROM PUBLIC;
 CREATE ROLE dc360_api LOGIN PASSWORD '$SENHA_API' NOSUPERUSER;
 SQL
 
@@ -211,6 +212,7 @@ preparar_banco_destino() {
   PGPASSWORD="$SENHA_SU" createdb -h "$HOST" -p "$PORTA_DESTINO" -U "$SU" -T template0 --encoding=UTF8 --locale=C "$banco"
   if [ "$RECRIA_PUBLIC" = "1" ]; then super "$PORTA_DESTINO" "$banco" -c "DROP SCHEMA public CASCADE;"; fi
   super "$PORTA_DESTINO" "$banco" -c "GRANT CREATE ON DATABASE $banco TO dc360_setup;"
+  super "$PORTA_DESTINO" "$banco" -c "REVOKE TEMPORARY ON DATABASE $banco FROM PUBLIC;"
 }
 restaurar() { # restaurar BANCO ARQUIVO
   PGPASSWORD="$SENHA_SETUP" pg_restore -h "$HOST" -p "$PORTA_DESTINO" -U dc360_setup --dbname="$1" --exit-on-error "$2"

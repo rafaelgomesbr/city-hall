@@ -929,6 +929,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E05-correcao-1": { total: 8, falhas: 0, puladas: 0 },
   // V2-F03-E04: `apps/api/test/papeis-batem-com-o-banco.test.ts` e novo, com 26 casos (o shared e o banco falam a mesma lista de papeis e de origens; `usuario_orgao` tem posto 1 e nenhuma acao; PATCH recusa converter nos dois sentidos com 409; POST nao cria a conta; o login dela responde igual a email inexistente, sem contar falha; a conta de A nao aparece para B).
   "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
+  // V2-F03, correção da junção do lote 1 (vazamento de `pessoa_id` no pacote de saída): `apps/api/test/pacote-de-saida-contrato.test.ts` ganha 3 casos (`usuarios.pessoa_id` em `COLUNAS_QUE_NUNCA_SAEM`, nenhuma tabela da saída com `pessoa_id` fora dessa lista, e nem o cabeçalho do CSV, nem a chave do JSON, nem o valor de `pessoa_id` em arquivo algum do pacote). Os dois primeiros reprovavam antes da correção.
+  "V2-F03-juncao-do-lote-1": { total: 3, falhas: 0, puladas: 0 },
   // V2-F03, abertura da API (parte 1C): `apps/api/test/chaves-da-f03.test.ts` (18 casos: o padrao fechado das seis chaves novas, `PORTAL_ATIVO=sim` sem segundo fator recusa a partida, `COTAS_SEGREDO` exigido em producao com as cotas ligadas, os formatos e o que nao tem efeito) e `manifesto-em-toda-requisicao.test.ts` (9 casos: `conferirManifesto` e chamada em toda requisicao autenticada, em `/v1` e no espelho, na leitura e na escrita, e so nelas; quem a chama respeita a recusa). Nenhum caso existente muda de resultado.
   "V2-F03-abertura-1C": { total: 27, falhas: 0, puladas: 0 },
 };
@@ -1239,6 +1241,37 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     INSERT de usuarios). Total 7, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-leitora-de-origem": { total: 7, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E15 (parte 1B, pessoa global e conta no municipio, migracao 054):
+    `db/test/pessoas.test.ts` e novo, com 70 casos (o backfill sobre dado de
+    antes, a origem do pessoa_id nos positivos e negativos da correcao 3 da
+    ADR 0009, pessoa_id imutavel e uma conta por pessoa, as travas de
+    `pessoas` e de `origens_de_conta`, o espelho, `vigencia_da_sessao`,
+    `credenciais_da_pessoa`, a trava N2, o inventario contra o banco e a
+    volta). Os 6 do bloco de Postgres real pulam sem `DC360_POSTGRES_DE_PROVA`.
+    Correcao 1 (revisao do Codex): 16 casos a mais, 86 no total. Em PGlite, 13
+    (o ataque da tabela temporaria, TEMP e EXECUTE dos papeis do produto, as
+    funcoes de gatilho presas a `public.usuarios`, `credenciais_da_pessoa`
+    recusada com contexto e respondendo sem, o oraculo do cadastro sem contexto
+    e com contexto alheio, ON CONFLICT DO NOTHING e o caso sem conflito, a
+    ordem do espelho antes da 051, `pessoas.id` imutavel, e a 054 que falha
+    fechada com TEMP herdado); em Postgres real, 3 (o ataque num banco de
+    CREATE DATABASE e a ordem N4 antes de N7, um deles `it.fails`), 9 pulados
+    sem a variavel.
+    `chave-de-criacao-migracao.test.ts` (a prova da 052 para na 052, a mesma
+    troca da parte 1A) e `portao-comportamental.test.ts` (a sonda da marca
+    criador ja encontra a do gatilho criador) mudaram sem caso novo.
+    Juncao do lote 1 (correcoes 4 e 6 da ADR 0009): 10 casos a mais, 96 no
+    total. Em PGlite, 9: a marca sai com a conta (a conta apagada leva so a
+    sua marca; marca de conta viva nao se apaga, nem pelo dono; falha fechada
+    para quem nao enxerga todas as contas; conta inserida e apagada na mesma
+    transacao; a eliminacao de verdade numa copia), e a leitora separada (os
+    gatilhos no catalogo do banco; a leitora real na lista permitida; os
+    contadores com IMMEDIATE nos caminhos que passam e que recusam; as sete
+    sabotagens). Em Postgres real, 1 (os contadores na confirmacao), 10
+    pulados sem a variavel.
+  */
+  "V2-F03-E15": { total: 96, falhas: 0, puladas: 10 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

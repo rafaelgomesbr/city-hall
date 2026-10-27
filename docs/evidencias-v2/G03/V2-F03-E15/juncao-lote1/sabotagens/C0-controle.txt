@@ -1,0 +1,55 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db
+
+ ✓ test/pessoas.test.ts (96 tests | 10 skipped) 10608ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  1919ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  1895ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  1496ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica  1737ms
+ ✓ test/isolamento.test.ts (171 tests) 59435ms
+   ✓ CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)  1862ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)  333ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  319ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1508ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  6044ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1522ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  38415ms
+ ✓ test/catalogo-nominal.test.ts (146 tests) 68641ms
+   ✓ o catálogo de hoje bate com o banco de hoje (a linha de base) > a origem de cada função bate com as migrações e com os testes que a provam  358ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas  456ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  5497ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  5517ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  5547ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  5462ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  5366ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  5773ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  5868ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  5957ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa  1507ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco  669ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova  788ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova  1775ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  1373ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão  784ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)  1005ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim  776ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)  649ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa  1405ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)  710ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  1448ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa  339ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > a consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)  706ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > sem linha exclusiva, nem a limpeza de verdade basta: não há o que provar  591ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > controle: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva  1577ms
+
+ Test Files  3 passed (3)
+      Tests  403 passed | 10 skipped (413)
+   Start at  19:24:55
+   Duration  70.50s (transform 1.16s, setup 0ms, collect 3.25s, tests 138.68s, environment 1ms, prepare 865ms)
+
+19:24:56 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db/test/catalogo-nominal.test.ts
+stderr | test/pessoas.test.ts
+Testes de Postgres real de pessoas.test.ts PULADOS: DC360_POSTGRES_DE_PROVA não está definida. Aponte-a para um Postgres descartável (ex.: postgres://postgres:postgres@localhost:5432/postgres) para provar a trava da pessoa e a corrida do cadastro com duas conexões; o job `implantavel` do CI a define.
+

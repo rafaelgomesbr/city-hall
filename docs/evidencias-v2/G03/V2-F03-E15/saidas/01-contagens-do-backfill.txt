@@ -1,0 +1,5 @@
+$ (em dc360/db) npx tsx contagens-do-backfill.mts   # migracoes ate a 052, semente de desenvolvimento, depois a 054
+ultima migracao antes: 052_chave_de_criacao_do_chamado.sql
+ANTES: {"contas":7,"contas_ativas":7,"contas_com_senha":7,"emails_distintos":7,"sessoes":0,"segundo_fator":0,"municipios":2}
+aplicada: 054_pessoas_e_conta_no_municipio.sql
+DEPOIS: {"contas":7,"pessoas":7,"pessoas_distintas_nas_contas":7,"marcas_backfill":7,"marcas_total":7,"contas_sem_pessoa":0,"sessoes":0,"sessoes_com_a_pessoa_da_conta":0,"segundo_fator":0,"credenciais_divergentes":0}

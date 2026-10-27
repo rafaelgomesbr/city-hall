@@ -1,0 +1,813 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db[39m
+
+[2m11:26:22[22m [33m[1m[vite][22m[39m [33m[2m(ssr)[22m[39m [33mwarning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).[39m
+  Plugin: [35mvite:dynamic-import-vars[39m
+  File: [36mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db/test/catalogo-nominal.test.ts[39m
+ [31m❯[39m test/guarda-da-semente.test.ts [2m([22m[2m18 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 22[2mms[22m[39m
+   [32m✓[39m positivos: banco descartável semeia[2m > [22msem DATABASE_URL (o banco em WebAssembly que morre com o processo)[32m 1[2mms[22m[39m
+   [32m✓[39m positivos: banco descartável semeia[2m > [22mo Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto)[32m 1[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma URL de PRODUÇÃO sem NODE_ENV (o caso do defeito): pela identidade no usuário[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma URL de PRODUÇÃO pela identidade no host (conexão direta)[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma identidade de PROD em maiúsculas não escapa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mNODE_ENV=production recusa, com qualquer URL ou nenhuma[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mAMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mAMBIENTE_DC360=hml recusa e manda usar a semente própria[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mum banco de HML hospedado recusa: a semente de desenvolvimento tem senha pública[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22ma identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD)[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mo túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mURL que não dá para analisar recusa (fail-closed), sem repetir o texto[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mhost público que não é da máquina recusa[32m 0[2mms[22m[39m
+   [32m✓[39m negativos: o que a guarda recusa[2m > [22mnenhum motivo repete a senha da URL[32m 0[2mms[22m[39m
+   [32m✓[39m a identidade de PROD da guarda é a mesma da matriz de ambientes[2m > [22mscripts/ambientes.json declara a identidade que a guarda protege[32m 1[2mms[22m[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha[39m[32m 9[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a URL de um banco hospedado de HML: código 1[39m[32m 2[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade: `--semear` recusa ANTES de conectar[2m > [22msem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)[39m[32m 3[2mms[22m[39m
+[31m     → .toMatch() expects to receive a string, but got undefined[39m
+ [32m✓[39m test/minimizacao-do-relato-e-da-trilha.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 5408[2mms[22m[39m
+ [32m✓[39m test/renovacao-e-encerramento-na-mesma-trava.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 5576[2mms[22m[39m
+ [32m✓[39m test/recuperacao-do-console.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 5642[2mms[22m[39m
+ [32m✓[39m test/familia-da-sessao.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4923[2mms[22m[39m
+ [32m✓[39m test/carga.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 7330[2mms[22m[39m
+ [32m✓[39m test/eliminacao-de-municipio.test.ts [2m([22m[2m39 tests[22m[2m)[22m[33m 8723[2mms[22m[39m
+   [33m[2m✓[22m[39m Agendar a eliminacao, e cancelar dentro do prazo[2m > [22mcancelar dentro do prazo impede a execucao, e NAO reativa o acesso sozinho [33m 300[2mms[22m[39m
+   [33m[2m✓[22m[39m Agendar a eliminacao, e cancelar dentro do prazo[2m > [22mescrever no livro por fora da funcao nao aciona o relogio: ele exige o estado na organizacao [33m 383[2mms[22m[39m
+   [33m[2m✓[22m[39m Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica[2m > [22mvencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens [33m 338[2mms[22m[39m
+   [33m[2m✓[22m[39m Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica[2m > [22mtabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar [33m 463[2mms[22m[39m
+ [32m✓[39m test/busca.test.ts [2m([22m[2m40 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 11023[2mms[22m[39m
+ [32m✓[39m test/ambiente-do-aparelho.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 12236[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22mrecebem o APNS_AMBIENTE posto na sessão pelo aplicador [33m 3868[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22me producao quando ninguém pôs nada, que é o padrão da própria variável [33m 3559[2mms[22m[39m
+ [31m❯[39m test/catalogo-nominal.test.ts [2m([22m[2m58 tests[22m[2m | [22m[31m13 failed[39m[2m)[22m[33m 7709[2mms[22m[39m
+[31m   [31m×[31m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mas funções privilegiadas listadas são exatamente as do banco[39m[32m 80[2mms[22m[39m
+[31m     → expected [ …(2) ] to deeply equal [][39m
+   [32m✓[39m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mas exceções ao isolamento listadas são exatamente as do banco, invariante por invariante[32m 105[2mms[22m[39m
+   [32m✓[39m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mnada fora do esquema public, e nenhum papel do produto noutro esquema[32m 71[2mms[22m[39m
+   [32m✓[39m o catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22ma origem de cada função bate com as migrações e com os testes que a provam[32m 218[2mms[22m[39m
+   [32m✓[39m a BASE congelada (só ela é fixada aqui)[2m > [22mas 27 funções de hoje, pela assinatura completa, sem teto numérico[32m 3[2mms[22m[39m
+   [32m✓[39m a BASE congelada (só ela é fixada aqui)[2m > [22mas quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor[32m 0[2mms[22m[39m
+   [32m✓[39m a BASE congelada (só ela é fixada aqui)[2m > [22mas 16 colunas com UPDATE do papel de aplicação[32m 0[2mms[22m[39m
+   [32m✓[39m a BASE congelada (só ela é fixada aqui)[2m > [22ma dívida de tenant da base está declarada, com a etapa que a paga[32m 1[2mms[22m[39m
+   [32m✓[39m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22ma base vem primeiro, e é a BASE[32m 0[2mms[22m[39m
+   [32m✓[39m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22mtodo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra[32m 21[2mms[22m[39m
+   [32m✓[39m a FORMA das contribuições das etapas (e não a lista de nomes)[2m > [22mcada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio[32m 3[2mms[22m[39m
+[31m   [31m×[31m sonda 1: função SECURITY DEFINER fora da lista reprova[2m > [22muma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista[39m[32m 14[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+   [32m✓[39m sonda 1: função SECURITY DEFINER fora da lista reprova[2m > [22ma função de uma etapa que o catálogo ainda não conhece reprova[32m 8[2mms[22m[39m
+[31m   [31m×[31m sonda 2: sobrecarga de uma função listada reprova[2m > [22mmesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura[39m[32m 9[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função que não existe no banco[39m[32m 7[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função listada que deixou de ser SECURITY DEFINER[39m[32m 43[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 3: entrada na lista que o banco não confirma reprova[2m > [22mtirar a função da lista (o caminho inverso) também reprova[39m[32m 7[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido a PUBLIC[39m[32m 11[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido ao console numa função que só a aplicação executa[39m[32m 62[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)[39m[32m 9[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+[31m   [31m×[31m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS12: trocar o dono de uma função privilegiada reprova no catálogo[39m[32m 17[2mms[22m[39m
+[31m     → expected [ …(2) ] to deeply equal [][39m
+   [32m✓[39m sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mquemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão[32m 1[2mms[22m[39m
+[31m   [31m×[31m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mdívida de tenant sem a etapa que a paga[39m[32m 32[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+   [32m✓[39m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mmotivo de enchimento[32m 6[2mms[22m[39m
+[31m   [31m×[31m sonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mS5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova[39m[32m 9[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+   [32m✓[39m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22muma tabela nova sem a coluna[32m 101[2mms[22m[39m
+   [32m✓[39m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22muma tabela com `organizacao_id` que aceita nulo conta como sem a coluna[32m 57[2mms[22m[39m
+   [32m✓[39m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22mdeclarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa[32m 34[2mms[22m[39m
+   [32m✓[39m sonda 6: tabela sem organizacao_id fora das exceções reprova[2m > [22mtirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna)[32m 19[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que não existe[32m 42[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`)[32m 90[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mtabela que TEM policy de tenant: dispensa de policy desnecessária[32m 91[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mentrada que não dispensa nem a coluna nem a policy[32m 30[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mentrada que não diz se dispensa ou mantém um invariante[32m 67[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: RLS não forçada reprova[32m 42[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova[32m 19[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mo que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete`[32m 49[2mms[22m[39m
+   [32m✓[39m sonda 7: exceção que o banco não confirma reprova[2m > [22mdispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção[32m 2[2mms[22m[39m
+   [32m✓[39m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova[32m 50[2mms[22m[39m
+   [32m✓[39m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção[32m 1[2mms[22m[39m
+   [32m✓[39m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado[32m 2[2mms[22m[39m
+   [32m✓[39m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mS8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco[32m 23[2mms[22m[39m
+   [32m✓[39m sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse[2m > [22mtabela do fornecedor que o papel de aplicação alcança reprova[32m 61[2mms[22m[39m
+[31m   [31m×[31m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mS3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app[39m[32m 58[2mms[22m[39m
+[31m     → expected [ …(3) ] to have a length of 1 but got 3[39m
+   [32m✓[39m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mS3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app[32m 86[2mms[22m[39m
+   [32m✓[39m sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mUSAGE num esquema vazio, e CREATE em public, também reprovam[32m 47[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com uma migração que não existe reprova[32m 137[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com uma migração que não recria a função reprova[32m 139[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mS5a: redefinir com a mesma migração da entrada substituída é recusado na junção[32m 1[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22mcom a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5)[32m 130[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22muma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova[32m 116[2mms[22m[39m
+   [32m✓[39m sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos[2m > [22ma prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas[32m 286[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22ma mesma função em duas etapas, sem redefine, é erro[32m 16[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22mredefine: true com migração maior substitui a entrada anterior[32m 1[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22mredefine: true sem entrada anterior é erro (nome errado)[32m 6[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22mentrada que diz outra etapa que não a do arquivo é erro[32m 0[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22massinatura que não é da função nomeada é erro[32m 0[2mms[22m[39m
+   [32m✓[39m sonda 11: a junção das contribuições das etapas[2m > [22ma mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também[32m 1[2mms[22m[39m
+ [32m✓[39m test/funcoes-antes-do-tenant.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 4752[2mms[22m[39m
+ [32m✓[39m test/endurecer-extensao.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 5654[2mms[22m[39m
+   [33m[2m✓[22m[39m sem a extensão instalada[2m > [22mo arquivo inteiro roda num Postgres comum, sem os papéis do provedor [33m 2166[2mms[22m[39m
+ [32m✓[39m test/migracoes-regras.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+ [32m✓[39m test/teto-de-coordenada.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 4465[2mms[22m[39m
+ [32m✓[39m test/ancora-de-confianca.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/login-e-suspensao-na-mesma-linha.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 4407[2mms[22m[39m
+ [32m✓[39m test/postgis-decisao.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/varredura-de-prazo-sem-bypassrls.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 3460[2mms[22m[39m
+ [32m✓[39m test/chave-de-criacao-migracao.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 15699[2mms[22m[39m
+   [33m[2m✓[22m[39m os índices da 052, com a base inteira[2m > [22mevidência: o índice da 052 SOZINHO recusa repetir (município, ocorrência, chave) e aceita outra ocorrência [33m 3855[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 052[2m > [22maplicar, desfazer e reaplicar: colunas, índices, RLS e funções idênticos [33m 2477[2mms[22m[39m
+ [32m✓[39m test/pessoas.test.ts [2m([22m[2m86 tests[22m[2m | [22m[33m9 skipped[39m[2m)[22m[33m 13179[2mms[22m[39m
+   [33m[2m✓[22m[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mos gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado [33m 2554[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 054[2m > [22maplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos [33m 2535[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 054[2m > [22mfalha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica [33m 2395[2mms[22m[39m
+ [32m✓[39m test/trava-de-migracao.test.ts [2m([22m[2m15 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 22050[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22maplica, e a trava é largada no fim [33m 3481[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle [33m 2265[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22musa a chave fixa do produto [33m 2381[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mtrava ocupada: espera, tenta de novo e aplica quando a outra termina [33m 2533[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mtrava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado [33m 2052[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mcom esperaMs 0 é uma tentativa só [33m 1842[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mavisa uma vez, no registro, que está esperando [33m 1114[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é larga mesmo quando a migração falha [33m 1268[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22ma trava é larga quando o histórico foi alterado [33m 1288[2mms[22m[39m
+   [33m[2m✓[22m[39m a decisão, em PGlite[2m > [22mmigrar com o papel errado continua dando a mensagem do papel, e larga a trava [33m 1604[2mms[22m[39m
+   [33m[2m✓[22m[39m o pooler não serve[2m > [22ma porta 6543 (pooler em modo transação) é recusada com a explicação [33m 1204[2mms[22m[39m
+   [33m[2m✓[22m[39m o pooler não serve[2m > [22mconexão direta, sem URL e URL ilegível não recusam aqui [33m 1014[2mms[22m[39m
+ [32m✓[39m test/migrar.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 27002[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica na ordem, mesmo recebendo fora de ordem [33m 3780[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mrodar de novo não faz nada [33m 2501[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica só o que falta quando uma migração nova aparece [33m 2242[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mregistra quando cada uma foi aplicada [33m 2516[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mdesfaz a migração que falhou e mantém as anteriores [33m 2398[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mretoma da que falhou depois que ela é corrigida [33m 1471[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22ma mensagem diz qual migração falhou [33m 1090[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mpara quando uma migração já aplicada muda de conteúdo [33m 1251[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22ma mensagem explica o que fazer, não só que deu erro [33m 1332[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mreindentar não conta como alterar [33m 1459[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mdiz o que falta e não muda nada [33m 1206[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mesquema em dia devolve lista vazia [33m 917[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicam do zero, na ordem, sem erro [33m 1366[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicar duas vezes é seguro, que é o caso de todo redeploy [33m 1191[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22mos nomes começam com número, senão a ordem alfabética não serve [33m 757[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mexplica que o papel não pode criar tabela, em vez de repetir o erro do Postgres [33m 750[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mo papel certo continua migrando sem nenhum aviso novo [33m 771[2mms[22m[39m
+ [32m✓[39m test/portao-comportamental.test.ts [2m([22m[2m40 tests[22m[2m)[22m[33m 24525[2mms[22m[39m
+   [33m[2m✓[22m[39m linha de base: o banco de hoje passa por tudo[2m > [22ma prova comportamental inteira não acha nada no banco de hoje [33m 4662[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22muma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa [33m 1336[2mms[22m[39m
+   [33m[2m✓[22m[39m item 1: a prova comportamental morde, tabela por tabela[2m > [22mPREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos [33m 1044[2mms[22m[39m
+   [33m[2m✓[22m[39m item 2: o modo de cada policy, e a composição[2m > [22mcomposição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede [33m 1551[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada [33m 2737[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mvisão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some [33m 1975[2mms[22m[39m
+   [33m[2m✓[22m[39m item 3: visões[2m > [22mcom security_invoker, a mesma visão passa nas duas [33m 1929[2mms[22m[39m
+   [33m[2m✓[22m[39m item 5: a função recriada por SQL dinâmico[2m > [22ma definição instalada mostra: a função mudou na 999 e o catálogo diz 046 [33m 1247[2mms[22m[39m
+ [31m❯[39m test/desfazer-migracao.test.ts [2m([22m[2m29 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[33m 34900[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22maplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos [33m 3885[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22mdesfaz UMA só: a anterior continua aplicada [33m 2387[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22msem nada aplicado, diz que não há o que desfazer [33m 2111[2mms[22m[39m
+   [33m[2m✓[22m[39m positivos: desfaz só a última, e o ciclo deixa o esquema idêntico[2m > [22mlarga a trava de migração no fim [33m 2746[2mms[22m[39m
+   [33m[2m✓[22m[39m o número da migração de prova é calculado (a última real mais um)[2m > [22mvai depois da última real, qualquer que seja ela, sem depender do CLI [33m 1999[2mms[22m[39m
+   [33m[2m✓[22m[39m com as migrações de verdade: o isolamento sobrevive ao ciclo[2m > [22muma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato [33m 2618[2mms[22m[39m
+   [33m[2m✓[22m[39m com as migrações de verdade: o isolamento sobrevive ao ciclo[2m > [22ma última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada [33m 2054[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mmigração declarada IRREVERSIVEL [33m 1484[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mmigração aplicada cujo arquivo não existe nesta versão do código [33m 1371[2mms[22m[39m
+   [33m[2m✓[22m[39m negativos: o que o desfazer recusa[2m > [22mvolta que falha: desfaz inteira ou não desfaz nada, e o registro continua [33m 1113[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mAMBIENTE_DC360=prod [33m 810[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mNODE_ENV=production, mesmo sem AMBIENTE_DC360 [33m 789[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mURL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha [33m 718[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22ma identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege [33m 711[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mbanco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável [33m 730[2mms[22m[39m
+   [33m[2m✓[22m[39m em PRODUÇÃO: recusa antes de tocar no banco[2m > [22mdescartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade) [33m 755[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mPROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha [33m 827[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mdeclarar hml sem a identidade, ou com a de outro banco, ainda recusa [33m 668[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL [33m 745[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mHML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML) [33m 726[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO [33m 640[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mNODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML [33m 618[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22mURL que não dá para analisar recusa sem repetir o texto [33m 584[2mms[22m[39m
+   [33m[2m✓[22m[39m FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)[2m > [22ma lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host) [33m 680[2mms[22m[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom AMBIENTE_DC360=prod: código 1, sem conectar[39m[33m 647[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar[39m[33m 600[2mms[22m[39m
+[31m     → expected null to be 1 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom a porta 6543 (pooler): código 2, sem conectar[39m[33m 634[2mms[22m[39m
+[31m     → expected null to be 2 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22m--desfazer com --semear: código 2[39m[33m 598[2mms[22m[39m
+[31m     → expected null to be 2 // Object.is equality[39m
+[31m   [31m×[31m o comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco efêmero vazio: nada a desfazer, código 0[39m[33m 645[2mms[22m[39m
+[31m     → expected null to be +0 // Object.is equality[39m
+ [31m❯[39m test/isolamento.test.ts [2m([22m[2m162 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 41901[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mcada município enxerga apenas as próprias ocorrências[32m 71[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mnão lê ocorrência de outro município nem pedindo pelo id exato[32m 8[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mnão altera ocorrência de outro município[32m 7[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mnão cria registro carimbado com o id de outro município[32m 75[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22msem contexto de organização, não enxerga nada[32m 4[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela do esquema tem RLS ativada E forçada[32m 197[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mo formulário público escreve e NÃO lê[32m 49[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela de negócio tem policy amarrada na organização do contexto[32m 274[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO[32m 68[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mtoda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale[32m 0[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mcada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)[32m 49[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mnada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema[32m 38[2mms[22m[39m
+   [32m✓[39m CA-06: isolamento entre organizações[2m > [22mtoda referência entre tabelas de negócio inclui a organização[32m 9[2mms[22m[39m
+[31m   [31m×[31m Funções privilegiadas[2m > [22mexistem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)[39m[32m 74[2mms[22m[39m
+[31m     → expected [ …(2) ] to deeply equal [][39m
+   [32m✓[39m Funções privilegiadas[2m > [22mo catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita[32m 237[2mms[22m[39m
+   [32m✓[39m Funções privilegiadas[2m > [22mtoda função privilegiada fixa o search_path[32m 43[2mms[22m[39m
+   [32m✓[39m Funções privilegiadas[2m > [22mnenhuma função privilegiada é executável por PUBLIC[32m 5[2mms[22m[39m
+   [32m✓[39m Funções privilegiadas[2m > [22mo papel de aplicação não é superusuário nem dono das tabelas[32m 4[2mms[22m[39m
+   [32m✓[39m Trilha auditável é append-only[2m > [22maceita inserção mas recusa alteração e exclusão[32m 19[2mms[22m[39m
+   [32m✓[39m Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT[2m > [22mnenhuma tabela de prova tem policy que alcance DELETE[32m 148[2mms[22m[39m
+   [33m[2m✓[22m[39m Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT[2m > [22mcom um GRANT DELETE a mais, as linhas continuam lá [33m 649[2mms[22m[39m
+   [32m✓[39m O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado[2m > [22ma ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade[32m 13[2mms[22m[39m
+   [32m✓[39m O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado[2m > [22mem TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada[32m 5[2mms[22m[39m
+   [32m✓[39m O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado[2m > [22mcaso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma[32m 47[2mms[22m[39m
+   [32m✓[39m O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado[2m > [22mcaso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo[32m 11[2mms[22m[39m
+   [32m✓[39m O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado[2m > [22mcaso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT[32m 12[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22mrecusa encerrar sem motivo[32m 33[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22mprotocolo pode repetir entre municípios, mas não dentro do mesmo[32m 6[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22mgera protocolo sequencial por organização e ano, sem colidir entre municípios[32m 16[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22mrecusa evidência cuja chave de storage não tem o prefixo do tenant[32m 42[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22ma foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040)[32m 78[2mms[22m[39m
+   [32m✓[39m Regras de negócio garantidas pelo banco[2m > [22mrecusa a mesma coleta enviada duas vezes com a mesma chave de idempotência[32m 17[2mms[22m[39m
+   [32m✓[39m Isolamento sob concorrência na mesma conexão[2m > [22mduas leituras concorrentes de municípios diferentes não trocam de contexto[32m 260[2mms[22m[39m
+   [32m✓[39m Isolamento sob concorrência na mesma conexão[2m > [22mescrita concorrente de um município não escapa para o outro[32m 30[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mnao vincula ocorrencia a chamado de outro municipio[32m 9[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mnao despacha para equipe de outro municipio[32m 7[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mnao coloca servidor em equipe de outro municipio[32m 6[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mnao grava vistoria apontando para ocorrencia de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mnao assina evento da trilha com servidor de outro municipio[32m 21[2mms[22m[39m
+   [32m✓[39m Chave estrangeira nao atravessa municipio[2m > [22mo vinculo dentro do proprio municipio continua funcionando[32m 9[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mnao le a ficha de push do aparelho de outro municipio[32m 44[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mnao revoga o aparelho de outro municipio[32m 6[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mnao registra aparelho no nome de servidor de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22ma mesma ficha registrada por dois municipios nao denuncia a existencia da outra[32m 20[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22ma mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica[32m 14[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22maparelho nao se apaga, se revoga[32m 8[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mrevogar aparelho sem motivo e recusado pelo banco[32m 6[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mnao registra aviso apontando para ocorrencia de outro municipio[32m 10[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mo papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade[32m 36[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22mnao le o aviso enviado por outro municipio[32m 6[2mms[22m[39m
+   [32m✓[39m Aparelho de push e aviso de prazo[2m > [22ma varredura nao aceita municipio de quem chama e nao devolve dado de pessoa[32m 5[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22mnao enfileira aviso carimbado com o id de outro municipio[32m 15[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22mnao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id[32m 28[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22ma aplicacao so enfileira: nao registra entrega nem cria aviso de prazo[32m 12[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22menfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio[32m 12[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22ma varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa[32m 2[2mms[22m[39m
+   [32m✓[39m O aviso de despacho nasce na aplicacao, pela porta estreita da 042[2m > [22ma varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho[32m 22[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao le o aviso de outro municipio[32m 9[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao cria aviso carimbado com o id de outro municipio[32m 6[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao cria aviso apontando para ocorrencia de outro municipio[32m 20[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao registra leitura no nome de servidor de outro municipio[32m 8[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao registra leitura de aviso de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao le quem leu o que no outro municipio[32m 9[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mnao apaga aviso de outro municipio, nem o velho[32m 20[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22ma retencao e do banco: nem o proprio municipio apaga aviso que ainda vale[32m 5[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mo expurgo por idade leva junto quem leu, em vez de travar[32m 9[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mo mesmo fato nao vira dois avisos[32m 10[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22maviso nao se edita, e leitura nao se desfaz[32m 5[2mms[22m[39m
+   [32m✓[39m Sino de avisos[2m > [22mos gatilhos do sino nao sao privilegiados[32m 2[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mnao le o orgao de outro municipio nem pedindo pelo id exato[32m 9[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mnao encaminha providencia para orgao de outro municipio[32m 20[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mprovidencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho[32m 13[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mo mesmo nome de orgao nao entra duas vezes so por causa da caixa[32m 6[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22morgao nao se apaga, se desativa com motivo[32m 39[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mnumera oficio por municipio e por ano, sem colidir entre municipios[32m 13[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22ma numeracao de oficio recusa rodar sem contexto de municipio[32m 4[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mnao emite dois oficios para a mesma providencia[32m 7[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22moficio emitido nao se corrige: sem UPDATE e sem DELETE[32m 14[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mnao le o oficio nem o envio de outro municipio[32m 9[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mo email so sai para dominio de orgao ativo do proprio municipio[32m 12[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mo link abre uma vez, e a segunda abertura e recusada e registrada[32m 29[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mo uso unico e do banco, e nao da aplicacao[32m 2[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mlink expirado nao entrega o oficio, e a recusa fica registrada[32m 8[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22mlink desconhecido nao registra nada e nao conta se o municipio existe[32m 6[2mms[22m[39m
+   [32m✓[39m Catalogo de orgaos, oficio numerado e link de uso unico[2m > [22ma trilha de aberturas e append-only: o papel de aplicacao le e nao escreve[32m 41[2mms[22m[39m
+   [32m✓[39m O link do oficio nao se estende, se reenvia[2m > [22mo papel de aplicacao registra o desfecho e nao mexe no prazo nem no token[32m 19[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22maceita o chamado que entrou sem classificacao, com o relato junto[32m 38[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22mrecusa 'outro' sem dizer o que foi relatado[32m 5[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22mrecusa descricao pendurada em tipo da COBRADE[32m 6[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22mrecusa despachar equipe para chamado que continua 'outro'[32m 10[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22mencerrar sem nunca classificar continua permitido[32m 46[2mms[22m[39m
+   [32m✓[39m O tipo a classificar, e ate onde ele pode ir[2m > [22mreclassificar limpa a descricao e libera o despacho[32m 13[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22mgrava a indicacao do proprio municipio, do catalogo e por texto livre[32m 50[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22mnao indica orgao do catalogo de outro municipio[32m 7[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22mnao pendura indicacao em vistoria de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22mo vizinho nao le as indicacoes de quem esta ao lado[32m 4[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22mo mesmo orgao do catalogo nao entra duas vezes na mesma vistoria[32m 5[2mms[22m[39m
+   [32m✓[39m Orgaos indicados pela vistoria[2m > [22ma coleta de campo nao se reescreve nem se apaga[32m 12[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnao le o registro de acesso do municipio vizinho[32m 4[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnao registra consulta apontando para ocorrencia de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnao registra consulta no nome de servidor de outro municipio[32m 5[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnao carimba o registro com o id de outro municipio[32m 4[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mo registro de acesso nao se reescreve nem se apaga[32m 46[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnao le nem altera o prazo de retencao do municipio vizinho[32m 9[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22ma minimizacao nao aceita municipio nem prazo de quem chama[32m 2[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22ma minimizacao nao devolve dado de pessoa[32m 2[2mms[22m[39m
+   [32m✓[39m Minimizacao por prazo e registro de consulta[2m > [22mnem PUBLIC nem uma conta qualquer executa a minimizacao[32m 2[2mms[22m[39m
+   [32m✓[39m Segundo fator[2m > [22mum municipio nao alcanca o segundo fator do outro, nem pelo id exato[32m 38[2mms[22m[39m
+   [32m✓[39m Segundo fator[2m > [22mrecusa o segredo do TOTP gravado em texto[32m 5[2mms[22m[39m
+   [32m✓[39m Segundo fator[2m > [22mrecusa desligar o segundo fator deixando o segredo guardado[32m 32[2mms[22m[39m
+   [32m✓[39m Segundo fator[2m > [22mrecusa o codigo de recuperacao gravado em texto[32m 4[2mms[22m[39m
+   [32m✓[39m Segundo fator[2m > [22mguarda o codigo como resumo e recusa apagar o que ja foi gasto[32m 11[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 2287[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 1832[2mms[22m[39m
+   [32m✓[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel do produto e superusuario ou ignora RLS[32m 6[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 26672[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mo municipio escreve o proprio resumo, e ele bate com o que o municipio ve[32m 7[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mchamar duas vezes no mesmo dia corrige a linha, nao empilha outra[32m 8[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mo resumo conta o proprio municipio, e nao enxerga o vizinho[32m 6[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mnao escreve resumo carimbado com o id de outro municipio[32m 2[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22msem contexto de municipio, a escrita nao acontece[32m 3[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mo municipio nao apaga o proprio historico de metricas[32m 1[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22ma regra de coluna proibida reprova de verdade quando ha o que reprovar[32m 4[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mnada que identifique pessoa ou imovel entra no que o console le[32m 13[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22ma marca de tempo da ultima escrita existe e e obrigatoria[32m 3[2mms[22m[39m
+   [32m✓[39m Metricas escritas pelo proprio municipio[2m > [22mmunicipio que nao escreveu aparece como sinal, e nao como linha faltando[32m 2[2mms[22m[39m
+   [32m✓[39m O console le metrica e nao alcanca dado de municipio[2m > [22mle o resumo de mais de um municipio, que e o motivo de ele existir[32m 1[2mms[22m[39m
+   [32m✓[39m O console le metrica e nao alcanca dado de municipio[2m > [22mnao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum[32m 14[2mms[22m[39m
+   [32m✓[39m O console le metrica e nao alcanca dado de municipio[2m > [22mnao escreve nada, nem na tabela que ele le[32m 2[2mms[22m[39m
+   [32m✓[39m O console le metrica e nao alcanca dado de municipio[2m > [22ma visao que ele le roda com os privilegios DELE, e nao com os do dono[32m 7[2mms[22m[39m
+   [32m✓[39m O relogio que descobre para quem chamar o resumo[2m > [22mdescobre quem esta sem resumo fresco, sem contexto de municipio nenhum[32m 2[2mms[22m[39m
+   [32m✓[39m O relogio que descobre para quem chamar o resumo[2m > [22msome da fila assim que o municipio escreve, e volta quando o resumo envelhece[32m 7[2mms[22m[39m
+   [32m✓[39m O relogio que descobre para quem chamar o resumo[2m > [22mnao aceita municipio de parametro, e nao devolve nome de prefeitura[32m 1[2mms[22m[39m
+   [32m✓[39m O relogio que descobre para quem chamar o resumo[2m > [22mo papel do console nao executa o relogio[32m 2[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mo municipio, o administrador e a linha de nascimento nascem juntos[32m 7[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22ma saida sao dois identificadores, e nao ha como devolver linha de tabela[32m 1[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mnenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio[32m 3[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mdepois de criar o municipio, o console continua sem enxergar o que criou[32m 15[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mrecusa municipio duplicado ANTES de escrever, e diz qual ja existe[32m 7[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mrecusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou[32m 11[2mms[22m[39m
+   [32m✓[39m A porta de criar municipio, e por que ela nao serve para ler[2m > [22mo papel de aplicacao de um municipio nao alcanca esta porta[32m 2[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada[32m 0[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A[32m 3[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role)[32m 2[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos[32m 2[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental[32m 3[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada[32m 2[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele[32m 6[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mcorreção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role[32m 2[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mcorreção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante)[32m 3[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mcorreção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém)[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mcorreção 2 da ADR 0009: a forma da marca "recusada depois da liberação" (antes da liberação, a marcada é do papel de aplicação)[32m 0[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último[32m 0[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22ma âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22mo operador não agenda eliminação, nem sem sessão[32m 6[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22mo operador não cancela eliminação (UPDATE às cegas), nem sem sessão[32m 7[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22mo operador não cria outro operador nem outro dono, e sem sessão também não[32m 13[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22mo operador não altera o dono (UPDATE às cegas)[32m 4[2mms[22m[39m
+   [32m✓[39m Prova comportamental entre municípios, tabela por tabela (parte 0D)[2m > [22mitem 4: o operador do console sem autorização tentando, de verdade[2m > [22mo operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum[32m 7[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 22 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22mo catálogo de hoje bate com o banco de hoje (a linha de base)[2m > [22mas funções privilegiadas listadas são exatamente as do banco
+[31m[1mAssertionError[22m: expected [ …(2) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "public.conta_ganha_pessoa(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+   "public.pessoa_espelha_a_conta(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m124:29[22m[39m
+    [90m122| [39mdescribe("o catálogo de hoje bate com o banco de hoje (a linha de base…
+    [90m123| [39m  it("as funções privilegiadas listadas são exatamente as do banco", a…
+    [90m124| [39m    [34mexpect[39m([35mawait[39m [34mfuncoes[39m())[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                            [31m^[39m
+    [90m125| [39m  })[33m;[39m
+    [90m126| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 1: função SECURITY DEFINER fora da lista reprova[2m > [22muma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m269:23[22m[39m
+    [90m267| [39m      funcoes[33m,[39m
+    [90m268| [39m    )[33m;[39m
+    [90m269| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m270| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m271| [39m      /fora de FUNCOES_PRIVILEGIADAS: public\.sonda_fora_da_lista\(int…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 2: sobrecarga de uma função listada reprova[2m > [22mmesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m301:23[22m[39m
+    [90m299| [39m      funcoes[33m,[39m
+    [90m300| [39m    )[33m;[39m
+    [90m301| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m302| [39m    expect(problemas[0]).toMatch(/public\.credenciais_para_login\(inte…
+    [90m303| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função que não existe no banco
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m309:23[22m[39m
+    [90m307| [39m  [34mit[39m([32m"uma função que não existe no banco"[39m[33m,[39m [35masync[39m () [33m=>[39m {
+    [90m308| [39m    const problemas = await conferirFuncoesPrivilegiadas(db, [...FUNCO…
+    [90m309| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m310| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m311| [39m      /consta em FUNCOES_PRIVILEGIADAS \(sonda\) mas não existe no ban…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 3: entrada na lista que o banco não confirma reprova[2m > [22muma função listada que deixou de ser SECURITY DEFINER
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m321:23[22m[39m
+    [90m319| [39m      funcoes[33m,[39m
+    [90m320| [39m    )[33m;[39m
+    [90m321| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m322| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m323| [39m      /mas não existe no banco como SECURITY DEFINER: public\.interess…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 3: entrada na lista que o banco não confirma reprova[2m > [22mtirar a função da lista (o caminho inverso) também reprova
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m330:23[22m[39m
+    [90m328| [39m    const semUma = FUNCOES_PRIVILEGIADAS.filter((f) => f.nome !== "tro…
+    [90m329| [39m    [35mconst[39m problemas [33m=[39m [35mawait[39m [34mconferirFuncoesPrivilegiadas[39m(db[33m,[39m semUma)[33m;[39m
+    [90m330| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m331| [39m    expect(problemas[0]).toMatch(/fora de FUNCOES_PRIVILEGIADAS: publi…
+    [90m332| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido a PUBLIC
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m342:23[22m[39m
+    [90m340| [39m      funcoes[33m,[39m
+    [90m341| [39m    )[33m;[39m
+    [90m342| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m343| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m344| [39m      /public\.interesse_recente\(text\): o EXECUTE do banco \(PUBLIC,…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mEXECUTE concedido ao console numa função que só a aplicação executa
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m354:23[22m[39m
+    [90m352| [39m      funcoes[33m,[39m
+    [90m353| [39m    )[33m;[39m
+    [90m354| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m355| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m356| [39m      /public\.sessao_por_token\(text\): o EXECUTE do banco \(dc360_ap…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console)
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m366:23[22m[39m
+    [90m364| [39m      funcoes[33m,[39m
+    [90m365| [39m    )[33m;[39m
+    [90m366| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m367| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m368| [39m      /public\.credenciais_para_login\(text\): o EXECUTE do banco \(dc…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 4: o EXECUTE e o dono têm de ser exatamente os declarados[2m > [22mS12: trocar o dono de uma função privilegiada reprova no catálogo
+[31m[1mAssertionError[22m: expected [ …(2) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "public.conta_ganha_pessoa(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+   "public.pessoa_espelha_a_conta(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m389:29[22m[39m
+    [90m387| [39m      /public\.interesse_recente\(text\): o EXECUTE do banco \(dc360_a…
+    [90m388| [39m    )[33m;[39m
+    [90m389| [39m    [34mexpect[39m([35mawait[39m [34mfuncoes[39m())[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                            [31m^[39m
+    [90m390| [39m  })[33m;[39m
+    [90m391| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mdívida de tenant sem a etapa que a paga
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m418:23[22m[39m
+    [90m416| [39m    })[33m;[39m
+    [90m417| [39m    [35mconst[39m problemas [33m=[39m [35mawait[39m [34mconferirFuncoesPrivilegiadas[39m(db[33m,[39m lista)[33m;[39m
+    [90m418| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m419| [39m    expect(problemas[0]).toMatch(/dívida de tenant sem a etapa que a p…
+    [90m420| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 5: o que a entrada diz precisa ser verdade e ter dono[2m > [22mS5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m433:23[22m[39m
+    [90m431| [39m    const lista = FUNCOES_PRIVILEGIADAS.map((f) => (f.nome === "trocar…
+    [90m432| [39m    [35mconst[39m problemas [33m=[39m [35mawait[39m [34mconferirFuncoesPrivilegiadas[39m(db[33m,[39m lista)[33m;[39m
+    [90m433| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m434| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m435| [39m      /public\.trocar_senha\(uuid,text,uuid\): declara conferir o tena…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-nominal.test.ts[2m > [22msonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão[2m > [22mS3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app
+[31m[1mAssertionError[22m: expected [ …(3) ] to have a length of 1 but got 3[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/catalogo-nominal.test.ts:[2m712:24[22m[39m
+    [90m710| [39m      [35mawait[39m [34mesquemas[39m()[33m,[39m
+    [90m711| [39m    ])[33m;[39m
+    [90m712| [39m    [34mexpect[39m(nasFuncoes)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m713| [39m    [34mexpect[39m(nasFuncoes[[34m0[39m])[33m.[39m[34mtoMatch[39m(
+    [90m714| [39m      /fora de FUNCOES_PRIVILEGIADAS: porta_dos_fundos\.contar_organiz…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom AMBIENTE_DC360=prod: código 1, sem conectar
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m473:22[22m[39m
+    [90m471| [39m      [33mDATABASE_URL[39m[33m:[39m [32m"postgres://u:senha-secreta@127.0.0.1:1/postgres"[39m[33m,[39m
+    [90m472| [39m    })[33m;[39m
+    [90m473| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m474| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/AMBIENTE_DC360=prod/[39m)[33m;[39m
+    [90m475| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Desfeita/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m484:22[22m[39m
+    [90m482| [39m      DATABASE_URL: "postgres://u:senha-secreta@db.refnovaprodxxxxxxxx…
+    [90m483| [39m    })[33m;[39m
+    [90m484| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m485| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/banco hospedado/[39m)[33m;[39m
+    [90m486| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Desfeita/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mcom a porta 6543 (pooler): código 2, sem conectar
+[31m[1mAssertionError[22m: expected null to be 2 // Object.is equality[39m
+
+[32m- Expected:[39m 
+2
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m493:22[22m[39m
+    [90m491| [39m  [34mit[39m([32m"com a porta 6543 (pooler): código 2, sem conectar"[39m[33m,[39m () [33m=>[39m {
+    [90m492| [39m    const r = rodar([], { DATABASE_URL: "postgres://u:senha-secreta@12…
+    [90m493| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m494| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/6543/[39m)[33m;[39m
+    [90m495| [39m    [34mexpect[39m([32m`[39m[36m${[39mr[33m.[39mstdout[36m}[39m[32m[39m[36m${[39mr[33m.[39mstderr[36m}[39m[32m`[39m)[33m.[39mnot[33m.[39m[34mtoContain[39m([32m"senha-secreta"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22m--desfazer com --semear: código 2
+[31m[1mAssertionError[22m: expected null to be 2 // Object.is equality[39m
+
+[32m- Expected:[39m 
+2
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m500:22[22m[39m
+    [90m498| [39m  [34mit[39m([32m"--desfazer com --semear: código 2"[39m[33m,[39m () [33m=>[39m {
+    [90m499| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m([[32m"--desfazer"[39m[33m,[39m [32m"--semear"[39m][33m,[39m {})[33m;[39m
+    [90m500| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m501| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/não combinam/[39m)[33m;[39m
+    [90m502| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/desfazer-migracao.test.ts[2m > [22mo comando de verdade (`npm run migrar -- --desfazer`)[2m > [22mbanco efêmero vazio: nada a desfazer, código 0
+[31m[1mAssertionError[22m: expected null to be +0 // Object.is equality[39m
+
+[32m- Expected:[39m 
+0
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/desfazer-migracao.test.ts:[2m506:32[22m[39m
+    [90m504| [39m  [34mit[39m([32m"banco efêmero vazio: nada a desfazer, código 0"[39m[33m,[39m () [33m=>[39m {
+    [90m505| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m([[32m"--desfazer"[39m][33m,[39m {})[33m;[39m
+    [90m506| [39m    [34mexpect[39m(r[33m.[39mstatus[33m,[39m r[33m.[39mstderr)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                               [31m^[39m
+    [90m507| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39m[34mtoMatch[39m([36m/nada a desfazer/[39m)[33m;[39m
+    [90m508| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m166:22[22m[39m
+    [90m164| [39m      DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.…
+    [90m165| [39m    })[33m;[39m
+    [90m166| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m167| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/PRODUÇÃO/[39m)[33m;[39m
+    [90m168| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/Aplicadas|Nada a fazer|Semeado/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22mcom a URL de um banco hospedado de HML: código 1
+[31m[1mAssertionError[22m: expected null to be 1 // Object.is equality[39m
+
+[32m- Expected:[39m 
+1
+
+[31m+ Received:[39m 
+null
+
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m176:22[22m[39m
+    [90m174| [39m      DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secr…
+    [90m175| [39m    })[33m;[39m
+    [90m176| [39m    [34mexpect[39m(r[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m177| [39m    [34mexpect[39m(r[33m.[39mstderr)[33m.[39m[34mtoMatch[39m([36m/descartável/[39m)[33m;[39m
+    [90m178| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-da-semente.test.ts[2m > [22mo comando de verdade: `--semear` recusa ANTES de conectar[2m > [22msem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+[31m[1mTypeError[22m: .toMatch() expects to receive a string, but got undefined[39m
+[36m [2m❯[22m test/guarda-da-semente.test.ts:[2m183:22[22m[39m
+    [90m181| [39m    [35mconst[39m r [33m=[39m [34mrodar[39m({})[33m;[39m
+    [90m182| [39m    [34mexpect[39m(r[33m.[39mstatus [33m??[39m [34m0[39m)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m183| [39m    [34mexpect[39m(r[33m.[39mstdout)[33m.[39m[34mtoMatch[39m([36m/Semeado/[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m184| [39m  })[33m;[39m
+    [90m185| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/22]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/isolamento.test.ts[2m > [22mFunções privilegiadas[2m > [22mexistem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando)
+[31m[1mAssertionError[22m: expected [ …(2) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "public.conta_ganha_pessoa(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+   "public.pessoa_espelha_a_conta(): sem nenhum papel com EXECUTE; função privilegiada que ninguém chama não deve existir",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/isolamento.test.ts:[2m641:75[22m[39m
+    [90m639| [39m      `db/test/catalogo-nominal.test.ts`.
+    [90m640| [39m    */
+    [90m641| [39m    expect(await conferirFuncoesPrivilegiadas(db, FUNCOES_PRIVILEGIADA…
+    [90m   | [39m                                                                          [31m^[39m
+    [90m642| [39m  });
+    [90m643| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/22]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m21 passed[39m[22m[90m (25)[39m
+[2m      Tests [22m [1m[31m22 failed[39m[22m[2m | [22m[1m[32m640 passed[39m[22m[2m | [22m[33m15 skipped[39m[90m (677)[39m
+[2m   Start at [22m 11:26:21
+[2m   Duration [22m 47.99s[2m (transform 8.02s, setup 0ms, collect 23.04s, tests 270.91s, environment 11ms, prepare 10.48s)[22m
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a04627fd3c2198a33\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a04627fd3c2198a33\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

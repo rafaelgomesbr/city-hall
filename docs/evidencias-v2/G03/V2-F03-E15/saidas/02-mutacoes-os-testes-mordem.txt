@@ -1,0 +1,41 @@
+$ node sondas/mutar.mjs <raiz do worktree> <saida>   # oito mutacoes da 054; cada uma roda npx vitest run test/pessoas.test.ts (PGlite) e a migracao e devolvida no fim
+M1: o criador aceita pessoa_id informado (sem a recusa do BEFORE INSERT)
+  codigo de saida 1; Tests  2 failed | 62 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > o dc360_app informando `pessoa_id` no INSERT: permissão negada, antes de qualquer escrita
+    FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > função do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT
+
+M2: o adiado não confere nada (o ramo AFTER volta sem olhar a marca)
+  codigo de saida 1; Tests  2 failed | 62 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > um BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação
+    FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono)
+
+M3: o adiado aceita marca de outra transacao
+  codigo de saida 1; Tests  1 failed | 63 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono)
+
+M4: SELECT em pessoas concedido ao dc360_app
+  codigo de saida 1; Tests  5 failed | 59 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas no contexto de A: permissão negada
+    FAIL  test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas no contexto de A: permissão negada
+    FAIL  test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas sem contexto: permissão negada
+    FAIL  test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas sem contexto: permissão negada
+    FAIL  test/pessoas.test.ts > `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nenhum privilégio, de tabela ou de coluna, a dc360_app, dc360_console ou PUBLIC; RLS forçada e nenhuma policy
+
+M5: sem os gatilhos de imutabilidade de pessoa_id
+  codigo de saida 1; Tests  3 failed | 61 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo DONO, direto ou por função SECURITY DEFINER: o gatilho recusa (IS DISTINCT FROM)
+    FAIL  test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa
+    FAIL  test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09)
+
+M6: o espelho esquece o e-mail
+  codigo de saida 1; Tests  1 failed | 63 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09)
+
+M7: UPDATE de usuarios volta a ser de tabela (pessoa_id ao alcance do app)
+  codigo de saida 1; Tests  2 failed | 62 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo dc360_app: permissão negada (privilégio de coluna)
+    FAIL  test/pessoas.test.ts > o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o UPDATE do dc360_app em `usuarios` é por coluna: as que a API grava passam, `id`, `organizacao_id` e `ultimo_acesso` não
+
+M8: vigencia_da_sessao sem a exigencia do municipio do contexto
+  codigo de saida 1; Tests  1 failed | 63 passed | 6 skipped (70)
+    FAIL  test/pessoas.test.ts > `vigencia_da_sessao`: uma consulta, e só no município do contexto > org alheio ao contexto: vazio (nem a linha do município); sem contexto: vazio

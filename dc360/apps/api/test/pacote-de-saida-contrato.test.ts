@@ -200,6 +200,53 @@ describe("Coluna proibida não sai, nem o valor dela", () => {
   }, 60_000);
 });
 
+describe("O identificador global da pessoa não sai (junção do lote 1 da F03)", () => {
+  it("`usuarios.pessoa_id` está em COLUNAS_QUE_NUNCA_SAEM, e `sessoes` (que o tem) fica fora do pacote", () => {
+    expect(COLUNAS_QUE_NUNCA_SAEM.usuarios).toContain("pessoa_id");
+    expect(Object.keys(COLUNAS_QUE_NUNCA_SAEM)).not.toContain("sessoes");
+    expect(TABELAS_DA_SAIDA as readonly string[]).not.toContain("sessoes");
+  });
+
+  it("nenhuma tabela da saída tem coluna pessoa_id fora da lista de colunas que nunca saem", async () => {
+    const r = await mem.bruto.query<{ table_name: string }>(
+      `SELECT table_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND column_name = 'pessoa_id'`,
+    );
+    const expostas = r.rows
+      .map((l) => l.table_name)
+      .filter((t) => (TABELAS_DA_SAIDA as readonly string[]).includes(t))
+      .filter((t) => !(COLUNAS_QUE_NUNCA_SAEM[t] ?? []).includes("pessoa_id"));
+    expect(expostas, "tabela da saída com pessoa_id exposto").toEqual([]);
+  });
+
+  it("nem o cabeçalho do CSV, nem a chave do JSON, nem o valor de pessoa_id aparece em arquivo algum", async () => {
+    // `pessoa_id` é o mesmo em todo município onde a pessoa tem conta (ADR 0009):
+    // dois pacotes de municípios diferentes, com a coluna, se cruzariam por ele
+    // e revelariam que a mesma pessoa serve nos dois.
+    const pessoas = await mem.bruto.query<{ pessoa_id: string }>(
+      "SELECT pessoa_id::text AS pessoa_id FROM usuarios WHERE organizacao_id = $1",
+      [ORG_SERRA_ALTA],
+    );
+    expect(pessoas.rows.length).toBeGreaterThan(0);
+
+    const pacote = await baixar(tokenAdministradora);
+    const csv = pacote.get("tabelas/usuarios.csv")!.toString("utf8").replace(/^\uFEFF/, "");
+    expect(csv.split("\r\n")[0]!.split(";")).not.toContain("pessoa_id");
+    const json = JSON.parse(pacote.get("tabelas/usuarios.json")!.toString("utf8")) as Array<
+      Record<string, unknown>
+    >;
+    expect(json.length).toBeGreaterThan(0);
+    for (const linha of json) expect(Object.keys(linha)).not.toContain("pessoa_id");
+
+    for (const [caminho, conteudo] of pacote) {
+      const texto = conteudo.toString("utf8");
+      for (const { pessoa_id } of pessoas.rows) {
+        expect(texto, `pessoa_id ${pessoa_id} em ${caminho}`).not.toContain(pessoa_id);
+      }
+    }
+  }, 60_000);
+});
+
 describe("A soma de verificação confere", () => {
   it("SOMAS-SHA256.txt traz uma linha por arquivo (menos ela mesma) e cada soma é a do arquivo", async () => {
     const pacote = await baixar(tokenAdministradora);

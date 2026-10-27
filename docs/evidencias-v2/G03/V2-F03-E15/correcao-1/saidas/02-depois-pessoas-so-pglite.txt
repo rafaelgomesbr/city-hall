@@ -1,0 +1,13 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a04627fd3c2198a33/dc360/db[39m
+
+ [32m✓[39m test/pessoas.test.ts [2m([22m[2m86 tests[22m[2m | [22m[33m9 skipped[39m[2m)[22m[33m 4864[2mms[22m[39m
+   [33m[2m✓[22m[39m `pessoa_id` é imutável e há uma conta por pessoa no sistema[2m > [22mos gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado [33m 937[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 054[2m > [22maplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos [33m 1174[2mms[22m[39m
+   [33m[2m✓[22m[39m a volta da 054[2m > [22mfalha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica [33m 923[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m77 passed[39m[22m[2m | [22m[33m9 skipped[39m[90m (86)[39m
+[2m   Start at [22m 11:26:14
+[2m   Duration [22m 5.80s[2m (transform 153ms, setup 0ms, collect 376ms, tests 4.86s, environment 0ms, prepare 237ms)[22m
+

@@ -1,0 +1,172 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db
+
+ ❯ test/pessoas.test.ts (96 tests | 1 failed | 10 skipped) 14265ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > aplica sem erro e não muda nada do que já existia 172ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > N contas viram N pessoas, cada conta com a sua, e a marca `backfill` de cada uma 15ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > a credencial e o e-mail foram copiados sem perda; nada de município foi para a pessoa 34ms
+   ✓ o backfill da 054, sobre contas, sessões e segundo fator de antes > toda sessão de antes carrega a pessoa da conta, e o login de antes ainda acha a conta 25ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o cadastro de hoje (INSERT do dc360_app no município) passa no fim da transação, com pessoa nova e marca da MESMA transação 66ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > `provisionar_municipio` (console) cria a pessoa nova junto, com a senha provisória, e passa 38ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > e-mail repetido em `provisionar_municipio` continua o DC363 de antes (o oráculo da F00 não muda de forma) 15ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o INSERT do dono, sem contexto (sementes, testes), também passa 50ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > toda conta do backfill tem a marca `backfill`, e as contas criadas depois, `criador` 22ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > o e-mail de uma pessoa existente NÃO liga a conta nova a ela: a conta é recusada como sempre foi 167ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > segunda PESSOA com o mesmo e-mail (outra caixa), mesmo pelo dono: `pessoas_email_idx` recusa 15ms
+   ✓ positivo da origem: a conta que chega sem pessoa ganha uma pessoa nova e a marca `criador` > conta de outro município com contexto: o criador recusa (42501) antes de criar a pessoa 114ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > o dc360_app informando `pessoa_id` no INSERT: permissão negada, antes de qualquer escrita 14ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > função do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT 15ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > um BEFORE INSERT de teste que roda DEPOIS do criador e troca o `pessoa_id`: o adiado recusa no fim da transação 17ms
+   ✓ negativo da origem: `pessoa_id` só nasce pelo gatilho criador > conta sem marca, e conta com a marca de OUTRA transação: o adiado recusa (o criador desligado por DDL, só nesta sonda do dono) 19ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo dc360_app: permissão negada (privilégio de coluna) 6ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > UPDATE de `pessoa_id` pelo DONO, direto ou por função SECURITY DEFINER: o gatilho recusa (IS DISTINCT FROM) 13ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa 6ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > segunda conta da mesma pessoa, com a primeira ATIVA ou DESATIVADA: o UNIQUE total recusa (gatilhos desligados para chegar no índice) 21ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  2182ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas no contexto de A: permissão negada 8ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens no contexto de A: permissão negada 8ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens no contexto de A: permissão negada 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas no contexto de A: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens no contexto de A: permissão negada 8ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT pessoas sem contexto: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT count pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE pessoas sem contexto: permissão negada 3ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > SELECT origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > INSERT origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > UPDATE origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > DELETE origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE pessoas sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > TRUNCATE origens sem contexto: permissão negada 2ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nenhum privilégio, de tabela ou de coluna, a dc360_app, dc360_console ou PUBLIC; RLS forçada e nenhuma policy 4ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > nem o dono apaga a pessoa nem reescreve a marca (no lugar da chave estrangeira que o portão não deixa declarar) 12ms
+   ✓ `pessoas` e `origens_de_conta`: o papel de aplicação não toca, de jeito nenhum > as funções dos gatilhos: o app não as executa (sem EXECUTE), e nem o dono as chama fora de gatilho 15ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a redefinição de senha por quem administra (UPDATE do dc360_app no município), como a rota faz 10ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > `registrar_tentativa_login` (falha e acerto), `trocar_senha` e o gatilho da 046 chegam à pessoa 15ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o link de recuperação (`abrir_recuperacao` e `consumir_recuperacao`) chega à pessoa 8ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > a troca de e-mail da conta chega à pessoa; o nome e o ativo da conta NÃO (são do município e da E09) 17ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > de mão única: escrever na pessoa (só o dono pode) não volta para a conta 6ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > com o município de outro no contexto, o espelho recusa (o dono atualizando a conta de A sob o contexto de B) 4ms
+   ✓ o espelho: toda escrita de credencial e de e-mail na conta chega à pessoa, de mão única > o UPDATE do dc360_app em `usuarios` é por coluna: as que a API grava passam, `id`, `organizacao_id` e `ultimo_acesso` não 5ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa, município do contexto e sessão viva: a conta, o papel, o nome e a sessão viva 9ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > org alheio ao contexto: vazio (nem a linha do município); sem contexto: vazio 24ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > pessoa sem conta no município do contexto, ou sessão de outra conta: sem conta e sem sessão viva 14ms
+   ✓ `vigencia_da_sessao`: uma consulta, e só no município do contexto > a sessão rotacionada vale enquanto a família tem sessão de pé; encerrada, não; município suspenso aparece 28ms
+   ✓ `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > pelo e-mail, sem diferença de caixa, uma linha por conta da pessoa (hoje, uma), antes do tenant 9ms
+   ✓ `credenciais_da_pessoa`: a credencial sai da PESSOA, a conta e o município, da conta > lê de `pessoas`, e não de `usuarios` (o hash da pessoa, mudado só nela pelo dono, é o que sai) 13ms
+   ✓ `travar_pessoa` e `travar_pessoa_da_conta` (N2) > toma uma trava consultiva de transação com chave própria, separada da trava das sessões (049), mesmo com o mesmo uuid 10ms
+   ✓ `travar_pessoa` e `travar_pessoa_da_conta` (N2) > pela conta, no município do contexto, trava a pessoa da conta; conta de outro município, nada; e não devolve o pessoa_id 17ms
+   ✓ `sessoes.pessoa_id`: a sessão carrega a pessoa da conta, presa pela chave composta > abrir_sessao preenche a pessoa; pessoa de outra conta na sessão é recusada pela chave 8ms
+   ✓ o inventário da credencial bate com o banco > toda função que cita a credencial, o e-mail ou a pessoa está no inventário, e todo item do inventário existe 15ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  2162ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  1457ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > o ataque relatado: o dc360_app cria TEMP `usuarios`, anexa o espelho e escreve a credencial de outra pessoa. Recusado, e a pessoa não muda 7ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > o dc360_app, o dc360_console e PUBLIC não têm TEMP no banco 2ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > nenhum papel do produto executa função de gatilho da 054; e mesmo com TEMP devolvido, o app não anexa o espelho nem o criador 17ms
+   ✓ correção 1, achado 1: as funções de gatilho não servem a outra tabela, e o app não cria tabela temporária > anexadas pelo DONO a uma tabela que não é `public.usuarios`, as duas funções privilegiadas recusam, sem escrever nada 25ms
+   ✓ correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município > com município no contexto, recusa (42501), seja o e-mail de outro município ou do próprio 15ms
+   ✓ correção 1, achado 2: `credenciais_da_pessoa` é só do login, antes do município > sem contexto, continua respondendo (o outro lado, o do login) 3ms
+   ✓ correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre > sem contexto: o mesmo erro (código, mensagem, detalhe, restrição, tabela) para e-mail existente e livre, e nenhuma pessoa nova 13ms
+   ✓ correção 1, achado 3: sem contexto válido, o cadastro recusa igual, com e-mail existente ou livre > com o contexto de outro município: o mesmo erro para e-mail existente e livre 9ms
+   ✓ correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta > matrícula já existente, id novo e e-mail livre, pelo dc360_app no município e pelo dono: a transação volta inteira 13ms
+   ✓ correção 1, achado 4: `ON CONFLICT DO NOTHING` não deixa pessoa nem marca sem conta > o mesmo comando sem conflito continua passando (a conta, a pessoa e a marca nascem juntas) 11ms
+   ✓ correção 1, achado 5: o espelho dispara antes do gatilho dos links (N4 antes de N7) > entre os gatilhos AFTER UPDATE de `usuarios`, o do espelho vem antes do da 051 (ordem alfabética do Postgres) 5ms
+   ✓ correção 1, achado 7: `pessoas.id` não muda > UPDATE de `pessoas.id` pelo dono, direto: recusado; reescrever o mesmo valor passa 7ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a conta apagada pelo dono leva a marca dela, e só ela: as outras marcas ficam iguais, valor por valor, e nenhuma fica sem conta 25ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a marca de conta VIVA não se apaga, nem pelo dono; a de conta que já não existe, sim (pelo dono) 5ms
+   × correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > falha fechada: quem apaga sem enxergar todas as contas (o RLS de usuarios vale para ele) é recusado mesmo para marca sem conta 29ms
+     → expected 'SONDA' to be '42501' // Object.is equality
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > conta inserida e apagada na mesma transação: a marca sai com ela, e o verificador recusa no fim (falha fechada) 13ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica  1655ms
+   ✓ correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > no catálogo do banco: os dois gatilhos de conferência executam conferir_origem_da_conta, e nenhum AFTER INSERT de usuarios executa conta_ganha_pessoa 1ms
+   ✓ correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > a leitora real passa na lista permitida, com o search_path fixo, e nenhum papel do produto a executa 4ms
+   ✓ correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > prova adicional por contadores: o adiado disparado com IMMEDIATE não muda contador nem sequência, no caminho que passa e nos que recusam 64ms
+   ✓ correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê > as sete sabotagens da correção 6: todas reprovam na lista permitida; as que escrevem (tabela ou sequência) também nos contadores 163ms
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > na confirmação: a diferença acumulada é exatamente usuarios, pessoas e origens_de_conta +1 inserção; e a sabotagem da marca temporária aparece
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela pessoa), sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas transações na mesma pessoa se enfileiram em N2 (primeiro pela conta), sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > a trava da pessoa e a das sessões (049) não se esperam, mesmo com o mesmo uuid
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > conta de outro município pelo contexto: `travar_pessoa_da_conta` não trava ninguém
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > correção 1, achado 1, num banco criado com CREATE DATABASE: o dc360_app não cria TEMP `usuarios` para anexar o espelho, e a pessoa não muda
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > consumir_recuperacao contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > redefinição por quem administra contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 1 primeiro): uma fica, a outra recebe 23505, sem 40P01
+   ↓ Em Postgres real: a trava da pessoa e a corrida do cadastro > duas contas novas com o mesmo e-mail, em municípios diferentes, ao mesmo tempo (município 2 primeiro): uma fica, a outra recebe 23505, sem 40P01
+ ✓ test/isolamento.test.ts (171 tests) 58843ms
+   ✓ CA-06: isolamento entre organizações > toda tabela sem município declarada (global ou protegida) tem, na eliminação de verdade, o destino que o catálogo diz (parte 0G)  2589ms
+   ✓ CA-06: isolamento entre organizações > função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito (correção 1 da 0G)  391ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  318ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1685ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > todo privilegio por coluna (INSERT, SELECT, UPDATE) de papel do produto e exatamente o do catalogo, e nunca junto do mesmo privilegio de tabela (parte 0G)  5815ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1719ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  35269ms
+ ✓ test/catalogo-nominal.test.ts (146 tests) 78126ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > uma tabela nova sem a coluna  357ms
+   ✓ sonda 6: tabela sem organizacao_id fora das exceções reprova > declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa  316ms
+   ✓ sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos > a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas  318ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o banco de hoje bate com o catálogo de hoje (o UPDATE do app e o cancelamento do console)  5754ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT e SELECT por coluna, declarados por tabela e papel, passam  5725ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > INSERT de TABELA dado ao app junto do INSERT de coluna reprova  5217ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna a mais no grant reprova  5419ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > coluna declarada que o banco não concede reprova (nada a menos)  5489ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > opção de concessão, PUBLIC e REFERENCES por coluna reprovam  5654ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > o console com uma coluna a mais no livro de eliminações reprova  5486ms
+   ✓ sonda 12 (parte 0G): privilégio por coluna de INSERT, SELECT e UPDATE, nos dois sentidos > tirar uma coluna de hoje do catálogo reprova  5026ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > o catálogo de hoje não declara nenhuma, e passa  1577ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada fica, passa; e a prova não deixa rastro no banco  764ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que FICA, declarada some, reprova  683ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > a marca que SOME com a conta, declarada some, passa; declarada fica, reprova  1238ms
+   ✓ sonda 15 (parte 0G): o destino na eliminação é provado executando a eliminação > prova vazia, e semeadura que quebra, reprovam  1317ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > com o outro município semeado, a marca que fica passa; e a prova (na cópia) não toca o banco do portão  713ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que apaga a marca só na confirmação reprova a declaração fica (numa transação desfeita, ele nunca disparava)  656ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > um gatilho ADIADO que recusa na confirmação reprova: a eliminação não chega ao fim  799ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > âncora: chaves que nunca estiveram na coluna declarada reprovam, mesmo com destino some (antes, a contagem zero passava)  577ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município: um DELETE sem filtro na eliminação reprova a declaração some; o apagamento só do eliminado passa  1452ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > o outro município sem linha reprova (sem elas não há o que ficar intacto)  583ms
+   ✓ sonda 19 (correção 1 da 0G, itens 3, 4 e 5): a eliminação provada com COMMIT de verdade, com âncora e com o outro município > a linha COMPARTILHADA entre os dois municípios nunca some com a eliminação de um deles  1559ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a escrita com a chave da linha nula não muda nada; a cópia de uma linha REAL mostra o efeito antes da recusa  556ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > cada gatilho real é copiado com o nome e o adiamento, e SEM o WHEN: o adiado e o de UPDATE OF também disparam  808ms
+   ✓ sonda 20 (correção 1 da 0G, item 6): a função de gatilho privilegiada, disparada de uma tabela temporária de mesmo nome, recusa com 42501 antes de qualquer efeito > a função sem gatilho no banco é disparada de uma tabela de prova  536ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > a consulta que devolve as mesmas chaves para os dois municípios, com a limpeza que nunca acontece, reprova a declaração some (antes passava: tudo virava compartilhado)  1557ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > sem linha exclusiva, nem a limpeza de verdade basta: não há o que provar  2694ms
+   ✓ sonda 23 (correção 2 da 0G): a prova de some exige pelo menos uma linha EXCLUSIVA do município eliminado > controle: com a consulta pelo município e a limpeza de verdade, some passa; e fica não exige linha exclusiva  4730ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > tabela vazia: a escrita chaveada por NEW antes da recusa passava só com a linha nula, e com a linha semeada reprova  487ms
+   ✓ sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fora da tabela usa linha real semeada e UPDATE com mudança efetiva > a semeadura que não põe linha na tabela do gatilho reprova  369ms
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 402 passed | 10 skipped (413)
+   Start at  19:31:47
+   Duration  82.07s (transform 5.75s, setup 0ms, collect 8.42s, tests 151.23s, environment 1ms, prepare 892ms)
+
+19:31:50 [vite] (ssr) warning: invalid import "./catalogo/${arquivo.replace(/\.ts$/, ".js")}". A file extension must be included in the static part of the import. For example: import(`./foo/${bar}.js`).
+  Plugin: vite:dynamic-import-vars
+  File: C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db/test/catalogo-nominal.test.ts
+stderr | test/pessoas.test.ts
+Testes de Postgres real de pessoas.test.ts PULADOS: DC360_POSTGRES_DE_PROVA não está definida. Aponte-a para um Postgres descartável (ex.: postgres://postgres:postgres@localhost:5432/postgres) para provar a trava da pessoa e a corrida do cadastro com duas conexões; o job `implantavel` do CI a define.
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/pessoas.test.ts > correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > falha fechada: quem apaga sem enxergar todas as contas (o RLS de usuarios vale para ele) é recusado mesmo para marca sem conta
+AssertionError: expected 'SONDA' to be '42501' // Object.is equality
+
+Expected: "42501"
+Received: "SONDA"
+
+ ❯ test/pessoas.test.ts:1808:20
+    1806|       await tx.query("DELETE FROM origens_de_conta WHERE usuario_id = …
+    1807|     });
+    1808|     expect(e.code).toBe("42501");
+       |                    ^
+    1809|     expect(e.message).toMatch(/quem apaga nao enxerga todas as contas/…
+    1810|     // O dono, que enxerga todas, apaga a marca sem conta.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

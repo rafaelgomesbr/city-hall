@@ -1,0 +1,1481 @@
+diff --git a/dc360/db/migrations/054_pessoas_e_conta_no_municipio.sql b/dc360/db/migrations/054_pessoas_e_conta_no_municipio.sql
+index 8fa06330..36b9368f 100644
+--- a/dc360/db/migrations/054_pessoas_e_conta_no_municipio.sql
++++ b/dc360/db/migrations/054_pessoas_e_conta_no_municipio.sql
+@@ -19,8 +19,11 @@
+ --   2. `origens_de_conta` (correcao 3): de onde veio o `pessoa_id` de cada
+ --      conta, uma linha por conta (`backfill`, `criador` ou, a partir da E10,
+ --      `aceite`), com a transacao de quem gravou. RLS forcada, sem policy e sem
+---      privilegio NENHUM ao `dc360_app`. Registro permanente: nao se altera nem
+---      se apaga (gatilho `linha_permanente`).
++--      privilegio NENHUM ao `dc360_app`. Registro permanente da CONTA: nao se
++--      altera nem se trunca (gatilho `linha_permanente`), e so se apaga junto
++--      com a conta que descreve, pelo gatilho AFTER DELETE de `usuarios`
++--      (`usuarios_marca_sai_com_a_conta`); a marca de conta viva nao se apaga
++--      para ninguem (`marca_so_sai_com_a_conta`, correcao 4 da ADR 0009).
+ --   3. `usuarios.pessoa_id`: NOT NULL depois do backfill, IMUTAVEL (gatilhos
+ --      `usuarios_pessoa_id_nao_muda`, BEFORE, e `..._no_estado_final`, AFTER,
+ --      `IS DISTINCT FROM`, para todo papel, inclusive o dono), com
+@@ -46,13 +49,17 @@
+ --      local do painel, `provisionar_municipio`, as sementes e os ~50 testes
+ --      que fazem `INSERT INTO usuarios`.
+ --   7. O GATILHO ADIADO (`usuarios_origem_da_pessoa`, constraint trigger
+---      DEFERRABLE INITIALLY DEFERRED, a MESMA funcao): no fim da transacao,
+---      toda conta inserida tem a sua marca em `origens_de_conta`, da MESMA
+---      transacao, com o MESMO `pessoa_id` da linha final, origem `criador`, e
+---      a pessoa existe. Um gatilho BEFORE posterior que trocasse o valor e
+---      pego aqui. A funcao e uma so (o ramo sai de TG_WHEN) porque o catalogo
+---      da parte 0D so deixa UMA funcao, a do gatilho criador, citar
+---      `origens_de_conta` (`gravaOrigemDeConta: "criador"`).
++--      DEFERRABLE INITIALLY DEFERRED): no fim da transacao, toda conta
++--      inserida tem a sua marca em `origens_de_conta`, da MESMA transacao,
++--      com o MESMO `pessoa_id` da linha final, origem `criador`, e a pessoa
++--      existe. Um gatilho BEFORE posterior que trocasse o valor e pego aqui.
++--      Na juncao do lote 1 (correcao 6 da ADR 0009), o verificador deixou de
++--      ser ramo da funcao do criador e passou a ser a funcao LEITORA separada
++--      `conferir_origem_da_conta` (secao 5b), que tambem executa o gatilho de
++--      comando da C4: so le, com corpo conferido por lista permitida e
++--      `search_path` fixo (`leOrigemDeConta: "verificador"` no catalogo). A
++--      escritora (`gravaOrigemDeConta: "criador"`) fica com o BEFORE INSERT e
++--      o AFTER DELETE da correcao 4.
+ --   8. O ESPELHO (`pessoa_espelha_a_conta`, gatilho
+ --      `pessoa_recebe_a_credencial_da_conta`, AFTER UPDATE em `usuarios`): cada
+ --      escrita de `senha_hash`, `falhas_login`, `bloqueado_ate`,
+@@ -70,13 +77,16 @@
+ --  11. Privilegio: `REVOKE UPDATE ON usuarios FROM dc360_app` (o de TABELA,
+ --      que vinha da 001) e GRANT UPDATE por coluna, numa lista positiva das
+ --      colunas que a aplicacao grava hoje, sem `pessoa_id`. A E08 so encolhe
+---      a lista (tira a credencial e o e-mail).
++--      a lista (tira a credencial e o e-mail). Na juncao do lote 1, o mesmo
++--      para o INSERT (`REVOKE INSERT` de tabela e GRANT INSERT por coluna,
++--      sem `pessoa_id`), e a chave `usuarios_pessoa_id_fkey`.
+ --
+ -- CORRECAO 1 (revisao independente do Codex sobre fbd09bfa; a 054 nunca foi
+ -- aplicada fora de teste nem juntada, por isso e reescrita aqui):
+ --
+---  C1. Funcao de gatilho presa a tabela. As duas funcoes privilegiadas de
+---      gatilho conferem `TG_RELID = 'public.usuarios'::regclass` (o oid, com o
++--  C1. Funcao de gatilho presa a tabela. As funcoes privilegiadas de
++--      gatilho (desde a juncao do lote 1, tres: a escritora, a leitora e o
++--      espelho) conferem `TG_RELID = 'public.usuarios'::regclass` (o oid, com o
+ --      esquema, e nao o nome: uma TEMP `usuarios` tem outro oid) e o nome, o
+ --      momento e o nivel do gatilho, e recusam (42501) qualquer outra coisa.
+ --      Nenhum papel do produto tem EXECUTE em funcao de gatilho desta
+@@ -103,8 +113,9 @@
+ --      posterior que devolve NULL), e o adiado, que e de LINHA, nao dispara
+ --      para ela. O gatilho de COMANDO `usuarios_nenhuma_pessoa_sem_conta`
+ --      (AFTER INSERT FOR EACH STATEMENT, que dispara mesmo sem linha
+---      inserida, a mesma funcao do criador, a unica que cita
+---      `origens_de_conta`) confere, no fim de cada INSERT, que toda marca
++--      inserida; desde a juncao do lote 1, a funcao LEITORA
++--      `conferir_origem_da_conta`, correcao 6 da ADR 0009) confere, no fim de
++--      cada INSERT, que toda marca
+ --      `criador` desta transacao tem a sua conta; se nao tiver, o comando
+ --      volta inteiro (23514), com a pessoa e a marca.
+ --  C5. A ordem das travas (decisao 7). O espelho passa a se chamar
+@@ -134,33 +145,38 @@
+ --      deixa declarar, as contas, as sessoes e as marcas nunca ficam apontando
+ --      para um id antigo.
+ --
+--- O QUE A ADR PEDE E ESTA MIGRACAO NAO CONSEGUE CUMPRIR AO PE DA LETRA, porque
+--- o portao de isolamento esta congelado (`db/test/isolamento.test.ts` e
+--- `db/test/catalogo/conferir*.ts`, que a 1B nao edita). Cada ponto esta no
+--- RESUMO da evidencia, para o orquestrador:
++-- JUNCAO DO LOTE 1 (a 1B adota o desenho do portao estendido da parte 0G; a
++-- 054 nunca foi aplicada fora de teste, por isso e ajustada aqui):
+ --
+ --   a. INSERT por coluna em `usuarios` (decisao 1: "o papel de aplicacao nao
+---      tem privilegio de INSERT nem de UPDATE nessa coluna"). O portao compara
+---      todo privilegio de COLUNA do `dc360_app` com `COLUNAS_COM_UPDATE_DO_APP`
+---      e so aceita UPDATE: um GRANT INSERT (colunas) reprova o CA-06. O INSERT
+---      continua de TABELA, e quem recusa o `pessoa_id` informado pelo
+---      `dc360_app` e o gatilho criador, com SQLSTATE 42501 e a mensagem
+---      "permissao negada", ANTES de qualquer escrita. O UPDATE ja e por coluna.
+---   b. Chave estrangeira `usuarios.pessoa_id -> pessoas(id)`. O portao reprova
+---      toda chave estrangeira sem `organizacao_id` (fora de duas isencoes do
+---      console, por nome), e `pessoas` nao tem a coluna por definicao. A
+---      integridade fica com tres travas no lugar da chave: a pessoa nasce no
+---      mesmo comando que a conta (gatilho criador); o adiado confere que ela
+---      existe; e `pessoas` nao se apaga (gatilho `linha_permanente`, alem de
+---      ninguem do produto ter privilegio de DELETE).
++--      tem privilegio de INSERT nem de UPDATE nessa coluna"). Sai o INSERT de
++--      TABELA (001) e volta, por coluna, a lista positiva sem `pessoa_id`
++--      (secao 13). O `pessoa_id` informado pelo `dc360_app` e recusado pelo
++--      PRIVILEGIO (42501, "permission denied"); o gatilho criador continua
++--      recusando como segunda trava (quem tem o INSERT da coluna, o dono).
++--      O catalogo declara os dois grupos (`privilegiosDeColuna`).
++--   b. Chave estrangeira `usuarios_pessoa_id_fkey`, `usuarios.pessoa_id ->
++--      pessoas(id)`, NO ACTION, depois do backfill (secao 13). A chave nao tem
++--      `organizacao_id` porque a pessoa e global; o portao a aceita por nome
++--      (`chavesParaGlobais`), com o alvo global conferido e a coluna fora do
++--      alcance de escrita do produto. As travas de antes ficam: a pessoa nasce
++--      no mesmo comando que a conta (gatilho criador); o adiado confere que
++--      ela existe; e `pessoas` nao se apaga (gatilho `linha_permanente`).
+ --   c. `origens_de_conta.organizacao_id` (correcao 3). Com a coluna, a tabela
+ --      entraria na ordem de eliminacao do municipio
+ --      (`executar_eliminacoes_vencidas` recusa com DC366 tabela com
+ --      `organizacao_id` fora de `ordem_de_apagamento_por_municipio()`), e
+ --      escrever o nome dela nessa funcao reprova a regra da 0D de que so o
+---      gatilho criador cita `origens_de_conta`. Sem a coluna, a marca e um
+---      registro da PESSOA (global, como ela), sobrevive a eliminacao do
+---      municipio junto com a pessoa (H98), e nada nela depende do municipio.
++--      gatilho criador cita `origens_de_conta`. Sem a coluna, a tabela fica
++--      fora da ordem de apagamento, e a marca SAI COM A CONTA que descreve
++--      (correcao 4 da ADR 0009): quando a eliminacao apaga as contas do
++--      municipio, o gatilho AFTER DELETE de `usuarios` apaga a marca de cada
++--      conta apagada, pelo `usuario_id`, e so ela; a marca da conta da mesma
++--      pessoa noutro municipio fica igual. A pessoa continua global e fica
++--      (H98). O catalogo declara as duas tabelas sem municipio
++--      (`semMunicipio`: `pessoas` global, destino `fica`; `origens_de_conta`
++--      protegida, destino `some`), e o portao prova o destino executando a
++--      eliminacao.
+ --
+ -- O DONO PRECISA IGNORAR O RLS (e falha FECHADA quando nao ignora). `pessoas`
+ -- e `origens_de_conta` tem RLS forcada e nenhuma policy: ate o dono le zero
+@@ -432,18 +448,22 @@ CREATE TRIGGER conta_nasce_no_municipio_do_contexto
+   EXECUTE FUNCTION conta_nasce_no_contexto();
+ 
+ -- ---------------------------------------------------------------------
+--- 5. O gatilho criador, o adiado e o de comando: uma funcao so, o ramo sai
+--- do gatilho (TG_NAME, TG_WHEN, TG_LEVEL), e so de `public.usuarios`.
++-- 5. O gatilho criador e o da marca que sai com a conta: a funcao ESCRITORA
++-- `conta_ganha_pessoa`, com o ramo saindo do gatilho (TG_OP, TG_NAME,
++-- TG_WHEN, TG_LEVEL), e so de `public.usuarios`: o BEFORE INSERT cria a
++-- pessoa e grava a marca `criador`; o AFTER DELETE (correcao 4 da ADR 0009)
++-- apaga so a marca da conta apagada. O VERIFICADOR (o adiado e o de comando)
++-- e a funcao LEITORA separada da secao 5b (correcao 6 da ADR 0009).
+ --
+ -- SECURITY DEFINER porque o `dc360_app` faz `INSERT INTO usuarios` (o
+ -- cadastro de hoje) e nao tem privilegio nenhum em `pessoas` nem em
+ -- `origens_de_conta`. O que impede a funcao de virar porta: ela so serve aos
+--- tres gatilhos nomeados de `public.usuarios` (pelo oid, C1) e nenhum papel do
+--- produto a executa; so age sobre a linha que esta sendo inserida (NEW),
+--- nunca recebe parametro, nunca procura pessoa existente, e confere o
+--- municipio do contexto quando ha contexto (para o `dc360_app`, o gatilho da
+--- secao 4 ja recusou antes; este pega o dono com contexto de outro
+--- municipio).
++-- dois gatilhos nomeados de `public.usuarios` (pelo oid, C1) e nenhum papel
++-- do produto a executa; so age sobre a linha que esta sendo inserida (NEW)
++-- ou apagada (OLD, e entao so apaga a marca dela), nunca recebe parametro,
++-- nunca procura pessoa existente, e confere o municipio do contexto quando ha
++-- contexto (para o `dc360_app`, o gatilho da secao 4 ja recusou antes; este
++-- pega o dono com contexto de outro municipio).
+ -- ---------------------------------------------------------------------
+ CREATE FUNCTION conta_ganha_pessoa() RETURNS trigger
+ LANGUAGE plpgsql
+@@ -453,27 +473,154 @@ AS $$
+ DECLARE
+   v_pessoa    uuid;
+   v_restricao text;
+-  v_origem    record;
++BEGIN
++  IF TG_RELID IS DISTINCT FROM 'public.usuarios'::regclass
++     OR NOT ((TG_OP = 'INSERT' AND TG_NAME = 'usuarios_ganha_pessoa'
++              AND TG_WHEN = 'BEFORE' AND TG_LEVEL = 'ROW')
++          OR (TG_OP = 'DELETE' AND TG_NAME = 'usuarios_marca_sai_com_a_conta'
++              AND TG_WHEN = 'AFTER' AND TG_LEVEL = 'ROW')) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = 'conta_ganha_pessoa so serve aos dois gatilhos nomeados de public.usuarios';
++  END IF;
++
++  -- A MARCA SAI COM A CONTA (ADR 0009, correcao 4, juncao do lote 1): ramo
++  -- proprio do escritor `criador`, no gatilho AFTER DELETE de usuarios. Apaga
++  -- so a marca da conta apagada (`usuario_id = OLD.id`): nunca por pessoa (a
++  -- mesma pessoa pode ter conta viva noutro municipio, e a marca daquela conta
++  -- e a prova de la), nunca por transacao, nunca sem filtro. A trava de
++  -- permanencia de `origens_de_conta` deixa passar porque a conta ja nao
++  -- existe quando o gatilho AFTER dispara.
++  IF TG_OP = 'DELETE' THEN
++    DELETE FROM origens_de_conta WHERE usuario_id = OLD.id;
++    RETURN NULL;
++  END IF;
++
++  -- BEFORE INSERT. A conta so nasce de dois jeitos (decisao 1). Na E15 so
++  -- existe o primeiro: sem pessoa informada. `pessoa_id` informado e recusado
++  -- na hora, venha de quem vier (a marca `aceite` so existe a partir da E10);
++  -- para o `dc360_app`, o privilegio de INSERT por coluna ja recusou antes.
++  IF NEW.pessoa_id IS NOT NULL THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = 'permissao negada para informar usuarios.pessoa_id: a conta nova ganha a pessoa '
++                'pelo gatilho criador, e a ligacao a pessoa existente so nasce em aceitar_convite',
++      TABLE = 'usuarios',
++      COLUMN = 'pessoa_id';
++  END IF;
++
++  IF app_organizacao_atual() IS NOT NULL
++     AND NEW.organizacao_id IS DISTINCT FROM app_organizacao_atual() THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = 'a conta nova e de outro municipio que nao o do contexto',
++      TABLE = 'usuarios';
++  END IF;
++
++  BEGIN
++    INSERT INTO pessoas
++      (nome, email, senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate, ativo)
++    VALUES
++      (NEW.nome, NEW.email, NEW.senha_hash, NEW.falhas_login, NEW.bloqueado_ate,
++       NEW.senha_provisoria_ate, NEW.ativo)
++    RETURNING id INTO v_pessoa;
++  EXCEPTION WHEN unique_violation THEN
++    GET STACKED DIAGNOSTICS v_restricao = CONSTRAINT_NAME;
++    IF v_restricao <> 'pessoas_email_idx' THEN
++      RAISE;
++    END IF;
++    /*
++      O e-mail ja e de outra pessoa. Ate a E09, com uma pessoa por conta e o
++      e-mail espelhado, isso e EXATAMENTE "ja existe conta com este e-mail",
++      que e o que o `usuarios_email_global_idx` da 002 diria um instante
++      depois. A resposta sai com o nome dele, no formato do Postgres, para
++      quem ja trata essa restricao (`provisionar_municipio`, DC363; o
++      `POST /usuarios`, 409) continuar igual: o oraculo de cadastro da F00
++      nao aumenta nem muda de forma (decisao 6). A E09 troca os indices.
++    */
++    RAISE EXCEPTION USING
++      ERRCODE = 'unique_violation',
++      MESSAGE = 'duplicate key value violates unique constraint "usuarios_email_global_idx"',
++      DETAIL = format('Key (lower(email))=(%s) already exists.', lower(NEW.email)),
++      CONSTRAINT = 'usuarios_email_global_idx',
++      TABLE = 'usuarios';
++  END;
++
++  INSERT INTO origens_de_conta (usuario_id, pessoa_id, origem, transacao)
++  VALUES (NEW.id, v_pessoa, 'criador', pg_current_xact_id());
++
++  NEW.pessoa_id := v_pessoa;
++  RETURN NEW;
++END;
++$$;
++
++COMMENT ON FUNCTION conta_ganha_pessoa() IS
++  'ESCRITORA de origens_de_conta: gatilho criador (BEFORE INSERT) e gatilho da marca que sai com a conta (AFTER DELETE) de public.usuarios, e de nenhuma outra tabela. Cria a pessoa NOVA da conta que chega sem pessoa e grava a marca criador; recusa pessoa_id informado; quando a conta e apagada, apaga so a marca dela (ADR 0009, decisao 1, correcoes 3, 4 e 6; 054, correcao 1 e juncao do lote 1). Nao verifica: o verificador e a leitora conferir_origem_da_conta.';
++
++-- Nenhum papel do produto executa (C1): o Postgres so confere o EXECUTE de
++-- funcao de gatilho no CREATE TRIGGER, nao quando o gatilho dispara.
++REVOKE ALL ON FUNCTION conta_ganha_pessoa() FROM PUBLIC;
++
++CREATE TRIGGER usuarios_ganha_pessoa
++  BEFORE INSERT ON usuarios
++  FOR EACH ROW
++  EXECUTE FUNCTION conta_ganha_pessoa();
++
++-- A marca sai com a conta (correcao 4 da ADR 0009): AFTER DELETE, de linha.
++CREATE TRIGGER usuarios_marca_sai_com_a_conta
++  AFTER DELETE ON usuarios
++  FOR EACH ROW
++  EXECUTE FUNCTION conta_ganha_pessoa();
++
++-- ---------------------------------------------------------------------
++-- 5b. A LEITORA: o verificador adiado e o de comando (ADR 0009, decisao 1,
++-- correcao 6). Funcao separada, que so LE a marca da propria conta (ou as da
++-- propria transacao, no gatilho de comando) e a pessoa dela, nao escreve,
++-- nao devolve nada (a recusa tem SQLSTATE fixo e so literais) e tem o
++-- `search_path` fixo em `pg_catalog, public, pg_temp`. O corpo e conferido
++-- pelo portao por LISTA PERMITIDA (`db/test/catalogo/leitora.ts`, falha
++-- fechada): so declaracoes de `uuid`, `text` e `xid8`, `SELECT ... INTO` de
++-- `public.origens_de_conta` e `public.pessoas` pela chave da propria conta ou
++-- da propria transacao, `IF`, `RAISE EXCEPTION` constante e `RETURN NULL`.
++-- O comentario abaixo nao vai para o corpo (fica fora do `$$`).
++--
++-- O de COMANDO (C4): no fim de cada INSERT em usuarios, toda marca `criador`
++-- desta transacao tem a sua conta. A linha que o criador viu e foi descartada
++-- depois dele (ON CONFLICT DO NOTHING, BEFORE posterior que devolve NULL)
++-- deixaria a pessoa e a marca sem conta: o comando volta.
++-- O de LINHA, adiado para o fim da transacao: NEW e a linha como foi gravada,
++-- depois de TODOS os gatilhos BEFORE; e `pessoa_id` nao muda depois disso
++-- (gatilho de imutabilidade), entao NEW e o estado final da ligacao.
++-- ---------------------------------------------------------------------
++CREATE FUNCTION conferir_origem_da_conta() RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = pg_catalog, public, pg_temp
++AS $$
++DECLARE
++  v_orfa      uuid;
++  v_pessoa    uuid;
++  v_origem    text;
++  v_transacao xid8;
++  v_existe    uuid;
+ BEGIN
+   IF TG_RELID IS DISTINCT FROM 'public.usuarios'::regclass OR TG_OP <> 'INSERT'
+-     OR NOT ((TG_NAME = 'usuarios_ganha_pessoa' AND TG_WHEN = 'BEFORE' AND TG_LEVEL = 'ROW')
+-          OR (TG_NAME = 'usuarios_origem_da_pessoa' AND TG_WHEN = 'AFTER' AND TG_LEVEL = 'ROW')
++     OR NOT ((TG_NAME = 'usuarios_origem_da_pessoa' AND TG_WHEN = 'AFTER' AND TG_LEVEL = 'ROW')
+           OR (TG_NAME = 'usuarios_nenhuma_pessoa_sem_conta' AND TG_WHEN = 'AFTER'
+               AND TG_LEVEL = 'STATEMENT')) THEN
+     RAISE EXCEPTION USING
+       ERRCODE = 'insufficient_privilege',
+-      MESSAGE = 'conta_ganha_pessoa so serve aos tres gatilhos de INSERT de public.usuarios';
++      MESSAGE = 'conferir_origem_da_conta so serve aos dois gatilhos de conferencia de public.usuarios';
+   END IF;
+ 
+-  -- O de COMANDO (C4): no fim de cada INSERT em usuarios, toda marca
+-  -- `criador` desta transacao tem a sua conta. A linha que o criador viu e
+-  -- foi descartada depois dele (ON CONFLICT DO NOTHING, BEFORE posterior que
+-  -- devolve NULL) deixaria a pessoa e a marca sem conta: o comando volta.
+   IF TG_LEVEL = 'STATEMENT' THEN
+-    IF EXISTS (SELECT 1 FROM origens_de_conta o
+-                WHERE o.transacao = pg_current_xact_id()
+-                  AND o.origem = 'criador'
+-                  AND NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = o.usuario_id)) THEN
++    SELECT o.usuario_id INTO v_orfa
++      FROM public.origens_de_conta o
++     WHERE o.transacao = pg_current_xact_id()
++       AND o.origem = 'criador'
++       AND NOT EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = o.usuario_id)
++     LIMIT 1;
++    IF FOUND THEN
+       RAISE EXCEPTION USING
+         ERRCODE = 'check_violation',
+         MESSAGE = 'a conta para a qual o gatilho criador fez a pessoa nao foi inserida: a pessoa e a marca ficariam sem conta',
+@@ -485,75 +632,18 @@ BEGIN
+     RETURN NULL;
+   END IF;
+ 
+-  IF TG_WHEN = 'BEFORE' THEN
+-    -- A conta so nasce de dois jeitos (decisao 1). Na E15 so existe o
+-    -- primeiro: sem pessoa informada. `pessoa_id` informado e recusado na hora,
+-    -- venha de quem vier (a marca `aceite` so existe a partir da E10).
+-    IF NEW.pessoa_id IS NOT NULL THEN
+-      RAISE EXCEPTION USING
+-        ERRCODE = 'insufficient_privilege',
+-        MESSAGE = 'permissao negada para informar usuarios.pessoa_id: a conta nova ganha a pessoa '
+-                  'pelo gatilho criador, e a ligacao a pessoa existente so nasce em aceitar_convite',
+-        TABLE = 'usuarios',
+-        COLUMN = 'pessoa_id';
+-    END IF;
+-
+-    IF app_organizacao_atual() IS NOT NULL
+-       AND NEW.organizacao_id IS DISTINCT FROM app_organizacao_atual() THEN
+-      RAISE EXCEPTION USING
+-        ERRCODE = 'insufficient_privilege',
+-        MESSAGE = 'a conta nova e de outro municipio que nao o do contexto',
+-        TABLE = 'usuarios';
+-    END IF;
+-
+-    BEGIN
+-      INSERT INTO pessoas
+-        (nome, email, senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate, ativo)
+-      VALUES
+-        (NEW.nome, NEW.email, NEW.senha_hash, NEW.falhas_login, NEW.bloqueado_ate,
+-         NEW.senha_provisoria_ate, NEW.ativo)
+-      RETURNING id INTO v_pessoa;
+-    EXCEPTION WHEN unique_violation THEN
+-      GET STACKED DIAGNOSTICS v_restricao = CONSTRAINT_NAME;
+-      IF v_restricao <> 'pessoas_email_idx' THEN
+-        RAISE;
+-      END IF;
+-      /*
+-        O e-mail ja e de outra pessoa. Ate a E09, com uma pessoa por conta e o
+-        e-mail espelhado, isso e EXATAMENTE "ja existe conta com este e-mail",
+-        que e o que o `usuarios_email_global_idx` da 002 diria um instante
+-        depois. A resposta sai com o nome dele, no formato do Postgres, para
+-        quem ja trata essa restricao (`provisionar_municipio`, DC363; o
+-        `POST /usuarios`, 409) continuar igual: o oraculo de cadastro da F00
+-        nao aumenta nem muda de forma (decisao 6). A E09 troca os indices.
+-      */
+-      RAISE EXCEPTION USING
+-        ERRCODE = 'unique_violation',
+-        MESSAGE = 'duplicate key value violates unique constraint "usuarios_email_global_idx"',
+-        DETAIL = format('Key (lower(email))=(%s) already exists.', lower(NEW.email)),
+-        CONSTRAINT = 'usuarios_email_global_idx',
+-        TABLE = 'usuarios';
+-    END;
+-
+-    INSERT INTO origens_de_conta (usuario_id, pessoa_id, origem, transacao)
+-    VALUES (NEW.id, v_pessoa, 'criador', pg_current_xact_id());
+-
+-    NEW.pessoa_id := v_pessoa;
+-    RETURN NEW;
+-  END IF;
+-
+-  -- AFTER, adiado para o fim da transacao. NEW e a linha como foi gravada,
+-  -- depois de TODOS os gatilhos BEFORE; e `pessoa_id` nao muda depois disso
+-  -- (gatilho de imutabilidade), entao NEW e o estado final da ligacao.
+-  SELECT o.pessoa_id, o.origem, o.transacao INTO v_origem
+-    FROM origens_de_conta o
++  SELECT o.pessoa_id, o.origem, o.transacao INTO v_pessoa, v_origem, v_transacao
++    FROM public.origens_de_conta o
+    WHERE o.usuario_id = NEW.id;
+-
+-  IF NOT FOUND
+-     OR v_origem.transacao IS DISTINCT FROM pg_current_xact_id()
+-     OR v_origem.pessoa_id IS DISTINCT FROM NEW.pessoa_id
+-     OR v_origem.origem <> 'criador'
+-     OR NOT EXISTS (SELECT 1 FROM pessoas p WHERE p.id = NEW.pessoa_id) THEN
++  SELECT p.id INTO v_existe
++    FROM public.pessoas p
++   WHERE p.id = NEW.pessoa_id;
++
++  IF v_pessoa IS NULL
++     OR v_transacao IS DISTINCT FROM pg_current_xact_id()
++     OR v_pessoa IS DISTINCT FROM NEW.pessoa_id
++     OR v_origem IS DISTINCT FROM 'criador'
++     OR v_existe IS NULL THEN
+     RAISE EXCEPTION USING
+       ERRCODE = 'check_violation',
+       MESSAGE = 'a conta nao tem a origem do pessoa_id gravada nesta transacao por quem o produziu',
+@@ -567,28 +657,21 @@ BEGIN
+ END;
+ $$;
+ 
+-COMMENT ON FUNCTION conta_ganha_pessoa() IS
+-  'Gatilho criador (BEFORE INSERT), gatilho adiado (constraint trigger, fim da transacao) e gatilho de comando (AFTER INSERT FOR EACH STATEMENT) de public.usuarios, e de nenhuma outra tabela. Cria a pessoa NOVA da conta que chega sem pessoa e grava a marca criador em origens_de_conta; recusa pessoa_id informado; no fim do comando, nenhuma marca criador da transacao sem conta; no fim da transacao confere marca, transacao e pessoa da linha final (ADR 0009, decisao 1, correcao 3; 054, correcao 1). E a unica funcao que cita origens_de_conta ate a E10.';
++COMMENT ON FUNCTION conferir_origem_da_conta() IS
++  'LEITORA de origens_de_conta (ADR 0009, decisao 1, correcao 6): o verificador adiado (constraint trigger AFTER INSERT de linha, fim da transacao) e o de comando (AFTER INSERT FOR EACH STATEMENT) de public.usuarios. So le a marca da propria conta (ou as da propria transacao) e a pessoa dela; nao escreve; recusa com SQLSTATE fixo e literais. Corpo conferido por lista permitida no portao.';
+ 
+--- Nenhum papel do produto executa (C1): o Postgres so confere o EXECUTE de
+--- funcao de gatilho no CREATE TRIGGER, nao quando o gatilho dispara.
+-REVOKE ALL ON FUNCTION conta_ganha_pessoa() FROM PUBLIC;
+-
+-CREATE TRIGGER usuarios_ganha_pessoa
+-  BEFORE INSERT ON usuarios
+-  FOR EACH ROW
+-  EXECUTE FUNCTION conta_ganha_pessoa();
++REVOKE ALL ON FUNCTION conferir_origem_da_conta() FROM PUBLIC;
+ 
+ CREATE CONSTRAINT TRIGGER usuarios_origem_da_pessoa
+   AFTER INSERT ON usuarios
+   DEFERRABLE INITIALLY DEFERRED
+   FOR EACH ROW
+-  EXECUTE FUNCTION conta_ganha_pessoa();
++  EXECUTE FUNCTION conferir_origem_da_conta();
+ 
+ CREATE TRIGGER usuarios_nenhuma_pessoa_sem_conta
+   AFTER INSERT ON usuarios
+   FOR EACH STATEMENT
+-  EXECUTE FUNCTION conta_ganha_pessoa();
++  EXECUTE FUNCTION conferir_origem_da_conta();
+ 
+ -- ---------------------------------------------------------------------
+ -- 6. pessoa_id nao muda, para todo papel (gatilho comum dispara tambem para o
+@@ -626,10 +709,13 @@ CREATE TRIGGER usuarios_pessoa_id_nao_muda_no_estado_final
+   EXECUTE FUNCTION pessoa_da_conta_nao_muda();
+ 
+ -- ---------------------------------------------------------------------
+--- 7. pessoas e origens_de_conta sao permanentes: no lugar da chave
+--- estrangeira que o portao nao deixa declarar (ver o cabecalho, item b), a
+--- pessoa nao se apaga; e a marca nao se altera nem se apaga. Vale para o dono
+--- tambem; so uma migracao revisada muda isto (H98 decide o destino da pessoa).
++-- 7. pessoas e origens_de_conta sao permanentes: alem da chave estrangeira
++-- de `usuarios` (secao 13; `sessoes` e `origens_de_conta` apontam para a
++-- pessoa sem chave), a pessoa nao se apaga; e a marca nao se altera, nao se
++-- trunca e so se apaga quando a conta que ela descreve ja nao existe (correcao
++-- 4 da ADR 0009: a marca sai com a conta, pelo gatilho AFTER DELETE de
++-- usuarios da secao 5). Vale para o dono tambem; so uma migracao revisada
++-- muda isto (H98 decide o destino da pessoa).
+ -- ---------------------------------------------------------------------
+ CREATE FUNCTION linha_permanente() RETURNS trigger
+ LANGUAGE plpgsql
+@@ -653,8 +739,52 @@ CREATE TRIGGER pessoas_nao_se_truncam
+   BEFORE TRUNCATE ON pessoas
+   FOR EACH STATEMENT EXECUTE FUNCTION linha_permanente();
+ CREATE TRIGGER origens_de_conta_nao_se_reescrevem
+-  BEFORE UPDATE OR DELETE ON origens_de_conta
++  BEFORE UPDATE ON origens_de_conta
+   FOR EACH ROW EXECUTE FUNCTION linha_permanente();
++
++-- A marca de conta VIVA nao se apaga, para todo papel (correcao 4 da ADR
++-- 0009). Comum (SECURITY INVOKER): roda como quem apaga. "A conta ainda
++-- existe" precisa enxergar a conta em QUALQUER municipio, sem depender do
++-- contexto: se o RLS de usuarios vale para quem apaga (papel sem BYPASSRLS,
++-- que veria zero linhas), a trava recusa sem perguntar (falha fechada); e quem
++-- nao le usuarios recebe o erro de privilegio, que tambem recusa. O nome da
++-- tabela protegida nao aparece no corpo (regra da 0D: so o escritor a cita).
++CREATE FUNCTION marca_so_sai_com_a_conta() RETURNS trigger
++LANGUAGE plpgsql
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  IF TG_OP <> 'DELETE' OR TG_WHEN <> 'BEFORE' OR TG_LEVEL <> 'ROW' THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = 'marca_so_sai_com_a_conta so serve ao gatilho BEFORE DELETE de linha';
++  END IF;
++
++  IF row_security_active('public.usuarios'::regclass::oid) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = format('%s nao se apaga: quem apaga nao enxerga todas as contas para conferir que '
++                       'a conta da marca ja nao existe', TG_TABLE_NAME),
++      TABLE = TG_TABLE_NAME;
++  END IF;
++
++  IF EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = OLD.usuario_id) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = format('%s nao se apaga enquanto a conta que ela descreve existe: e registro '
++                       'permanente da conta (ADR 0009, decisao 1, correcao 4)', TG_TABLE_NAME),
++      TABLE = TG_TABLE_NAME;
++  END IF;
++
++  RETURN OLD;
++END;
++$$;
++
++REVOKE ALL ON FUNCTION marca_so_sai_com_a_conta() FROM PUBLIC;
++
++CREATE TRIGGER origens_de_conta_so_saem_com_a_conta
++  BEFORE DELETE ON origens_de_conta
++  FOR EACH ROW EXECUTE FUNCTION marca_so_sai_com_a_conta();
+ CREATE TRIGGER origens_de_conta_nao_se_truncam
+   BEFORE TRUNCATE ON origens_de_conta
+   FOR EACH STATEMENT EXECUTE FUNCTION linha_permanente();
+@@ -962,7 +1092,10 @@ GRANT EXECUTE ON FUNCTION travar_pessoa_da_conta(uuid) TO dc360_app;
+ -- bloqueado_ate, senha_provisoria_ate) e a foto da propria conta (foto_chave,
+ -- foto_bytes). `id`, `organizacao_id`, `criado_em`, `ultimo_acesso` (gravado
+ -- so por registrar_tentativa_login, que e do dono) e `pessoa_id` ficam fora.
+--- O INSERT continua de tabela (cabecalho, item a).
++-- O INSERT tambem passa a ser por coluna (cabecalho, item a): a lista
++-- positiva das colunas que o cadastro de conta grava, sem `pessoa_id` (e sem
++-- `criado_em`, `ultimo_acesso` e `busca`). E a chave estrangeira para a
++-- pessoa global (item b), depois do backfill da secao 3.
+ -- ---------------------------------------------------------------------
+ REVOKE UPDATE ON usuarios FROM dc360_app;
+ GRANT UPDATE (nome, matricula, email, papel, equipe_id, ativo,
+@@ -970,6 +1103,15 @@ GRANT UPDATE (nome, matricula, email, papel, equipe_id, ativo,
+               foto_chave, foto_bytes)
+   ON usuarios TO dc360_app;
+ 
++REVOKE INSERT ON usuarios FROM dc360_app;
++GRANT INSERT (id, organizacao_id, nome, matricula, email, papel, equipe_id, ativo,
++              senha_hash, falhas_login, bloqueado_ate, senha_provisoria_ate,
++              foto_chave, foto_bytes)
++  ON usuarios TO dc360_app;
++
++ALTER TABLE usuarios ADD CONSTRAINT usuarios_pessoa_id_fkey
++  FOREIGN KEY (pessoa_id) REFERENCES pessoas (id);
++
+ -- ---------------------------------------------------------------------
+ -- 14. Sem TEMP para os papeis do produto (C1).
+ --
+@@ -1011,7 +1153,7 @@ COMMENT ON COLUMN pessoas.ativo IS
+ COMMENT ON COLUMN pessoas.email_verificado_em IS
+   'Quando a pessoa provou que recebe no e-mail. Nulo para toda pessoa do backfill: nao havia verificacao antes da F03.';
+ COMMENT ON TABLE origens_de_conta IS
+-  'De onde veio o pessoa_id de cada conta (ADR 0009, correcao 3): backfill (054), criador (gatilho criador) ou aceite (aceitar_convite, E10), com a transacao de quem gravou. Registro permanente, sem privilegio nenhum do papel de aplicacao.';
++  'De onde veio o pessoa_id de cada conta (ADR 0009, correcao 3): backfill (054), criador (gatilho criador) ou aceite (aceitar_convite, E10), com a transacao de quem gravou. Registro permanente da conta: nao se altera, e so sai junto com a conta que descreve, pelo gatilho AFTER DELETE de usuarios (correcao 4). Sem privilegio nenhum do papel de aplicacao.';
+ COMMENT ON COLUMN usuarios.pessoa_id IS
+   'A pessoa dona desta conta (ADR 0009). Atribuido uma vez, na criacao, e nunca muda. Uma conta por pessoa no sistema ate a liberacao da segunda conta (064).';
+ COMMENT ON COLUMN sessoes.pessoa_id IS
+diff --git a/dc360/db/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql b/dc360/db/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql
+index f2166f27..b4f3b8b1 100644
+--- a/dc360/db/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql
++++ b/dc360/db/migrations/desfazer/054_pessoas_e_conta_no_municipio.sql
+@@ -16,6 +16,9 @@
+ -- tabela leva junto os privilegios de coluna que a 054 concedeu.
+ REVOKE UPDATE ON usuarios FROM dc360_app;
+ GRANT UPDATE ON usuarios TO dc360_app;
++-- O mesmo para o INSERT (juncao do lote 1): volta a ser de TABELA.
++REVOKE INSERT ON usuarios FROM dc360_app;
++GRANT INSERT ON usuarios TO dc360_app;
+ 
+ DROP TRIGGER IF EXISTS sessao_carrega_a_pessoa ON sessoes;
+ DROP TRIGGER IF EXISTS pessoa_recebe_a_credencial_da_conta ON usuarios;
+@@ -25,6 +28,7 @@ DROP TRIGGER IF EXISTS usuarios_pessoa_id_nao_muda_no_estado_final ON usuarios;
+ DROP TRIGGER IF EXISTS usuarios_pessoa_id_nao_muda ON usuarios;
+ DROP TRIGGER IF EXISTS usuarios_origem_da_pessoa ON usuarios;
+ DROP TRIGGER IF EXISTS usuarios_ganha_pessoa ON usuarios;
++DROP TRIGGER IF EXISTS usuarios_marca_sai_com_a_conta ON usuarios;
+ 
+ DROP FUNCTION IF EXISTS travar_pessoa_da_conta(uuid);
+ DROP FUNCTION IF EXISTS travar_pessoa(uuid);
+@@ -34,11 +38,13 @@ DROP FUNCTION IF EXISTS sessao_carrega_a_pessoa();
+ DROP FUNCTION IF EXISTS pessoa_espelha_a_conta();
+ DROP FUNCTION IF EXISTS pessoa_da_conta_nao_muda();
+ DROP FUNCTION IF EXISTS conta_ganha_pessoa();
++DROP FUNCTION IF EXISTS conferir_origem_da_conta();
+ DROP FUNCTION IF EXISTS conta_nasce_no_contexto();
+ 
+ ALTER TABLE sessoes DROP CONSTRAINT IF EXISTS sessoes_conta_e_pessoa_do_mesmo_municipio;
+ ALTER TABLE sessoes DROP COLUMN IF EXISTS pessoa_id;
+ 
++ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_pessoa_id_fkey;
+ ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_org_id_pessoa_unico;
+ ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_pessoa_unica_no_municipio;
+ ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_uma_conta_por_pessoa;
+@@ -48,4 +54,5 @@ ALTER TABLE usuarios DROP COLUMN IF EXISTS pessoa_id;
+ DROP TABLE IF EXISTS origens_de_conta;
+ DROP TABLE IF EXISTS pessoas;
+ DROP FUNCTION IF EXISTS linha_permanente();
++DROP FUNCTION IF EXISTS marca_so_sai_com_a_conta();
+ DROP FUNCTION IF EXISTS chave_da_pessoa_nao_muda();
+diff --git a/dc360/db/test/catalogo/f03-e15.ts b/dc360/db/test/catalogo/f03-e15.ts
+index cc1c2ac1..5c2ce180 100644
+--- a/dc360/db/test/catalogo/f03-e15.ts
++++ b/dc360/db/test/catalogo/f03-e15.ts
+@@ -17,12 +17,16 @@
+  *   - as duas funções de GATILHO privilegiadas com `executavelPor: []`
+  *     (correção 1, C1): nenhum papel do produto as executa, porque o Postgres
+  *     só confere o EXECUTE de função de gatilho no `CREATE TRIGGER`, e o
+- *     EXECUTE só servia para anexá-las a outra tabela. É a forma da regra
+- *     "nenhum EXECUTE em função de gatilho para papel do produto" da parte 0G;
+- *     o portão de hoje (`conferirFuncoesPrivilegiadas`) ainda reprova função
+- *     privilegiada sem papel com EXECUTE, e essas duas linhas somem com a 0G;
+- *   - o UPDATE de `usuarios` por coluna, numa lista positiva sem `pessoa_id`
+- *     (a 054 tira o UPDATE de TABELA que vinha da 001);
++ *     EXECUTE só servia para anexá-las a outra tabela. Na forma do portão da
++ *     parte 0G: `gatilhoEm`, os `gatilhos` declarados um a um e a linha real
++ *     da prova da recusa fora da tabela (`semearParaProva`);
++ *   - o UPDATE e o INSERT de `usuarios` por coluna, em listas positivas sem
++ *     `pessoa_id` (`privilegiosDeColuna`; a 054 tira o UPDATE e o INSERT de
++ *     TABELA que vinham da 001);
++ *   - a chave `usuarios_pessoa_id_fkey` para a pessoa global
++ *     (`chavesParaGlobais`), e `pessoas` (global) e `origens_de_conta`
++ *     (protegida) com o destino na eliminação provado (`semMunicipio`: a pessoa
++ *     fica, a marca some com a conta, correção 4 da ADR 0009);
+  *   - o preparo de `origens_de_conta` para a prova comportamental (a coluna
+  *     `transacao` é `xid8`, que a fábrica genérica não sabe gerar).
+  *
+@@ -31,7 +35,7 @@
+  * `sessao_carrega_a_pessoa` são SECURITY INVOKER e por isso não entram aqui:
+  * rodam com o privilégio e o RLS de quem chama.
+  */
+-import type { ColunaComUpdate, ContribuicaoDoCatalogo } from "./tipos.js";
++import type { ContribuicaoDoCatalogo, DestinoNaEliminacao, PrivilegioDeColuna } from "./tipos.js";
+ 
+ const ETAPA = "V2-F03-E15";
+ const PROVA = "db/test/pessoas.test.ts";
+@@ -80,15 +84,102 @@ const UPDATE_DE_USUARIOS: ReadonlyArray<readonly [string, string]> = [
+   ["foto_bytes", "o tamanho da foto da própria conta, que o teto de armazenamento confere (045)"],
+ ];
+ 
+-const colunasComUpdate: readonly ColunaComUpdate[] = UPDATE_DE_USUARIOS.map(([coluna, uso]) => ({
+-  tabela: "usuarios",
+-  coluna,
+-  migracao: "054",
+-  etapa: ETAPA,
+-  motivo:
+-    `UPDATE por coluna, e não mais de tabela (054): ${uso}. A lista positiva deixa ` +
+-    "`pessoa_id` fora do alcance do papel de aplicação.",
+-}));
++/**
++ * O UPDATE e o INSERT de `usuarios` por coluna, cada um num grupo (a forma da
++ * parte 0G: a E08 encolhe cada lista com `redefine`, no arquivo dela). O
++ * INSERT é a lista positiva das colunas que o cadastro de conta grava (API,
++ * painel local, provisionamento por linha de comando), sem `pessoa_id`.
++ */
++const privilegiosDeColuna: readonly PrivilegioDeColuna[] = [
++  {
++    tabela: "usuarios",
++    papel: "dc360_app",
++    privilegio: "UPDATE",
++    colunas: UPDATE_DE_USUARIOS.map(([coluna]) => coluna),
++    migracao: "054",
++    etapa: ETAPA,
++    motivo:
++      "UPDATE por coluna, e não mais de tabela (054), numa lista positiva das colunas que a API " +
++      "grava hoje (" +
++      UPDATE_DE_USUARIOS.map(([c, uso]) => `${c}: ${uso}`).join("; ") +
++      "). `pessoa_id` fica fora; a E08 encolhe a lista com redefine.",
++  },
++  {
++    tabela: "usuarios",
++    papel: "dc360_app",
++    privilegio: "INSERT",
++    colunas: [
++      "id",
++      "organizacao_id",
++      "nome",
++      "matricula",
++      "email",
++      "papel",
++      "equipe_id",
++      "ativo",
++      "senha_hash",
++      "falhas_login",
++      "bloqueado_ate",
++      "senha_provisoria_ate",
++      "foto_chave",
++      "foto_bytes",
++    ],
++    migracao: "054",
++    etapa: ETAPA,
++    motivo:
++      "INSERT por coluna, e não mais de tabela (decisão 1 da ADR 0009, junção do lote 1): o " +
++      "cadastro de conta não informa `pessoa_id`, que o gatilho criador atribui; a recusa do " +
++      "`pessoa_id` informado passa a ser de privilégio (42501), e o gatilho fica como segunda trava.",
++  },
++];
++
++/** A conta da prova da eliminação e da recusa fora da tabela, pelo caminho de produção. */
++const SEMEAR_CONTA =
++  "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +
++  "VALUES (:org, 'Servidor da Prova', 'P-1', 'prova-eliminacao@exemplo.gov.br', 'administrador')";
++
++const SEMEAR_CONTA_DO_OUTRO =
++  "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) " +
++  "VALUES (:org, 'Servidor do Outro', 'P-2', 'outro-municipio-eliminacao@exemplo.gov.br', 'administrador')";
++
++const PESSOA_FICA: DestinoNaEliminacao = {
++  destino: "fica",
++  porque:
++    "A pessoa não se apaga na eliminação do município (ADR 0009, consequências; H98 decide o " +
++    "destino definitivo): ela pode ter conta noutro município, e a linha é global.",
++  semear: SEMEAR_CONTA,
++  semearOutroMunicipio: SEMEAR_CONTA_DO_OUTRO,
++  linhasDoMunicipio: "SELECT pessoa_id AS chave FROM usuarios WHERE organizacao_id = :org",
++  coluna: "id",
++};
++
++/**
++ * A marca SAI COM A CONTA (correção 4 da ADR 0009): nasce `some`, já na E15,
++ * porque a correção 1 da 0G preserva regime e destino numa redefinição.
++ */
++const ORIGEM_SOME: DestinoNaEliminacao = {
++  destino: "some",
++  porque:
++    "A marca é o registro de como a CONTA ganhou a pessoa (correção 3) e vai com a conta que " +
++    "descreve (correção 4): a eliminação apaga as contas do município, e o gatilho AFTER DELETE " +
++    "de `usuarios` apaga a marca de cada uma pelo `usuario_id`, e só ela. Sem `organizacao_id` e " +
++    "fora da ordem de apagamento; a marca da conta da mesma pessoa noutro município fica igual.",
++  semear: SEMEAR_CONTA,
++  semearOutroMunicipio: SEMEAR_CONTA_DO_OUTRO,
++  linhasDoMunicipio:
++    "SELECT o.usuario_id AS chave FROM origens_de_conta o JOIN usuarios u ON u.id = o.usuario_id " +
++    "WHERE u.organizacao_id = :org",
++  coluna: "usuario_id",
++};
++
++/**
++ * A linha real das duas funções de gatilho na prova da recusa fora da
++ * tabela (correção 2 da 0G): uma conta nova, pelo caminho de produção, que
++ * faz o gatilho criador pôr a pessoa e a marca; com isso a cópia da linha em
++ * `pg_temp.usuarios` carrega chaves que existem em `pessoas` e em
++ * `origens_de_conta`.
++ */
++const SEMEAR_PARA_PROVA = `${SEMEAR_CONTA.replace("prova-eliminacao@", "prova-gatilho@")};`;
+ 
+ const SEM_GRANT = { dc360_app: [], dc360_console: [], PUBLIC: [] } as const;
+ 
+@@ -100,30 +191,111 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
+       migracao: "054",
+       etapa: ETAPA,
+       executavelPor: [],
++      gatilhoEm: ["usuarios"],
++      gatilhos: [
++        {
++          tabela: "usuarios",
++          nome: "usuarios_ganha_pessoa",
++          momento: "BEFORE",
++          nivel: "ROW",
++          eventos: ["INSERT"],
++        },
++        {
++          tabela: "usuarios",
++          nome: "usuarios_marca_sai_com_a_conta",
++          momento: "AFTER",
++          nivel: "ROW",
++          eventos: ["DELETE"],
++        },
++      ],
++      semearParaProva: SEMEAR_PARA_PROVA,
+       motivo:
+-        "Função dos três gatilhos de INSERT de `public.usuarios`: o criador (BEFORE) cria a pessoa " +
+-        "NOVA da conta que chega sem `pessoa_id` e grava a marca `criador` em `origens_de_conta`; " +
+-        "o de comando (AFTER, FOR EACH STATEMENT) recusa marca `criador` da transação sem conta " +
+-        "(ON CONFLICT DO NOTHING); o adiado (constraint trigger) confere marca, transação e pessoa " +
+-        "da linha final. Privilegiada porque o `dc360_app` cadastra conta e não alcança `pessoas` " +
+-        "nem `origens_de_conta`. Nenhum papel do produto a executa (correção 1, C1).",
++        "ESCRITORA de `origens_de_conta`, nos dois gatilhos de `public.usuarios`: o criador " +
++        "(BEFORE INSERT) cria a pessoa NOVA da conta que chega sem `pessoa_id` e grava a marca " +
++        "`criador`; o de AFTER DELETE apaga a marca da conta apagada, e só ela (correção 4 da ADR " +
++        "0009). Não verifica: o verificador é a leitora `conferir_origem_da_conta` (correção 6). " +
++        "Privilegiada porque o `dc360_app` cadastra conta e não alcança `pessoas` nem " +
++        "`origens_de_conta`. Nenhum papel do produto a executa (correção 1, C1).",
+       tenant: "contexto",
+       confere:
+-        "Só serve aos três gatilhos nomeados de `public.usuarios` (confere TG_RELID, o nome, o " +
+-        "momento e o nível; outra tabela, mesmo TEMP `usuarios`, é recusada com 42501). Age só " +
+-        "sobre a linha inserida (NEW), sem parâmetro e sem procurar pessoa existente. Antes dela, " +
++        "Só serve aos dois gatilhos nomeados de `public.usuarios` (confere TG_RELID, a operação, " +
++        "o nome, o momento e o nível; outra tabela, mesmo TEMP `usuarios`, é recusada com 42501). " +
++        "Age só sobre a linha inserida (NEW) ou apagada (OLD, apagando só a marca dela), sem " +
++        "parâmetro e sem procurar pessoa existente. Antes dela, " +
+         "o gatilho comum `conta_nasce_no_municipio_do_contexto` recusa, com o erro da policy, a " +
+         "conta que o RLS recusaria (sem oráculo de e-mail); com município no contexto, ela mesma " +
+         "recusa a conta de outro município (o dono). `pessoa_id` informado é recusado (42501).",
+       provas: [PROVA],
+       gravaOrigemDeConta: "criador",
+     },
++    {
++      nome: "conferir_origem_da_conta",
++      assinatura: "public.conferir_origem_da_conta()",
++      migracao: "054",
++      etapa: ETAPA,
++      executavelPor: [],
++      gatilhoEm: ["usuarios"],
++      gatilhos: [
++        {
++          tabela: "usuarios",
++          nome: "usuarios_origem_da_pessoa",
++          momento: "AFTER",
++          nivel: "ROW",
++          eventos: ["INSERT"],
++          adiado: "INITIALLY DEFERRED",
++        },
++        {
++          tabela: "usuarios",
++          nome: "usuarios_nenhuma_pessoa_sem_conta",
++          momento: "AFTER",
++          nivel: "STATEMENT",
++          eventos: ["INSERT"],
++        },
++      ],
++      semearParaProva: SEMEAR_PARA_PROVA,
++      leOrigemDeConta: "verificador",
++      motivo:
++        "LEITORA de `origens_de_conta` (ADR 0009, decisão 1, correção 6): o verificador adiado " +
++        "(constraint trigger AFTER INSERT de linha) confere, no fim da transação, que a conta tem a " +
++        "marca `criador` da MESMA transação e da MESMA pessoa da linha final, e que a pessoa existe; " +
++        "o de comando (AFTER INSERT, FOR EACH STATEMENT) recusa marca `criador` da transação sem " +
++        "conta (ON CONFLICT DO NOTHING). Privilegiada porque o `dc360_app` não lê `origens_de_conta` " +
++        "nem `pessoas`. Nenhum papel do produto a executa.",
++      tenant: "antes_do_tenant",
++      confere:
++        "Não consulta município: a única chave é a conta que disparou o gatilho (`NEW.id`), já gravada sob o RLS de quem inseriu. Só LÊ: corpo conferido por lista permitida (`leitora.ts`), `search_path` fixo em " +
++        "`pg_catalog, public, pg_temp`, só a marca da própria conta (`usuario_id = NEW.id`) ou as " +
++        "da própria transação, e a pessoa só pelo id (`NEW.pessoa_id`); a recusa sai com SQLSTATE " +
++        "fixo e literais, sem valor lido. Só serve aos dois gatilhos nomeados de `public.usuarios` " +
++        "(TG_RELID, operação, nome, momento e nível; outra tabela é recusada com 42501).",
++      provas: [PROVA],
++    },
+     {
+       nome: "pessoa_espelha_a_conta",
+       assinatura: "public.pessoa_espelha_a_conta()",
+       migracao: "054",
+       etapa: ETAPA,
+       executavelPor: [],
++      gatilhoEm: ["usuarios"],
++      gatilhos: [
++        {
++          tabela: "usuarios",
++          nome: "pessoa_recebe_a_credencial_da_conta",
++          momento: "AFTER",
++          nivel: "ROW",
++          eventos: ["UPDATE"],
++          colunasDoUpdate: [
++            "senha_hash",
++            "falhas_login",
++            "bloqueado_ate",
++            "senha_provisoria_ate",
++            "email",
++          ],
++          quando:
++            "((old.senha_hash IS DISTINCT FROM new.senha_hash) OR (old.falhas_login IS DISTINCT FROM new.falhas_login) OR (old.bloqueado_ate IS DISTINCT FROM new.bloqueado_ate) OR (old.senha_provisoria_ate IS DISTINCT FROM new.senha_provisoria_ate) OR (old.email IS DISTINCT FROM new.email))",
++        },
++      ],
++      semearParaProva: SEMEAR_PARA_PROVA,
+       motivo:
+         "Espelho de mão única da credencial e do e-mail de `usuarios` para `pessoas` (P-04, passo " +
+         "1 da ADR 0009), no gatilho `pessoa_recebe_a_credencial_da_conta`, que dispara antes do " +
+@@ -193,6 +365,7 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
+         "BYPASSRLS lê zero linhas); nenhum privilégio de `dc360_app`, `dc360_console` ou PUBLIC, " +
+         "nem SELECT (toque do app dá 42501, provado em pessoas.test.ts); acesso só pelas funções " +
+         "desta lista; a lista conferida nos dois sentidos. A pessoa não se apaga (gatilho).",
++      semMunicipio: { especie: "global", naEliminacao: PESSOA_FICA },
+     },
+     {
+       tabela: "origens_de_conta",
+@@ -208,10 +381,26 @@ export const CATALOGO_F03_E15: ContribuicaoDoCatalogo = {
+       trava:
+         "RLS forçada sem policy e nenhum privilégio de papel nenhum do produto, nem SELECT: o " +
+         "`dc360_app` não define a marca. Só a função do gatilho criador cita a tabela (regra da " +
+-        "0D, `gravaOrigemDeConta`). Nada a altera nem a apaga (gatilho de linha permanente).",
++        "0D, `gravaOrigemDeConta`). Nada a altera (gatilho de linha permanente), e só sai com a conta que descreve (gatilho AFTER DELETE de `usuarios`; a marca de conta viva não se apaga para ninguém, correção 4).",
++      semMunicipio: { especie: "protegida", naEliminacao: ORIGEM_SOME },
++    },
++  ],
++  colunasComUpdate: [],
++  privilegiosDeColuna,
++  chavesParaGlobais: [
++    {
++      tabela: "usuarios",
++      restricao: "usuarios_pessoa_id_fkey",
++      colunas: ["pessoa_id"],
++      alvo: "pessoas",
++      colunasReferenciadas: ["id"],
++      migracao: "054",
++      etapa: ETAPA,
++      motivo:
++        "A conta aponta para a pessoa GLOBAL (decisão 1 da ADR 0009): a chave não pode incluir " +
++        "`organizacao_id`, porque a pessoa não tem município; nenhum papel do produto grava a coluna.",
+     },
+   ],
+-  colunasComUpdate,
+   preparos: [
+     {
+       tabela: "origens_de_conta",
+diff --git a/dc360/db/test/pessoas.test.ts b/dc360/db/test/pessoas.test.ts
+index 22066fc5..a4432bfb 100644
+--- a/dc360/db/test/pessoas.test.ts
++++ b/dc360/db/test/pessoas.test.ts
+@@ -50,6 +50,9 @@ import {
+   migracoesAplicadas,
+   type ExecutorSql,
+ } from "../src/index.js";
++import { conferirEliminacaoSemMunicipio } from "./catalogo/conferir.js";
++import { conferirCorpoDaLeitora } from "./catalogo/leitora.js";
++import { CATALOGO_F03_E15 } from "./catalogo/f03-e15.js";
+ 
+ const ARQUIVO_054 = "054_pessoas_e_conta_no_municipio.sql";
+ const DEV = { url: undefined, env: { AMBIENTE_DC360: "dev" } } as const;
+@@ -449,8 +452,18 @@ describe("negativo da origem: `pessoa_id` só nasce pelo gatilho criador", () =>
+         ),
+       ),
+     );
++    // Junção do lote 1 (decisão 1 da ADR 0009): o INSERT do app é por coluna e
++    // não inclui `pessoa_id`, então a recusa é de PRIVILÉGIO, antes de qualquer
++    // gatilho. O gatilho criador continua recusando quem tem a coluna (o dono,
++    // caso seguinte).
+     expect(e.code).toBe("42501");
+-    expect(e.message).toMatch(/permissao negada para informar usuarios\.pessoa_id/);
++    expect(e.message).toMatch(/permission denied for table usuarios/);
++    expect(
++      await umValor<boolean>(
++        db,
++        "SELECT has_column_privilege('dc360_app', 'usuarios', 'pessoa_id', 'INSERT') AS v",
++      ),
++    ).toBe(false);
+   });
+ 
+   it("função do DONO que não é o gatilho criador, com `set_config` de `dc360.*`, também é recusada no BEFORE INSERT", async () => {
+@@ -618,9 +631,17 @@ describe("`pessoa_id` é imutável e há uma conta por pessoa no sistema", () =>
+   });
+ 
+   it("um BEFORE UPDATE de teste que roda DEPOIS do de imutabilidade e troca a pessoa: o gatilho do estado final recusa", async () => {
++    // Junção do lote 1: com a chave `usuarios_pessoa_id_fkey`, um uuid qualquer
++    // seria recusado pela chave (23503) antes do gatilho do estado final. A
++    // sonda troca para uma pessoa que EXISTE e não tem conta, e assim é o
++    // gatilho que responde.
++    const semConta = await umValor<string>(
++      db,
++      "INSERT INTO pessoas (nome, email) VALUES ('Pessoa da Sonda', 'sonda.estado.final@exemplo.gov.br') RETURNING id AS v",
++    );
+     await db.exec(`
+       CREATE FUNCTION sonda_troca_no_update() RETURNS trigger LANGUAGE plpgsql AS $$
+-      BEGIN NEW.pessoa_id := gen_random_uuid(); RETURN NEW; END $$;
++      BEGIN NEW.pessoa_id := '${semConta}'::uuid; RETURN NEW; END $$;
+       CREATE TRIGGER zz_sonda_troca_no_update BEFORE UPDATE ON usuarios
+         FOR EACH ROW EXECUTE FUNCTION sonda_troca_no_update()`);
+     try {
+@@ -927,13 +948,35 @@ describe("o espelho: toda escrita de credencial e de e-mail na conta chega à pe
+         "SELECT has_table_privilege('dc360_app', 'usuarios', 'UPDATE') AS v",
+       ),
+     ).toBe(false);
+-    // INSERT continua de tabela (cabeçalho da 054, item a): quem recusa o pessoa_id é o criador.
++    // Junção do lote 1 (cabeçalho da 054, item a): o INSERT também é por coluna,
++    // sem `pessoa_id` (e sem `criado_em`, `ultimo_acesso` e `busca`).
+     expect(
+       await umValor<boolean>(
+         db,
+         "SELECT has_table_privilege('dc360_app', 'usuarios', 'INSERT') AS v",
+       ),
+-    ).toBe(true);
++    ).toBe(false);
++    const inserem = await db.query<{ coluna: string }>(`
++      SELECT a.attname::text AS coluna
++        FROM pg_attribute a WHERE a.attrelid = 'usuarios'::regclass AND a.attnum > 0 AND NOT a.attisdropped
++         AND has_column_privilege('dc360_app', 'usuarios'::regclass, a.attnum, 'INSERT')
++       ORDER BY a.attname`);
++    expect(inserem.rows.map((x) => x.coluna)).toEqual([
++      "ativo",
++      "bloqueado_ate",
++      "email",
++      "equipe_id",
++      "falhas_login",
++      "foto_bytes",
++      "foto_chave",
++      "id",
++      "matricula",
++      "nome",
++      "organizacao_id",
++      "papel",
++      "senha_hash",
++      "senha_provisoria_ate",
++    ]);
+   });
+ });
+ 
+@@ -1234,7 +1277,9 @@ const INVENTARIO_DO_BANCO: Readonly<Record<string, string>> = {
+     "grava a senha da conta do link (espelhada; E08 passa à pessoa)",
+   "chave_da_pessoa_nao_muda()": "054 (correção 1): recusa a mudança de pessoas.id",
+   "conta_ganha_pessoa()":
+-    "054: cria a pessoa nova e a marca criador; o de comando e o adiado conferem",
++    "054: cria a pessoa nova e a marca criador; tira a marca da conta apagada (correção 4)",
++  "conferir_origem_da_conta()":
++    "054: a leitora (correção 6) confere que a pessoa da conta existe, sem ler coluna nenhuma além do id",
+   "credenciais_da_pessoa(text)": "054: lê a credencial da pessoa (E02 passa a chamar)",
+   "credenciais_para_login(text)": "lê a credencial da conta (E02 troca; caminho antigo)",
+   "envio_so_para_dominio_do_catalogo()": "e-mail de órgão do ofício, não de pessoa",
+@@ -1466,7 +1511,9 @@ describe("correção 1, achado 1: as funções de gatilho não servem a outra ta
+                         AND t.tgrelid IN ('usuarios'::regclass, 'pessoas'::regclass,
+                                           'origens_de_conta'::regclass, 'sessoes'::regclass))
+          AND p.proname NOT IN ('foto_cabe_no_teto', 'senha_trocada_deixa_de_ser_provisoria',
+-                               'invalidar_recuperacoes_pendentes')
++                               'invalidar_recuperacoes_pendentes',
++                               -- da 053 (E04, junção do lote 1): SECURITY INVOKER, de antes da 054
++                               'usuarios_papel_nao_se_converte')
+        ORDER BY 1`);
+     expect(r.rows.map((l) => l.f)).toEqual(
+       expect.arrayContaining(["conta_ganha_pessoa", "pessoa_espelha_a_conta"]),
+@@ -1672,12 +1719,359 @@ describe("correção 1, achado 7: `pessoas.id` não muda", () => {
+   });
+ });
+ 
++/* ======================================================================= */
++/* 12b. Correção 4 da ADR 0009 (junção do lote 1): a marca sai com a     */
++/*      conta (o verificador adiado, leitora separada, no bloco 12c).    */
++/* ======================================================================= */
++
++describe("correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela", () => {
++  const retratoDasMarcas = async (excluir: string) =>
++    (
++      await db.query<{ l: string }>(
++        "SELECT row_to_json(o)::text AS l FROM origens_de_conta o WHERE o.usuario_id <> $1 ORDER BY 1",
++        [excluir],
++      )
++    ).rows.map((x) => x.l);
++
++  it("a conta apagada pelo dono leva a marca dela, e só ela: as outras marcas ficam iguais, valor por valor, e nenhuma fica sem conta", async () => {
++    const id = await umValor<string>(
++      db,
++      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
++       VALUES ($1, 'Conta que Sai', 'M-SAI', 'conta.sai@exemplo.gov.br', 'operador') RETURNING id AS v`,
++      [orgB],
++    );
++    expect(
++      await umValor<number>(
++        db,
++        "SELECT count(*)::int AS v FROM origens_de_conta WHERE usuario_id = $1",
++        [id],
++      ),
++    ).toBe(1);
++    const antes = await retratoDasMarcas(id);
++    await db.query("DELETE FROM usuarios WHERE id = $1", [id]);
++    expect(
++      await umValor<number>(
++        db,
++        "SELECT count(*)::int AS v FROM origens_de_conta WHERE usuario_id = $1",
++        [id],
++      ),
++    ).toBe(0);
++    expect(await retratoDasMarcas(id)).toEqual(antes);
++    // A pessoa da conta apagada fica (global).
++    expect(
++      await umValor<number>(
++        db,
++        "SELECT count(*)::int AS v FROM pessoas WHERE email = 'conta.sai@exemplo.gov.br'",
++      ),
++    ).toBe(1);
++  });
++
++  it("a marca de conta VIVA não se apaga, nem pelo dono; a de conta que já não existe, sim (pelo dono)", async () => {
++    const viva = await erroDe(
++      db.query("DELETE FROM origens_de_conta WHERE usuario_id = $1", [contas["B1"]]),
++    );
++    expect(viva.code).toBe("42501");
++    expect(viva.message).toMatch(/nao se apaga enquanto a conta que ela descreve existe/);
++    // UPDATE e TRUNCATE continuam recusados sempre.
++    expect(
++      (
++        await erroDe(
++          db.query("UPDATE origens_de_conta SET origem = origem WHERE usuario_id = $1", [
++            contas["B1"],
++          ]),
++        )
++      ).code,
++    ).toBe("42501");
++    expect((await erroDe(db.query("TRUNCATE origens_de_conta"))).code).toBe("42501");
++  });
++
++  it("falha fechada: quem apaga sem enxergar todas as contas (o RLS de usuarios vale para ele) é recusado mesmo para marca sem conta", async () => {
++    const orfa = crypto.randomUUID();
++    const pessoa = await umValor<string>(
++      db,
++      "INSERT INTO pessoas (nome, email) VALUES ('Marca Orfa', 'marca.orfa@exemplo.gov.br') RETURNING id AS v",
++    );
++    await db.query(
++      "INSERT INTO origens_de_conta (usuario_id, pessoa_id, origem, transacao) VALUES ($1, $2, 'criador', pg_current_xact_id())",
++      [orfa, pessoa],
++    );
++    const e = await semRastro(async (tx) => {
++      await tx.exec("CREATE ROLE sonda_sem_bypass NOLOGIN");
++      await tx.exec("GRANT SELECT ON usuarios TO sonda_sem_bypass");
++      await tx.exec("GRANT SELECT, DELETE ON origens_de_conta TO sonda_sem_bypass");
++      await tx.exec(
++        "CREATE POLICY sonda_todas ON origens_de_conta FOR ALL TO sonda_sem_bypass USING (true)",
++      );
++      await tx.exec("SET LOCAL ROLE sonda_sem_bypass");
++      await tx.query("DELETE FROM origens_de_conta WHERE usuario_id = $1", [orfa]);
++    });
++    expect(e.code).toBe("42501");
++    expect(e.message).toMatch(/quem apaga nao enxerga todas as contas/);
++    // O dono, que enxerga todas, apaga a marca sem conta.
++    await db.query("DELETE FROM origens_de_conta WHERE usuario_id = $1", [orfa]);
++  });
++
++  it("conta inserida e apagada na mesma transação: a marca sai com ela, e o verificador recusa no fim (falha fechada)", async () => {
++    const e = await erroDe(
++      db.transaction(async (tx) => {
++        const id = await umValor<string>(
++          tx,
++          `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
++           VALUES ($1, 'Conta de Passagem', 'M-PAS', 'passagem@exemplo.gov.br', 'operador') RETURNING id AS v`,
++          [orgA],
++        );
++        await tx.query("DELETE FROM usuarios WHERE id = $1", [id]);
++      }),
++    );
++    expect(e).toMatchObject({ code: "23514", constraint: "usuarios_origem_da_pessoa" });
++  });
++
++  it("a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica", async () => {
++    const tabelas = CATALOGO_F03_E15.excecoes.filter((x) => x.semMunicipio);
++    expect(tabelas.map((x) => [x.tabela, x.semMunicipio!.naEliminacao.destino])).toEqual([
++      ["pessoas", "fica"],
++      ["origens_de_conta", "some"],
++    ]);
++    expect(await conferirEliminacaoSemMunicipio(db, tabelas)).toEqual([]);
++  });
++});
++
++/* ======================================================================= */
++/* 12c. Correção 6 da ADR 0009 (junção do lote 1): a leitora separada.      */
++/* ======================================================================= */
++
++/**
++ * Os contadores de escrita da transação de toda tabela e o estado de toda
++ * sequência (`last_value` e `is_called`, lidos da própria sequência: o
++ * `pg_sequences` não tem `is_called`). Lidos como dono.
++ */
++async function contadoresDaTransacao(tx: Transaction) {
++  const tabelas = (
++    await tx.query<{ relname: string; ins: string; upd: string; del: string }>(
++      `SELECT relname::text AS relname, n_tup_ins::text AS ins, n_tup_upd::text AS upd,
++              n_tup_del::text AS del
++         FROM pg_stat_xact_user_tables ORDER BY relname`,
++    )
++  ).rows;
++  const nomes = (
++    await tx.query<{ seq: string }>(
++      `SELECT quote_ident(schemaname) || '.' || quote_ident(sequencename) AS seq
++         FROM pg_sequences ORDER BY 1`,
++    )
++  ).rows;
++  const sequencias: Array<{ seq: string; estado: unknown }> = [];
++  for (const { seq } of nomes) {
++    const r = await tx.query(`SELECT last_value::text AS v, is_called AS c FROM ${seq}`);
++    sequencias.push({ seq, estado: r.rows[0] });
++  }
++  return { tabelas, sequencias };
++}
++
++const CABECALHO_DA_LEITORA = `CREATE OR REPLACE FUNCTION public.conferir_origem_da_conta() RETURNS trigger
++  LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $leitora$`;
++
++describe("correção 6 da ADR 0009: o verificador adiado é a leitora separada, que só lê", () => {
++  let semConta = "";
++  let corpoReal = "";
++
++  beforeAll(async () => {
++    semConta = await umValor<string>(
++      db,
++      "INSERT INTO pessoas (nome, email) VALUES ('Pessoa da Prova da Leitora', 'prova.leitora@exemplo.gov.br') RETURNING id AS v",
++    );
++    corpoReal = await umValor<string>(
++      db,
++      "SELECT prosrc AS v FROM pg_proc WHERE oid = 'public.conferir_origem_da_conta()'::regprocedure",
++    );
++  });
++
++  /** O corpo real com um trecho antes do último `RETURN NULL` (o ramo de linha). */
++  const sabotado = (trecho: string) => {
++    const i = corpoReal.lastIndexOf("RETURN NULL;");
++    return `${corpoReal.slice(0, i)}${trecho}\n  ${corpoReal.slice(i)}`;
++  };
++
++  /**
++   * Numa transação desfeita no fim: (a leitora trocada pelo corpo dado, se
++   * houver), o cadastro do dc360_app no município, o ponto de salvamento, a
++   * leitura, o disparo do adiado com SET CONSTRAINTS ... IMMEDIATE e a leitura
++   * de novo (depois de voltar ao ponto de salvamento, se o adiado recusou).
++   */
++  const dispararNaTransacao = async (
++    opcoes: {
++      preparo?: string;
++      corpo?: string;
++      antesDoInsert?: (tx: Transaction) => Promise<void>;
++    } = {},
++  ) => {
++    const r: {
++      antes?: Awaited<ReturnType<typeof contadoresDaTransacao>>;
++      depois?: Awaited<ReturnType<typeof contadoresDaTransacao>>;
++      erro: Erro | null;
++    } = { erro: null };
++    await db.transaction(async (tx) => {
++      if (opcoes.preparo) await tx.exec(opcoes.preparo);
++      if (opcoes.corpo) await tx.exec(`${CABECALHO_DA_LEITORA}${opcoes.corpo}$leitora$`);
++      if (opcoes.antesDoInsert) {
++        await opcoes.antesDoInsert(tx);
++      } else {
++        await tx.exec("SET LOCAL ROLE dc360_app");
++        await tx.query("SELECT set_config('app.organizacao_atual', $1, true)", [orgA]);
++        await tx.query(
++          `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
++         VALUES ($1, 'Prova da Leitora', 'M-LEI', 'conta.leitora@exemplo.gov.br', 'operador')`,
++          [orgA],
++        );
++        await tx.exec("RESET ROLE");
++      }
++      await tx.exec("SAVEPOINT antes_do_adiado");
++      r.antes = await contadoresDaTransacao(tx);
++      try {
++        await tx.exec("SET CONSTRAINTS usuarios_origem_da_pessoa IMMEDIATE");
++      } catch (e) {
++        r.erro = e as Erro;
++        await tx.exec("ROLLBACK TO SAVEPOINT antes_do_adiado");
++      }
++      r.depois = await contadoresDaTransacao(tx);
++      await tx.rollback();
++    });
++    return r;
++  };
++
++  it("no catálogo do banco: os dois gatilhos de conferência executam conferir_origem_da_conta, e nenhum AFTER INSERT de usuarios executa conta_ganha_pessoa", async () => {
++    const r = await db.query<{ gatilho: string; funcao: string; depois_do_insert: boolean }>(`
++      SELECT t.tgname::text AS gatilho, t.tgfoid::regproc::text AS funcao,
++             (t.tgtype::int & 2) = 0 AND (t.tgtype::int & 4) <> 0 AS depois_do_insert
++        FROM pg_trigger t
++       WHERE t.tgrelid = 'public.usuarios'::regclass AND NOT t.tgisinternal
++         AND t.tgfoid IN ('public.conferir_origem_da_conta()'::regprocedure,
++                          'public.conta_ganha_pessoa()'::regprocedure)
++       ORDER BY 1`);
++    expect(r.rows).toEqual([
++      { gatilho: "usuarios_ganha_pessoa", funcao: "conta_ganha_pessoa", depois_do_insert: false },
++      {
++        gatilho: "usuarios_marca_sai_com_a_conta",
++        funcao: "conta_ganha_pessoa",
++        depois_do_insert: false,
++      },
++      {
++        gatilho: "usuarios_nenhuma_pessoa_sem_conta",
++        funcao: "conferir_origem_da_conta",
++        depois_do_insert: true,
++      },
++      {
++        gatilho: "usuarios_origem_da_pessoa",
++        funcao: "conferir_origem_da_conta",
++        depois_do_insert: true,
++      },
++    ]);
++  });
++
++  it("a leitora real passa na lista permitida, com o search_path fixo, e nenhum papel do produto a executa", async () => {
++    expect(conferirCorpoDaLeitora(corpoReal)).toEqual([]);
++    const p = (
++      await db.query<{ config: string[]; quem: string[] }>(`
++        SELECT p.proconfig AS config,
++               ARRAY(SELECT x FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) x
++                      WHERE has_function_privilege(x, p.oid, 'EXECUTE')) AS quem
++          FROM pg_proc p WHERE p.oid = 'public.conferir_origem_da_conta()'::regprocedure`)
++    ).rows[0]!;
++    expect(p).toEqual({ config: ["search_path=pg_catalog, public, pg_temp"], quem: [] });
++  });
++
++  it("prova adicional por contadores: o adiado disparado com IMMEDIATE não muda contador nem sequência, no caminho que passa e nos que recusam", async () => {
++    const passa = await dispararNaTransacao();
++    expect(passa.erro).toBeNull();
++    // A leitura enxerga a escrita da transação (a conta, a pessoa e a marca).
++    const linha = (n: string) => passa.antes!.tabelas.find((l) => l.relname === n);
++    expect(Number(linha("origens_de_conta")?.ins)).toBeGreaterThan(0);
++    expect(passa.depois).toEqual(passa.antes);
++
++    // Recusa 1: um BEFORE INSERT de teste depois do criador troca o pessoa_id.
++    const troca = await dispararNaTransacao({
++      preparo: `
++        CREATE FUNCTION sonda_troca_a_pessoa_leitora() RETURNS trigger LANGUAGE plpgsql AS $$
++        BEGIN NEW.pessoa_id := '${semConta}'::uuid; RETURN NEW; END $$;
++        CREATE TRIGGER zz_sonda_troca_a_pessoa_leitora BEFORE INSERT ON usuarios
++          FOR EACH ROW EXECUTE FUNCTION sonda_troca_a_pessoa_leitora();`,
++    });
++    expect(troca.erro).toMatchObject({ code: "23514", constraint: "usuarios_origem_da_pessoa" });
++    expect(troca.depois).toEqual(troca.antes);
++
++    // Recusa 2: conta sem marca (o criador desligado por DDL, só nesta transação).
++    const semMarca = await dispararNaTransacao({
++      preparo: "ALTER TABLE usuarios DISABLE TRIGGER usuarios_ganha_pessoa",
++      antesDoInsert: async (tx) => {
++        await tx.query(
++          `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, pessoa_id)
++           VALUES ($1, 'Sem Marca da Leitora', 'M-LSM', 'sem.marca.leitora@exemplo.gov.br', 'operador', $2)`,
++          [orgA, semConta],
++        );
++      },
++    });
++    expect(semMarca.erro).toMatchObject({ code: "23514", constraint: "usuarios_origem_da_pessoa" });
++    expect(semMarca.depois).toEqual(semMarca.antes);
++  });
++
++  it("as sete sabotagens da correção 6: todas reprovam na lista permitida; as que escrevem (tabela ou sequência) também nos contadores", async () => {
++    const PREPARO = `
++      CREATE TABLE public.sonda_aux_leitora (x int);
++      CREATE SEQUENCE public.sonda_seq_leitora;
++      CREATE FUNCTION public.sonda_auxiliar_que_escreve() RETURNS void LANGUAGE sql
++        AS 'INSERT INTO public.sonda_aux_leitora VALUES (1)';`;
++    const MARCA =
++      "INSERT INTO public.origens_de_conta (usuario_id, pessoa_id, origem, transacao) " +
++      "VALUES (gen_random_uuid(), gen_random_uuid(), 'criador', pg_current_xact_id()); " +
++      "DELETE FROM public.origens_de_conta WHERE transacao = pg_current_xact_id() AND origem = 'criador' AND usuario_id NOT IN (SELECT id FROM public.usuarios);";
++    const casos: Array<[string, string, boolean]> = [
++      ["pg_notify", "PERFORM pg_notify('x', NEW.id::text);", false],
++      ["pg_advisory_lock", "PERFORM pg_advisory_lock(1);", false],
++      ["set_config", "PERFORM set_config('dc360.x', 'y', false);", false],
++      ["nextval", "PERFORM nextval('public.sonda_seq_leitora');", true],
++      ["função auxiliar que escreve", "PERFORM public.sonda_auxiliar_que_escreve();", true],
++      ["marca temporária inserida e apagada", MARCA, true],
++      [
++        "a mesma escrita num bloco EXCEPTION",
++        `BEGIN ${MARCA} RAISE EXCEPTION 'sonda'; EXCEPTION WHEN OTHERS THEN NULL; END;`,
++        true,
++      ],
++    ];
++    for (const [nome, trecho, contadoresVeem] of casos) {
++      const corpo = sabotado(trecho);
++      expect(
++        conferirCorpoDaLeitora(corpo).length,
++        `${nome}: a lista permitida reprova`,
++      ).toBeGreaterThan(0);
++      const r = await dispararNaTransacao({ preparo: PREPARO, corpo });
++      expect(r.erro, `${nome}: a leitora sabotada ainda passa no caminho de aceite`).toBeNull();
++      if (contadoresVeem) {
++        expect(r.depois, `${nome}: os contadores veem a escrita`).not.toEqual(r.antes);
++      } else {
++        // O que nenhum contador vê: é o que a lista permitida tira do alcance.
++        expect(r.depois, `${nome}: os contadores não veem`).toEqual(r.antes);
++      }
++    }
++    // A trava consultiva de SESSÃO da sabotagem não sai com o ROLLBACK.
++    await db.query("SELECT pg_advisory_unlock_all()");
++  });
++});
++
+ /* ======================================================================= */
+ /* 13. Em Postgres real: duas conexões.                                     */
+ /* ======================================================================= */
+ 
+ const URL_DE_PROVA = process.env["DC360_POSTGRES_DE_PROVA"] ?? "";
+ 
++// O bloco abaixo PULA sem a variável. Pular em silêncio parece verde: o aviso diz
++// o que não foi provado e como rodar (junção do lote 1 da F03).
++if (!URL_DE_PROVA) {
++  console.warn(
++    "Testes de Postgres real de pessoas.test.ts PULADOS: DC360_POSTGRES_DE_PROVA não está definida. " +
++      "Aponte-a para um Postgres descartável (ex.: postgres://postgres:postgres@localhost:5432/postgres) " +
++      "para provar a trava da pessoa e a corrida do cadastro com duas conexões; o job `implantavel` do CI a define.",
++  );
++}
++
+ describe.skipIf(!URL_DE_PROVA)(
+   "Em Postgres real: a trava da pessoa e a corrida do cadastro",
+   () => {
+@@ -1757,6 +2151,97 @@ describe.skipIf(!URL_DE_PROVA)(
+       return false;
+     }
+ 
++    /**
++     * Prova adicional na CONFIRMAÇÃO (correção 6 da ADR 0009, item 4): a
++     * conexão que escreve confirma, pede a descarga e faz um comando seguinte;
++     * a que lê limpa a fotografia antes de cada leitura.
++     */
++    const acumulados = async () => {
++      await dono.query("SELECT pg_stat_clear_snapshot()");
++      const r = await dono.query<{ relname: string; ins: number; upd: number; del: number }>(
++        `SELECT relname::text AS relname, n_tup_ins::int AS ins, n_tup_upd::int AS upd,
++                n_tup_del::int AS del
++           FROM pg_stat_user_tables ORDER BY relname`,
++      );
++      return new Map(r.rows.map((l) => [l.relname, l]));
++    };
++    const diferenca = (
++      antes: Map<string, { ins: number; upd: number; del: number }>,
++      depois: Map<string, { ins: number; upd: number; del: number }>,
++    ) => {
++      const d: Record<string, { ins: number; upd: number; del: number }> = {};
++      for (const [nome, x] of depois) {
++        const a = antes.get(nome) ?? { ins: 0, upd: 0, del: 0 };
++        const y = { ins: x.ins - a.ins, upd: x.upd - a.upd, del: x.del - a.del };
++        if (y.ins || y.upd || y.del) d[nome] = y;
++      }
++      return d;
++    };
++    const descarregar = async (c: pg.Client) => {
++      await c.query("SELECT pg_stat_force_next_flush()");
++      await c.query("SELECT 1");
++    };
++
++    it("na confirmação: a diferença acumulada é exatamente usuarios, pessoas e origens_de_conta +1 inserção; e a sabotagem da marca temporária aparece", async () => {
++      await descarregar(dono);
++      const a = await conectar();
++      try {
++        await descarregar(a);
++        const inserir = async (email: string, sabotagem?: string) => {
++          await a.query("BEGIN");
++          if (sabotagem) await a.query(sabotagem);
++          await a.query("SET LOCAL ROLE dc360_app");
++          await a.query("SELECT set_config('app.organizacao_atual', $1, true)", [org2]);
++          await a.query(
++            "INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel) VALUES ($1, 'Confirma', $2, $3, 'operador')",
++            [org2, `CF-${email}`, email],
++          );
++          await a.query("COMMIT");
++          await descarregar(a);
++        };
++
++        const antes = await acumulados();
++        await inserir("confirma.leitora@exemplo.gov.br");
++        expect(diferenca(antes, await acumulados())).toEqual({
++          origens_de_conta: { ins: 1, upd: 0, del: 0 },
++          pessoas: { ins: 1, upd: 0, del: 0 },
++          usuarios: { ins: 1, upd: 0, del: 0 },
++        });
++
++        // A sabotagem: a leitora que insere e apaga uma marca temporária.
++        const corpo = (
++          await dono.query<{ v: string }>(
++            "SELECT prosrc AS v FROM pg_proc WHERE oid = 'public.conferir_origem_da_conta()'::regprocedure",
++          )
++        ).rows[0]!.v;
++        const i = corpo.lastIndexOf("RETURN NULL;");
++        const MARCA =
++          "INSERT INTO public.origens_de_conta (usuario_id, pessoa_id, origem, transacao) " +
++          "VALUES (gen_random_uuid(), gen_random_uuid(), 'criador', pg_current_xact_id()); " +
++          "DELETE FROM public.origens_de_conta WHERE transacao = pg_current_xact_id() AND origem = 'criador' " +
++          "AND usuario_id NOT IN (SELECT id FROM public.usuarios);";
++        const recriar = (c: string) =>
++          "CREATE OR REPLACE FUNCTION public.conferir_origem_da_conta() RETURNS trigger LANGUAGE plpgsql " +
++          `SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $leitora$${c}$leitora$`;
++        const antes2 = await acumulados();
++        try {
++          await inserir(
++            "sabotagem.leitora@exemplo.gov.br",
++            recriar(`${corpo.slice(0, i)}${MARCA}\n  ${corpo.slice(i)}`),
++          );
++        } finally {
++          await dono.query(recriar(corpo));
++        }
++        expect(diferenca(antes2, await acumulados())).toEqual({
++          origens_de_conta: { ins: 2, upd: 0, del: 1 },
++          pessoas: { ins: 1, upd: 0, del: 0 },
++          usuarios: { ins: 1, upd: 0, del: 0 },
++        });
++      } finally {
++        await a.end();
++      }
++    }, 60_000);
++
+     for (const primeiro of ["pela pessoa", "pela conta"] as const) {
+       it(`duas transações na mesma pessoa se enfileiram em N2 (primeiro ${primeiro}), sem 40P01`, async () => {
+         const a = await conectar();

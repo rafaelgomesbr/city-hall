@@ -1,0 +1,15 @@
+﻿
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a363c14d6b9e19fce/dc360/db
+
+ ✓ test/pessoas.test.ts (96 tests) 11111ms
+   ✓ `pessoa_id` é imutável e há uma conta por pessoa no sistema > os gatilhos estão habilitados depois de toda a cadeia de migrações, e o adiado é adiado  1334ms
+   ✓ a volta da 054 > aplicar, desfazer e reaplicar: colunas, índices, restrições, RLS, funções, gatilhos e privilégios idênticos  1799ms
+   ✓ a volta da 054 > falha fechada: se um papel do produto continua com TEMP depois do REVOKE (herdado de outro papel), a 054 não aplica  1437ms
+   ✓ correção 4 da ADR 0009: a marca sai com a conta que descreve, e só com ela > a eliminação de verdade (numa cópia, com COMMIT): as marcas do município eliminado somem, as do outro ficam iguais, e a pessoa fica  1230ms
+   ✓ Em Postgres real: a trava da pessoa e a corrida do cadastro > consumir_recuperacao contra um caminho na ordem (N4 e depois N7): espera na pessoa sem segurar o link, e sem 40P01  312ms
+
+ Test Files  1 passed (1)
+      Tests  96 passed (96)
+   Start at  19:23:25
+   Duration  12.24s (transform 192ms, setup 0ms, collect 587ms, tests 11.11s, environment 0ms, prepare 138ms)
+

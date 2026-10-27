@@ -1,0 +1,6 @@
+$ (em dc360) npm run lint:teto   # codigo 0
+
+> dc360@0.1.0 lint:teto
+> node scripts/lint-teto.mjs conferir
+
+OK: lint-teto.json confere com as baselines (431 supressões).

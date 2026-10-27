@@ -1,0 +1,2 @@
+Índices de evidência: 175 INDEX.md, 6612 arquivo(s) conferido(s) byte a byte.
+RESULTADO: OK

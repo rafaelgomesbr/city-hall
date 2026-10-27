@@ -1,0 +1,9 @@
+$ (em dc360) npm run formato:conferir   # a primeira rodada (abaixo) reprovou os dois arquivos novos; depois de npx prettier --write neles, a segunda deu: OK: 862 arquivo(s) de codigo conferidos; 664 na baseline (so desce)
+
+> dc360@0.1.0 formato:conferir
+> node scripts/formato-conferir.mjs
+
+REPROVADO: 2 arquivo(s) fora do Prettier e fora da baseline:
+- db/test/catalogo/f03-e15.ts
+- db/test/pessoas.test.ts
+Rode `npx prettier --write` neles (ou `node scripts/formato-conferir.mjs --formatar`).

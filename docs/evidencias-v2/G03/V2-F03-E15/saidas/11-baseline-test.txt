@@ -1,0 +1,38 @@
+$ (em dc360) node --test scripts/baseline.test.mjs   # codigo 0
+# Subtest: redige um JWT colado num texto
+# Subtest: redige o valor de Authorization Bearer e Basic
+# Subtest: redige usuário e senha de uma URL de banco
+# Subtest: troca o nome do usuário nas pastas pessoais
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+# Subtest: não mexe em texto comum
+# Subtest: lê as contagens do vitest
+# Subtest: lê as contagens do node --test e do jest
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+# Subtest: avaliar não aceita a ausência de contagem como confere
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+# Subtest: o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02)
+# Subtest: o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+# Subtest: o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada
+# Subtest: os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+# Subtest: a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente
+# Subtest: passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+# Subtest: o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+# Subtest: o resumo conta as divergências explicadas e diz por quê
+# Subtest: o conferidor de contagens reprova o número velho plantado e passa com o certo
+# Subtest: o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+# Subtest: suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+# Subtest: todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+# Subtest: o registro da deriva V-DEP-4 existe e diz que foi fechada
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 152.8822
